@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build output
+dist/
+build/
+out/
+
+# Development
+.env
+.env.local
+.env.*.local
+.DS_Store
+*.log
+.vscode/
+.idea/
+
+# Testing
+coverage/
+.nyc_output/
+
+# PocketBase
+pb_data/
+.pocketbase-version
+
+# Temporary files
+*.tmp
+.cache/
+app.tar.gz
+
+# IDE
+*.swp
+*.swo
+*~
+.vscode-server/

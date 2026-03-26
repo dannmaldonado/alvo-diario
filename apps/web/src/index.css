@@ -1,0 +1,165 @@
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 142 76% 36%;
+    --secondary-foreground: 144 61% 20%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --radius: 0.75rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Chart Colors - Distinct palette for subjects */
+    --chart-1: 221 83% 53%; /* Primary Blue */
+    --chart-2: 142 76% 36%; /* Secondary Green */
+    --chart-3: 280 65% 60%; /* Purple */
+    --chart-4: 35 92% 53%;  /* Orange */
+    --chart-5: 340 82% 52%; /* Pink/Red */
+    --chart-6: 190 90% 40%; /* Cyan */
+    --chart-7: 45 93% 47%;  /* Yellow */
+    --chart-8: 260 40% 40%; /* Deep Purple */
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 221 83% 53%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 142 76% 36%;
+    --secondary-foreground: 144 61% 95%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Chart Colors Dark Mode - Slightly desaturated for better contrast */
+    --chart-1: 221 83% 65%;
+    --chart-2: 142 76% 45%;
+    --chart-3: 280 65% 70%;
+    --chart-4: 35 92% 60%;
+    --chart-5: 340 82% 65%;
+    --chart-6: 190 90% 50%;
+    --chart-7: 45 93% 55%;
+    --chart-8: 260 40% 60%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "DM Sans", sans-serif;
+    overflow-x: clip;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    text-wrap: balance;
+  }
+}
+
+@layer components {
+  /* Progress Bar Styles */
+  .progress-bar {
+    @apply relative h-3 w-full overflow-hidden rounded-full bg-muted;
+  }
+
+  .progress-bar-fill {
+    @apply h-full rounded-full bg-gradient-to-r from-primary to-secondary transition-all duration-500;
+  }
+
+  /* Badge Styles */
+  .badge-earned {
+    @apply inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-secondary/20 to-secondary/10 px-4 py-2 text-sm font-medium text-secondary-foreground ring-1 ring-secondary/20;
+  }
+
+  .badge-locked {
+    @apply inline-flex items-center gap-2 rounded-xl bg-muted px-4 py-2 text-sm font-medium text-muted-foreground opacity-50;
+  }
+
+  /* Timer Display */
+  .timer-display {
+    @apply font-variant-numeric-tabular text-6xl font-bold tracking-tight md:text-8xl;
+    letter-spacing: -0.02em;
+  }
+
+  /* Study Card */
+  .study-card {
+    @apply rounded-2xl bg-card p-6 shadow-lg transition-all duration-200 hover:shadow-xl;
+  }
+
+  .study-card-muted {
+    @apply rounded-xl bg-muted p-6 transition-all duration-200;
+  }
+
+  /* Stat Card */
+  .stat-card {
+    @apply flex flex-col gap-2 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 p-4 ring-1 ring-primary/10;
+  }
+
+  .stat-value {
+    @apply font-variant-numeric-tabular text-3xl font-bold text-primary;
+  }
+
+  .stat-label {
+    @apply text-sm font-medium text-muted-foreground;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .font-variant-numeric-tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
