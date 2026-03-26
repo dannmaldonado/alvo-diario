@@ -77,9 +77,9 @@ window.onerror = (message, source, lineno, colno, errorObj) => {
 
 const configHorizonsConsoleErrorHandler = `
 const originalConsoleError = console.error;
-const MATCH_LINE_COL_REGEX = /:(\\d+):(\\d+)\\)?\\s*$/; // regex to match the :lineNum:colNum
-const MATCH_AT_REGEX = /^\\s*at\\s+(?:async\\s+)?(?:.*?\\s+)?\\(?/; // regex to remove the 'at' keyword and any 'async' or function name
-const MATCH_PATH_REGEX = /^\\//; // regex to remove the leading slash
+const MATCH_LINE_COL_REGEX = /:(\\d+):(\\d+)\\)?\\s*$/;
+const MATCH_AT_REGEX = /^\\s*at\\s+(?:async\\s+)?(?:.*?\\s+)?\\(?/;
+const MATCH_PATH_REGEX = /^\\//;
 
 function parseStackFrameLine(line) {
 	const lineColMatch = line.match(MATCH_LINE_COL_REGEX);
@@ -90,7 +90,7 @@ function parseStackFrameLine(line) {
 	if (idx === -1) return null;
 	const before = line.substring(0, idx);
 	const path = before.replace(MATCH_AT_REGEX, '').trim();
-	
+
 	if (!path) return null;
 
 	try {
@@ -212,51 +212,49 @@ if (window.navigation && window.self !== window.top) {
 
 const addTransformIndexHtml = {
 	name: 'add-transform-index-html',
-	transformIndexHtml(html) {
+	transformIndexHtml(html: string) {
 		const tags = [
 			{
 				tag: 'script',
 				attrs: { type: 'module' },
 				children: configHorizonsRuntimeErrorHandler,
-				injectTo: 'head',
+				injectTo: 'head' as const,
 			},
 			{
 				tag: 'script',
 				attrs: { type: 'module' },
 				children: configHorizonsViteErrorHandler,
-				injectTo: 'head',
+				injectTo: 'head' as const,
 			},
 			{
 				tag: 'script',
-				attrs: {type: 'module'},
+				attrs: { type: 'module' },
 				children: configHorizonsConsoleErrorHandler,
-				injectTo: 'head',
+				injectTo: 'head' as const,
 			},
 			{
 				tag: 'script',
 				attrs: { type: 'module' },
 				children: configWindowFetchMonkeyPatch,
-				injectTo: 'head',
+				injectTo: 'head' as const,
 			},
 			{
 				tag: 'script',
 				attrs: { type: 'module' },
 				children: configNavigationHandler,
-				injectTo: 'head',
+				injectTo: 'head' as const,
 			},
 		];
 
 		if (!isDev && process.env.TEMPLATE_BANNER_SCRIPT_URL && process.env.TEMPLATE_REDIRECT_URL) {
-			tags.push(
-				{
-					tag: 'script',
-					attrs: {
-						src: process.env.TEMPLATE_BANNER_SCRIPT_URL,
-						'template-redirect-url': process.env.TEMPLATE_REDIRECT_URL,
-					},
-					injectTo: 'head',
-				}
-			);
+			tags.push({
+				tag: 'script',
+				attrs: {
+					src: process.env.TEMPLATE_BANNER_SCRIPT_URL,
+					'template-redirect-url': process.env.TEMPLATE_REDIRECT_URL,
+				},
+				injectTo: 'head' as const,
+			});
 		}
 
 		return {
@@ -268,23 +266,31 @@ const addTransformIndexHtml = {
 
 console.warn = () => {};
 
-const logger = createLogger()
-const loggerError = logger.error
+const logger = createLogger();
+const loggerError = logger.error;
 
-logger.error = (msg, options) => {
+logger.error = (msg: string, options: any) => {
 	if (options?.error?.toString().includes('CssSyntaxError: [postcss]')) {
 		return;
 	}
 
 	loggerError(msg, options);
-}
+};
 
 export default defineConfig({
 	customLogger: logger,
 	plugins: [
-		...(isDev ? [inlineEditPlugin(), editModeDevPlugin(), selectionModePlugin(), iframeRouteRestorationPlugin(), pocketbaseAuthPlugin()] : []),
+		...(isDev
+			? [
+					inlineEditPlugin(),
+					editModeDevPlugin(),
+					selectionModePlugin(),
+					iframeRouteRestorationPlugin(),
+					pocketbaseAuthPlugin(),
+				]
+			: []),
 		react(),
-		addTransformIndexHtml
+		addTransformIndexHtml,
 	],
 	server: {
 		port: 3000,
@@ -295,19 +301,14 @@ export default defineConfig({
 		allowedHosts: true,
 	},
 	resolve: {
-		extensions: ['.jsx', '.js', '.tsx', '.ts', '.json', ],
+		extensions: ['.jsx', '.js', '.tsx', '.ts', '.json'],
 		alias: {
 			'@': path.resolve(__dirname, './src'),
 		},
 	},
 	build: {
 		rollupOptions: {
-			external: [
-				'@babel/parser',
-				'@babel/traverse',
-				'@babel/generator',
-				'@babel/types'
-			]
-		}
-	}
+			external: ['@babel/parser', '@babel/traverse', '@babel/generator', '@babel/types'],
+		},
+	},
 });
