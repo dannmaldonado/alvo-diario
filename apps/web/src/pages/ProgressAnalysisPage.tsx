@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext';
-import pb from '@/lib/pocketbaseClient';
+import { SessoesService } from '@/services/sessoes.service';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -33,12 +33,8 @@ const ProgressAnalysisPage: React.FC = () => {
     const fetchSessions = async () => {
       try {
         setLoading(true);
-        const records = await pb.collection('sessoes_estudo').getFullList({
-          filter: `user_id = "${currentUser.id}"`,
-          sort: '-data',
-          $autoCancel: false
-        });
-        setAllSessions(records);
+        const sessions = await SessoesService.getByUser(currentUser.id);
+        setAllSessions(sessions);
       } catch (error) {
         console.error('Error fetching sessions:', error);
         toast.error('Erro ao carregar dados de análise.');
@@ -74,7 +70,8 @@ const ProgressAnalysisPage: React.FC = () => {
     const { startOfMonth, startOfWeek, startOf7Days } = getDateBoundaries();
 
     return allSessions.filter(session => {
-      const sessionDate = new Date(session.data);
+      const typedSession = session as unknown as { data_sessao: string };
+      const sessionDate = new Date(typedSession.data_sessao);
       // Normalize session date to midnight for fair comparison
       sessionDate.setHours(0, 0, 0, 0);
 
@@ -99,12 +96,13 @@ const ProgressAnalysisPage: React.FC = () => {
     const uniqueDays = new Set();
 
     allSessions.forEach(session => {
-      const mins = session.duracao_minutos || 0;
-      const sessionDate = new Date(session.data);
+      const typedSession = session as unknown as { duracao_minutos: number; data_sessao: string };
+      const mins = typedSession.duracao_minutos || 0;
+      const sessionDate = new Date(typedSession.data_sessao);
       sessionDate.setHours(0, 0, 0, 0);
-      
+
       totalMinutesAll += mins;
-      uniqueDays.add(session.data);
+      uniqueDays.add(typedSession.data_sessao);
 
       if (sessionDate >= startOfMonth) totalMinutesMonth += mins;
       if (sessionDate >= startOfWeek) totalMinutesWeek += mins;
@@ -147,8 +145,8 @@ const ProgressAnalysisPage: React.FC = () => {
 
     // Sort ascending for timeline
     const sorted = [...filteredSessions].sort((a, b) => {
-      const aData = (a as unknown as { data: string }).data;
-      const bData = (b as unknown as { data: string }).data;
+      const aData = (a as unknown as { data_sessao: string }).data_sessao;
+      const bData = (b as unknown as { data_sessao: string }).data_sessao;
       const aDate = new Date(aData);
       const bDate = new Date(bData);
       return aDate.getTime() - bDate.getTime();
@@ -156,8 +154,8 @@ const ProgressAnalysisPage: React.FC = () => {
 
     const dailyMap: Record<string, number> = {};
     sorted.forEach(session => {
-      const typedSession = session as unknown as { data: string; duracao_minutos: number };
-      const dateStr = typedSession.data.split('T')[0];
+      const typedSession = session as unknown as { data_sessao: string; duracao_minutos: number };
+      const dateStr = typedSession.data_sessao.split('T')[0];
       if (!dailyMap[dateStr]) dailyMap[dateStr] = 0;
       dailyMap[dateStr] += typedSession.duracao_minutos;
     });
@@ -182,14 +180,14 @@ const ProgressAnalysisPage: React.FC = () => {
     // Initialize map with all subjects ever studied to show 0s if needed,
     // or just subjects in current filter. Let's show all subjects ever studied.
     allSessions.forEach(session => {
-      const typedSession = session as unknown as { materia: string; duracao_minutos: number; data: string };
+      const typedSession = session as unknown as { materia: string; duracao_minutos: number; data_sessao: string };
       const name = typedSession.materia || 'Desconhecida';
       if (!subjectMap[name]) {
         subjectMap[name] = { name, totalAll: 0, totalMonth: 0, totalWeek: 0, periodMinutes: 0 };
       }
 
       const mins = typedSession.duracao_minutos;
-      const sessionDate = new Date(typedSession.data);
+      const sessionDate = new Date(typedSession.data_sessao);
       sessionDate.setHours(0, 0, 0, 0);
 
       subjectMap[name].totalAll += mins;
