@@ -2,7 +2,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext';
-import pb from '@/lib/pocketbaseClient';
+import { CronogramaService } from '@/services/cronograma.service';
+import { SessoesService } from '@/services/sessoes.service';
+import { AuthService } from '@/services/auth.service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,13 +43,10 @@ const StudySessionPage: React.FC = () => {
   useEffect(() => {
     const fetchSchedule = async () => {
       try {
-        const records = await pb.collection('cronogramas').getFullList({
-          filter: `user_id = "${currentUser.id}" && status = "ativo"`,
-          $autoCancel: false
-        });
-        
-        if (records.length > 0) {
-          const activeSchedule = records[0] as any;
+        const cronogramas = await CronogramaService.getAll(currentUser.id);
+
+        if (cronogramas.length > 0) {
+          const activeSchedule = cronogramas[0] as any;
           setSchedule(activeSchedule);
 
           if (activeSchedule.materias) {
@@ -162,30 +161,32 @@ const StudySessionPage: React.FC = () => {
 
   const saveSession = async () => {
     if (!selectedSubject) return;
-    
+
     setSaving(true);
     try {
       const pontos = studyDuration; // 1 point per minute
       const today = new Date().toISOString().split('T')[0];
-      
-      await pb.collection('sessoes_estudo').create({
-        user_id: currentUser.id,
-        materia: selectedSubject,
-        data: today,
-        duracao_minutos: studyDuration,
-        pontos_ganhos: pontos
-      }, { $autoCancel: false });
 
-      await pb.collection('users').update(currentUser.id, {
+      // Save session via service
+      await SessoesService.create({
+        user_id: currentUser.id,
+        cronograma_id: schedule?.id || '',
+        materia: selectedSubject,
+        data_sessao: today,
+        duracao_minutos: studyDuration
+      });
+
+      // Update user points via service
+      await AuthService.updateUser({
         pontos_totais: (currentUser.pontos_totais || 0) + pontos
-      }, { $autoCancel: false });
+      });
 
       toast.success(`Sessão registrada! +${pontos} pontos`);
       setShowCompletionModal(false);
-      
+
       setIsBreak(true);
       setTimeLeft(breakDuration * 60);
-      
+
     } catch (error) {
       console.error('Error saving session:', error);
       toast.error('Erro ao registrar a sessão de estudo.');
