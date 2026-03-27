@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@/__tests__/helpers.tsx';
+import { render, screen } from '@/__tests__/helpers';
 import Header from '@/components/Header';
 
 // Mock react-router-dom

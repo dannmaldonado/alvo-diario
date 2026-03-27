@@ -1,44 +1,66 @@
 /**
  * Signup Page
- * User registration page
+ * User registration page with Zod validation and AuthService integration
  */
-// @ts-nocheck
 
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { AuthService } from '@/services';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import Header from '@/components/Header';
+import { z } from 'zod';
+import { isValidEmail, isValidPassword, isValidName } from '@/utils/validators';
 
-interface SignupFormData {
-  nome: string;
-  email: string;
-  password: string;
-  passwordConfirm: string;
-}
+/**
+ * Zod schema for signup form validation
+ */
+const SignupSchema = z
+  .object({
+    nome: z
+      .string()
+      .min(1, 'Nome é obrigatório')
+      .refine(isValidName, 'Nome deve ter no mínimo 2 caracteres'),
+    email: z
+      .string()
+      .min(1, 'Email é obrigatório')
+      .refine(isValidEmail, 'Email inválido'),
+    password: z
+      .string()
+      .min(1, 'Senha é obrigatória')
+      .refine(isValidPassword, 'Senha deve ter no mínimo 6 caracteres'),
+    passwordConfirm: z.string().min(1, 'Confirmar senha é obrigatório'),
+  })
+  .refine((data) => data.password === data.passwordConfirm, {
+    message: 'As senhas não coincidem',
+    path: ['passwordConfirm'],
+  });
+
+type SignupFormData = z.infer<typeof SignupSchema>;
 
 const SignupPage: React.FC = () => {
   const navigate = useNavigate();
   const { signup } = useAuth();
-  const [formData, setFormData] = useState<SignupFormData>({
+  const [formData, setFormData] = useState<Partial<SignupFormData>>({
     nome: '',
     email: '',
     password: '',
-    passwordConfirm: ''
+    passwordConfirm: '',
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
     setError('');
   };
 
@@ -47,39 +69,33 @@ const SignupPage: React.FC = () => {
     setError('');
     setLoading(true);
 
-    // Validation
-    if (!formData.nome || !formData.email || !formData.password || !formData.passwordConfirm) {
-      setError('Por favor, preencha todos os campos');
-      setLoading(false);
-      return;
-    }
+    try {
+      // Validate form data with Zod
+      const validatedData = SignupSchema.parse(formData);
 
-    if (formData.password.length < 8) {
-      setError('A senha deve ter no mínimo 8 caracteres');
-      setLoading(false);
-      return;
-    }
+      // Use AuthService for signup
+      await AuthService.signup({
+        email: validatedData.email,
+        password: validatedData.password,
+        nome: validatedData.nome,
+      });
 
-    if (formData.password !== formData.passwordConfirm) {
-      setError('As senhas não coincidem');
-      setLoading(false);
-      return;
-    }
-
-    const result = await signup(
-      formData.email,
-      formData.password,
-      formData.passwordConfirm,
-      formData.nome
-    );
-
-    if (result.success) {
+      // Navigate to dashboard on success
       navigate('/dashboard');
-    } else {
-      setError(result.error || 'Erro ao criar conta');
+    } catch (err) {
+      // Handle validation errors
+      if (err instanceof z.ZodError) {
+        const firstError = err.issues[0];
+        setError(firstError.message);
+      } else if (err instanceof Error) {
+        // Handle API errors (duplicate email, etc)
+        setError(err.message || 'Erro ao criar conta');
+      } else {
+        setError('Erro ao criar conta. Tente novamente.');
+      }
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -111,70 +127,65 @@ const SignupPage: React.FC = () => {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  {/* @ts-expect-error - UI label component lacks types */}
                   <Label htmlFor="nome">Nome completo</Label>
-                  {/* @ts-expect-error - UI input component lacks types */}
                   <Input
                     id="nome"
                     name="nome"
                     type="text"
                     placeholder="Seu nome"
-                    value={formData.nome}
+                    value={formData.nome || ''}
                     onChange={handleChange}
                     disabled={loading}
                     className="text-foreground"
+                    required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  {/* @ts-expect-error - UI label component lacks types */}
                   <Label htmlFor="email">Email</Label>
-                  {/* @ts-expect-error - UI input component lacks types */}
                   <Input
                     id="email"
                     name="email"
                     type="email"
                     placeholder="seu@email.com"
-                    value={formData.email}
+                    value={formData.email || ''}
                     onChange={handleChange}
                     disabled={loading}
                     className="text-foreground"
+                    required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  {/* @ts-expect-error - UI label component lacks types */}
                   <Label htmlFor="password">Senha</Label>
-                  {/* @ts-expect-error - UI input component lacks types */}
                   <Input
                     id="password"
                     name="password"
                     type="password"
-                    placeholder="Mínimo 8 caracteres"
-                    value={formData.password}
+                    placeholder="Mínimo 6 caracteres"
+                    value={formData.password || ''}
                     onChange={handleChange}
                     disabled={loading}
                     className="text-foreground"
+                    required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  {/* @ts-expect-error - UI label component lacks types */}
                   <Label htmlFor="passwordConfirm">Confirmar senha</Label>
-                  {/* @ts-expect-error - UI input component lacks types */}
                   <Input
                     id="passwordConfirm"
                     name="passwordConfirm"
                     type="password"
                     placeholder="Digite a senha novamente"
-                    value={formData.passwordConfirm}
+                    value={formData.passwordConfirm || ''}
                     onChange={handleChange}
                     disabled={loading}
                     className="text-foreground"
+                    required
                   />
                 </div>
 
-                {/* @ts-expect-error - UI button component lacks types */}
                 <Button
                   type="submit"
                   className="w-full"

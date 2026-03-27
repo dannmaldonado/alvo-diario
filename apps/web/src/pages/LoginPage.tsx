@@ -1,40 +1,54 @@
 /**
  * Login Page
- * User authentication page
+ * User authentication page with Zod validation and AuthService integration
  */
-// @ts-nocheck
 
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { AuthService } from '@/services';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import Header from '@/components/Header';
+import { z } from 'zod';
+import { isValidEmail, isValidPassword } from '@/utils/validators';
 
-interface LoginFormData {
-  email: string;
-  password: string;
-}
+/**
+ * Zod schema for login form validation
+ */
+const LoginSchema = z.object({
+  email: z
+    .string()
+    .min(1, 'Email é obrigatório')
+    .refine(isValidEmail, 'Email inválido'),
+  password: z
+    .string()
+    .min(1, 'Senha é obrigatória')
+    .refine(isValidPassword, 'Senha deve ter no mínimo 6 caracteres'),
+});
+
+type LoginFormData = z.infer<typeof LoginSchema>;
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [formData, setFormData] = useState<LoginFormData>({
+  const [formData, setFormData] = useState<Partial<LoginFormData>>({
     email: '',
-    password: ''
+    password: '',
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
     setError('');
   };
 
@@ -43,21 +57,32 @@ const LoginPage: React.FC = () => {
     setError('');
     setLoading(true);
 
-    if (!formData.email || !formData.password) {
-      setError('Por favor, preencha todos os campos');
-      setLoading(false);
-      return;
-    }
+    try {
+      // Validate form data with Zod
+      const validatedData = LoginSchema.parse(formData);
 
-    const result = await login(formData.email, formData.password);
+      // Use AuthService for login
+      await AuthService.login({
+        email: validatedData.email,
+        password: validatedData.password,
+      });
 
-    if (result.success) {
+      // Navigate to dashboard on success
       navigate('/dashboard');
-    } else {
-      setError(result.error || 'Email ou senha incorretos');
+    } catch (err) {
+      // Handle validation errors
+      if (err instanceof z.ZodError) {
+        const firstError = err.issues[0];
+        setError(firstError.message);
+      } else if (err instanceof Error) {
+        // Handle API errors
+        setError(err.message || 'Email ou senha incorretos');
+      } else {
+        setError('Erro ao fazer login. Tente novamente.');
+      }
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -89,38 +114,35 @@ const LoginPage: React.FC = () => {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  {/* @ts-expect-error - UI label component lacks types */}
                   <Label htmlFor="email">Email</Label>
-                  {/* @ts-expect-error - UI input component lacks types */}
                   <Input
                     id="email"
                     name="email"
                     type="email"
                     placeholder="seu@email.com"
-                    value={formData.email}
-                    onChange={(e: any) => handleChange(e)}
+                    value={formData.email || ''}
+                    onChange={handleChange}
                     disabled={loading}
                     className="text-foreground"
+                    required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  {/* @ts-expect-error - UI label component lacks types */}
                   <Label htmlFor="password">Senha</Label>
-                  {/* @ts-expect-error - UI input component lacks types */}
                   <Input
                     id="password"
                     name="password"
                     type="password"
                     placeholder="••••••••"
-                    value={formData.password}
-                    onChange={(e: any) => handleChange(e)}
+                    value={formData.password || ''}
+                    onChange={handleChange}
                     disabled={loading}
                     className="text-foreground"
+                    required
                   />
                 </div>
 
-                {/* @ts-expect-error - UI button component lacks types */}
                 <Button
                   type="submit"
                   className="w-full"

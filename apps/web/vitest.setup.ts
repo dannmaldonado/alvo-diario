@@ -1,4 +1,5 @@
-import { expect, afterEach, vi, beforeAll, afterAll } from 'vitest';
+/* global global */
+import { expect, afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
