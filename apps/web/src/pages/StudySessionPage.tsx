@@ -1,4 +1,3 @@
-// @ts-nocheck
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
@@ -48,24 +47,24 @@ const StudySessionPage: React.FC = () => {
         });
         
         if (records.length > 0) {
-          const activeSchedule = records[0];
+          const activeSchedule = records[0] as any;
           setSchedule(activeSchedule);
-          
+
           if (activeSchedule.materias) {
-            const subjectNames = activeSchedule.materias.map(m => m.name);
+            const subjectNames = activeSchedule.materias.map((m: any) => m.name);
             setSubjects(subjectNames);
-            
+
             // Calculate today's subject
             const today = new Date();
             const current = getCurrentSubject(activeSchedule, today);
             const info = getCycleInfo(activeSchedule, today);
-            
+
             setTodaySubject(current);
             setCycleInfo(info);
-            
+
             // Auto-select today's subject if available
-            if (current && current.name) {
-              setSelectedSubject(current.name);
+            if (current && (current as any).name) {
+              setSelectedSubject((current as any).name);
             } else if (subjectNames.length > 0) {
               setSelectedSubject(subjectNames[0]);
             }

@@ -1,4 +1,3 @@
-// @ts-nocheck
 
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
@@ -79,11 +78,8 @@ const ProfilePage: React.FC = () => {
               {/* Left Column - Stats & Avatar */}
               <div className="space-y-6 md:col-span-1">
                 <div className="study-card text-center">
-                  {/* @ts-expect-error - UI avatar component lacks types */}
                   <Avatar className="mx-auto mb-4 h-24 w-24">
-                    {/* @ts-expect-error - UI avatar image component lacks types */}
-                    <AvatarImage src={currentUser?.avatar ? pb.files.getUrl(currentUser, currentUser.avatar) : ''} />
-                    {/* @ts-expect-error - UI avatar fallback component lacks types */}
+                    <AvatarImage src="" />
                     <AvatarFallback className="bg-primary/10 text-2xl text-primary">
                       {getInitials(currentUser?.nome)}
                     </AvatarFallback>
@@ -125,9 +121,7 @@ const ProfilePage: React.FC = () => {
                   
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      {/* @ts-expect-error - UI label component lacks types */}
                       <Label htmlFor="nome">Nome Completo</Label>
-                      {/* @ts-expect-error - UI input component lacks types */}
                       <Input
                         id="nome"
                         name="nome"
@@ -138,9 +132,7 @@ const ProfilePage: React.FC = () => {
                     </div>
 
                     <div className="space-y-2">
-                      {/* @ts-expect-error - UI label component lacks types */}
                       <Label htmlFor="email">Email (não editável)</Label>
-                      {/* @ts-expect-error - UI input component lacks types */}
                       <Input
                         id="email"
                         value={currentUser?.email || ''}
@@ -156,9 +148,7 @@ const ProfilePage: React.FC = () => {
                   
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      {/* @ts-expect-error - UI label component lacks types */}
                       <Label htmlFor="meta_diaria_horas">Meta Diária (horas)</Label>
-                      {/* @ts-expect-error - UI input component lacks types */}
                       <Input
                         id="meta_diaria_horas"
                         name="meta_diaria_horas"
@@ -178,7 +168,6 @@ const ProfilePage: React.FC = () => {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  {/* @ts-expect-error - UI button component lacks types */}
                   <Button
                     variant="outline"
                     className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20"
@@ -188,7 +177,6 @@ const ProfilePage: React.FC = () => {
                     Sair da conta
                   </Button>
 
-                  {/* @ts-expect-error - UI button component lacks types */}
                   <Button onClick={handleSave} disabled={saving}>
                     <Save className="mr-2 h-4 w-4" />
                     {saving ? 'Salvando...' : 'Salvar Alterações'}

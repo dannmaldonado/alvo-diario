@@ -1,4 +1,3 @@
-// @ts-nocheck
 
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
@@ -225,7 +224,6 @@ const DashboardPage: React.FC = () => {
                 </div>
 
                 <div className="relative z-10 mt-auto">
-                  {/* @ts-expect-error - UI button component lacks types */}
                   <Button size="lg" asChild className="w-full sm:w-auto rounded-xl h-14 px-8 text-lg shadow-md hover:shadow-xl transition-all">
                     <Link to="/study-session">
                       <Play className="mr-2 h-5 w-5 fill-current" />
@@ -313,7 +311,6 @@ const DashboardPage: React.FC = () => {
               <div className="md:col-span-3 mt-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-bold">Estatísticas do Mês</h3>
-                  {/* @ts-expect-error - UI button component lacks types */}
                   <Button variant="ghost" size="sm" asChild className="text-primary">
                     <Link to="/analise">Ver Análise Completa <ArrowRight className="ml-2 h-4 w-4" /></Link>
                   </Button>
@@ -364,7 +361,6 @@ const DashboardPage: React.FC = () => {
               <p className="text-muted-foreground mb-8 text-lg">
                 Crie seu cronograma de estudos baseado no edital para começar a acompanhar seu progresso diário.
               </p>
-              {/* @ts-expect-error - UI button component lacks types */}
               <Button size="lg" asChild className="rounded-xl px-8">
                 <Link to="/cronograma">Criar Meu Cronograma</Link>
               </Button>

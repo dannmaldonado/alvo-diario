@@ -1,4 +1,3 @@
-// @ts-nocheck
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet';
@@ -299,7 +298,6 @@ const ProgressAnalysisPage: React.FC = () => {
                 { id: 'all', label: 'Todo Período' }
               ].map(p => (
                 <>
-                  {/* @ts-expect-error - UI button component lacks types */}
                   <Button
                     key={p.id}
                     variant={period === p.id ? 'default' : 'ghost'}
@@ -470,43 +468,30 @@ const ProgressAnalysisPage: React.FC = () => {
               <p className="text-sm text-muted-foreground">Visão geral de horas estudadas em diferentes períodos.</p>
             </div>
             <div className="overflow-x-auto">
-              {/* @ts-expect-error - UI table component lacks types */}
               <Table>
-                {/* @ts-expect-error - UI table header component lacks types */}
                 <TableHeader className="bg-muted/50">
-                  {/* @ts-expect-error - UI table row component lacks types */}
                   <TableRow>
-                    {/* @ts-expect-error - UI table head component lacks types */}
                     <TableHead className="w-[300px]">
-                      {/* @ts-expect-error - UI button component lacks types */}
                       <Button variant="ghost" onClick={() => handleSort('name')} className="font-semibold hover:bg-transparent px-0">
                         Matéria <ArrowUpDown className="ml-2 h-4 w-4" />
                       </Button>
                     </TableHead>
-                    {/* @ts-expect-error - UI table head component lacks types */}
                     <TableHead className="text-right">
-                      {/* @ts-expect-error - UI button component lacks types */}
                       <Button variant="ghost" onClick={() => handleSort('totalHours')} className="font-semibold hover:bg-transparent px-0">
                         Total (h) <ArrowUpDown className="ml-2 h-4 w-4" />
                       </Button>
                     </TableHead>
-                    {/* @ts-expect-error - UI table head component lacks types */}
                     <TableHead className="text-right">
-                      {/* @ts-expect-error - UI button component lacks types */}
                       <Button variant="ghost" onClick={() => handleSort('monthHours')} className="font-semibold hover:bg-transparent px-0">
                         Este Mês (h) <ArrowUpDown className="ml-2 h-4 w-4" />
                       </Button>
                     </TableHead>
-                    {/* @ts-expect-error - UI table head component lacks types */}
                     <TableHead className="text-right">
-                      {/* @ts-expect-error - UI button component lacks types */}
                       <Button variant="ghost" onClick={() => handleSort('weekHours')} className="font-semibold hover:bg-transparent px-0">
                         Esta Semana (h) <ArrowUpDown className="ml-2 h-4 w-4" />
                       </Button>
                     </TableHead>
-                    {/* @ts-expect-error - UI table head component lacks types */}
                     <TableHead className="text-right">
-                      {/* @ts-expect-error - UI button component lacks types */}
                       <Button variant="ghost" onClick={() => handleSort('percentage')} className="font-semibold hover:bg-transparent px-0">
                         % do Período <ArrowUpDown className="ml-2 h-4 w-4" />
                       </Button>

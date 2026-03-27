@@ -1,4 +1,3 @@
-// @ts-nocheck
 
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
@@ -171,7 +170,6 @@ const CronogramaPage: React.FC = () => {
     return (
       <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
         <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
-          {/* @ts-expect-error - UI button component lacks types */}
           <Button
             variant="outline"
             size="icon"
@@ -186,7 +184,6 @@ const CronogramaPage: React.FC = () => {
               {cycleStartDate.toLocaleDateString('pt-BR')} - {days[days.length-1].date.toLocaleDateString('pt-BR')}
             </p>
           </div>
-          {/* @ts-expect-error - UI button component lacks types */}
           <Button
             variant="outline"
             size="icon"
@@ -292,7 +289,6 @@ const CronogramaPage: React.FC = () => {
                     {materias.map((materia, index) => (
                       <div key={index} className="flex items-center gap-2">
                         <div className="flex-1">
-                          {/* @ts-expect-error - UI input component lacks types */}
                           <Input
                             value={materia.name}
                             onChange={(e: any) => updateMateria(index, 'name', e.target.value)}
@@ -300,7 +296,6 @@ const CronogramaPage: React.FC = () => {
                             className="h-9"
                           />
                         </div>
-                        {/* @ts-expect-error - UI button component lacks types */}
                         <Button variant="ghost" size="icon" onClick={() => removeMateria(index)} className="h-9 w-9 text-destructive hover:bg-destructive/10">
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -308,11 +303,9 @@ const CronogramaPage: React.FC = () => {
                     ))}
                   </div>
                   <div className="flex flex-col gap-3">
-                    {/* @ts-expect-error - UI button component lacks types */}
                     <Button variant="outline" onClick={addMateria} className="w-full border-dashed">
                       <Plus className="mr-2 h-4 w-4" /> Adicionar Matéria
                     </Button>
-                    {/* @ts-expect-error - UI button component lacks types */}
                     <Button onClick={saveCronograma} disabled={saving} className="w-full">
                       {saving ? 'Salvando...' : 'Salvar Alterações'}
                     </Button>
@@ -338,7 +331,6 @@ const CronogramaPage: React.FC = () => {
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  {/* @ts-expect-error - UI label component lacks types */}
                   <Label htmlFor="edital">Edital Foco</Label>
                   <Select value={edital} onValueChange={setEdital}>
                     <SelectTrigger id="edital" className="h-12">
@@ -353,9 +345,7 @@ const CronogramaPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  {/* @ts-expect-error - UI label component lacks types */}
                   <Label htmlFor="dataAlvo">Data Prevista da Prova</Label>
-                  {/* @ts-expect-error - UI input component lacks types */}
                   <Input
                     id="dataAlvo"
                     type="date"
@@ -367,7 +357,6 @@ const CronogramaPage: React.FC = () => {
 
                 {materias.length === 0 ? (
                   <>
-                    {/* @ts-expect-error - UI button component lacks types */}
                     <Button onClick={generateSchedule} className="w-full h-12 text-lg" disabled={!edital || !dataAlvo}>
                       Gerar Ciclo Base
                     </Button>
@@ -382,7 +371,6 @@ const CronogramaPage: React.FC = () => {
                         ))}
                       </div>
                     </div>
-                    {/* @ts-expect-error - UI button component lacks types */}
                     <Button onClick={saveCronograma} disabled={saving} className="w-full h-12 text-lg">
                       {saving ? 'Salvando...' : 'Confirmar e Criar Cronograma'}
                     </Button>
