@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext';
-import pb from '@/lib/pocketbaseClient';
+import { CronogramaService } from '@/services/cronograma.service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -54,17 +54,13 @@ const CronogramaPage: React.FC = () => {
   const loadCronograma = async () => {
     try {
       setLoading(true);
-      const cronogramas = await pb.collection('cronogramas').getFullList({
-        filter: `user_id = "${currentUser.id}" && status = "ativo"`,
-        sort: '-created',
-        $autoCancel: false
-      });
+      const cronogramas = await CronogramaService.getAll(currentUser.id);
 
       if (cronogramas.length > 0) {
-        const c = cronogramas[0];
+        const c = cronogramas[0] as any;
         setCronograma(c);
         setEdital(c.edital);
-        setDataAlvo(c.data_alvo);
+        setDataAlvo(c.data_alvo || c.data_fim);
         setMaterias(c.materias || []);
       }
     } catch (error) {
@@ -118,19 +114,19 @@ const CronogramaPage: React.FC = () => {
 
     try {
       setSaving(true);
-      const data = {
+      const data: any = {
         user_id: currentUser.id,
         edital,
-        data_alvo: dataAlvo,
-        materias,
-        status: 'ativo'
+        data_fim: dataAlvo,
+        data_inicio: dataAlvo,
+        materias
       };
 
       if (cronograma) {
-        await pb.collection('cronogramas').update(cronograma.id, data, { $autoCancel: false });
+        await CronogramaService.update(cronograma.id, data);
         toast.success('Cronograma atualizado');
       } else {
-        const newCronograma = await pb.collection('cronogramas').create(data, { $autoCancel: false });
+        const newCronograma = await CronogramaService.create(data);
         setCronograma(newCronograma);
         toast.success('Cronograma criado');
       }
