@@ -1,0 +1,20 @@
+{
+  "frameworkVersion": "4.4.6",
+  "projectName": "alvo-diario",
+  "agents": {
+    "enabled": true,
+    "devMode": true
+  },
+  "mcp": {
+    "enabled": true,
+    "servers": {}
+  },
+  "ide": {
+    "vscode": true,
+    "jetbrains": false
+  },
+  "terminal": {
+    "shell": "zsh",
+    "theme": "dark"
+  }
+}

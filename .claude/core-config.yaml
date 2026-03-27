@@ -1,0 +1,95 @@
+---
+# AIOS Agent Configuration for alvo-diario
+# This file configures available agents and their capabilities
+
+framework:
+  version: "4.4.6"
+  name: "Synkra AIOS"
+
+boundary:
+  frameworkProtection: false  # Allow project modifications
+
+agents:
+  dev:
+    name: "Dex"
+    title: "Development Agent"
+    description: "Implementation of code features and bug fixes"
+    enabled: true
+
+  qa:
+    name: "Quinn"
+    title: "QA Agent"
+    description: "Testing, quality assurance, and validation"
+    enabled: true
+
+  architect:
+    name: "Aria"
+    title: "Architecture Agent"
+    description: "System design, technical architecture decisions"
+    enabled: true
+
+  pm:
+    name: "Morgan"
+    title: "Product Manager"
+    description: "Product requirements, epics, specifications"
+    enabled: true
+
+  po:
+    name: "Pax"
+    title: "Product Owner"
+    description: "Story validation, backlog prioritization"
+    enabled: true
+
+  sm:
+    name: "River"
+    title: "Scrum Master"
+    description: "Story creation, sprint management"
+    enabled: true
+
+  analyst:
+    name: "Alex"
+    title: "Analyst"
+    description: "Research, data analysis, requirements analysis"
+    enabled: true
+
+  data-engineer:
+    name: "Dara"
+    title: "Data Engineer"
+    description: "Database design, schema management"
+    enabled: true
+
+  ux-design-expert:
+    name: "Uma"
+    title: "UX Design Expert"
+    description: "UI/UX design, user experience"
+    enabled: true
+
+  devops:
+    name: "Gage"
+    title: "DevOps Agent"
+    description: "CI/CD, git operations, infrastructure"
+    enabled: true
+
+workflows:
+  story-development-cycle:
+    enabled: true
+    description: "4-phase workflow for feature development"
+    phases: ["create", "validate", "implement", "qa"]
+
+  qa-loop:
+    enabled: true
+    description: "Iterative review and fix cycle"
+
+  spec-pipeline:
+    enabled: true
+    description: "Requirements transformation to spec"
+
+  brownfield-discovery:
+    enabled: true
+    description: "Legacy codebase assessment"
+
+development:
+  projectPath: "."
+  srcPath: "apps/web/src"
+  testsPath: "apps/web/src/__tests__"
+  docsPath: "docs"
