@@ -3,10 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import pb from '@/lib/pocketbaseClient';
+import { CronogramaService } from '@/services/cronograma.service';
+import { MetasService } from '@/services/metas.service';
+import { SessoesService } from '@/services/sessoes.service';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Trophy, Flame, Play, CalendarDays, ArrowRight, BookOpen, BarChart3, Clock, Target } from 'lucide-react';
+import { toast } from 'sonner';
 import Header from '@/components/Header';
 import SubjectBadge from '@/components/SubjectBadge';
 import { useScheduleCalculator } from '@/hooks';
@@ -39,13 +42,9 @@ const DashboardPage: React.FC = () => {
     try {
       setLoading(true);
 
-      // 1. Load active cronograma
-      const cronogramas = await pb.collection('cronogramas').getFullList({
-        filter: `user_id = "${currentUser.id}" && status = "ativo"`,
-        sort: '-created',
-        $autoCancel: false
-      });
-      
+      // 1. Load active cronograma via service
+      const cronogramas = await CronogramaService.getAll(currentUser.id);
+
       if (cronogramas.length > 0) {
         const activeSchedule = cronogramas[0];
         setCronograma(activeSchedule);
@@ -59,46 +58,42 @@ const DashboardPage: React.FC = () => {
         setCycleInfo(getCycleInfo(activeSchedule as unknown as any, today));
       }
 
-      // 2. Load today's progress
+      // 2. Load today's progress via service
       const todayStr = new Date().toISOString().split('T')[0];
-      const nextDay = new Date();
-      nextDay.setDate(nextDay.getDate() + 1);
-      const nextDayStr = nextDay.toISOString().split('T')[0];
+      let meta = await MetasService.getByDate(currentUser.id, todayStr);
 
-      const metas = await pb.collection('metas_diarias').getFullList({
-        filter: `user_id = "${currentUser.id}" && data >= "${todayStr}" && data < "${nextDayStr}"`,
-        $autoCancel: false
-      });
-
-      if (metas.length > 0) {
-        setTodayProgress(metas[0] as unknown as { horas_realizadas: number; horas_meta: number });
-      } else {
-        const newMeta = await pb.collection('metas_diarias').create({
-          user_id: currentUser.id,
-          data: todayStr,
-          horas_meta: currentUser.meta_diaria_horas || 4,
-          horas_realizadas: 0,
-          status: 'nao_iniciada'
-        }, { $autoCancel: false });
-        setTodayProgress(newMeta as unknown as { horas_realizadas: number; horas_meta: number });
+      if (!meta) {
+        try {
+          meta = await MetasService.create({
+            user_id: currentUser.id,
+            data: todayStr,
+            horas_meta: currentUser.meta_diaria_horas || 4,
+            horas_realizadas: 0,
+            status: 'pendente'
+          });
+        } catch (error) {
+          console.error('Error creating daily goal:', error);
+          meta = { id: '', user_id: currentUser.id, data: todayStr, horas_meta: currentUser.meta_diaria_horas || 4, horas_realizadas: 0, status: 'pendente', created: '', updated: '' };
+        }
       }
 
-      // 3. Load Monthly Stats
+      setTodayProgress({ horas_realizadas: meta.horas_realizadas || 0, horas_meta: meta.horas_meta || 0 });
+
+      // 3. Load Monthly Stats via service
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-      
-      const monthSessions = await pb.collection('sessoes_estudo').getFullList({
-        filter: `user_id = "${currentUser.id}" && data >= "${startOfMonth}"`,
-        $autoCancel: false
-      });
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+
+      const allSessions = await SessoesService.getByUser(currentUser.id);
+      const monthSessions = allSessions.filter(s => s.data_sessao >= startOfMonth && s.data_sessao <= endOfMonth);
 
       if (monthSessions.length > 0) {
         let totalMins = 0;
         const subjectCounts: Record<string, number> = {};
 
         monthSessions.forEach(s => {
-          const duracao = (s as unknown as { duracao_minutos: number }).duracao_minutos;
-          const materia = (s as unknown as { materia: string }).materia;
+          const duracao = s.duracao_minutos || 0;
+          const materia = s.materia;
           totalMins += duracao;
           subjectCounts[materia] = (subjectCounts[materia] || 0) + duracao;
         });
@@ -121,6 +116,7 @@ const DashboardPage: React.FC = () => {
 
     } catch (error) {
       console.error('Error loading dashboard:', error);
+      toast.error('Erro ao carregar dashboard. Tente novamente.');
     } finally {
       setLoading(false);
     }
