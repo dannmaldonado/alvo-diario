@@ -56,9 +56,9 @@ const Header: React.FC = () => {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <img
-            src="/assets/logos/logo-vertical.png"
+            src="/assets/logos/logo.svg"
             alt="ALVO DIÁRIO"
-            className="h-10 w-auto object-contain"
+            className="h-12 w-auto"
           />
         </Link>
 
