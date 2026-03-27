@@ -169,7 +169,7 @@ export function isNotFoundError(error: unknown): error is NotFoundError {
  * Log error for debugging (in development)
  */
 export function logError(context: string, error: unknown): void {
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     console.error(`[${context}]`, error);
   }
 }

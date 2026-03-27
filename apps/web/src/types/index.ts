@@ -259,8 +259,4 @@ export type FormError = {
 
 export type FormErrors = Record<string, string>;
 
-// ============================================================================
-// EXPORT BARREL (convenience)
-// ============================================================================
-
-export type * from './index';
+// All types are exported directly from this file

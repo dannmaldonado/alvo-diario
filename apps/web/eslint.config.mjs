@@ -1,12 +1,14 @@
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import importPlugin from 'eslint-plugin-import';
+import typescriptEslint from '@typescript-eslint/eslint-plugin';
+import typescriptParser from '@typescript-eslint/parser';
 import globals from 'globals';
 
 export default [
-	{ ignores: ['node_modules/**', 'dist/**', 'build/**', 'vite.config.js'] },
+	{ ignores: ['node_modules/**', 'dist/**', 'build/**', 'vite.config.js', 'vite.config.ts', 'vitest.config.ts'] },
 	{
-		files: ['**/*.js', '**/*.jsx'],
+		files: ['**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx'],
 		plugins: { react, 'react-hooks': reactHooks, import: importPlugin },
 		languageOptions: {
 			ecmaVersion: 'latest',
@@ -17,8 +19,8 @@ export default [
 		settings: {
 			react: { version: 'detect' },
 			'import/resolver': {
-				node: { extensions: ['.js', '.jsx'] },
-				alias: { map: [['@', './src']], extensions: ['.js', '.jsx'] },
+				node: { extensions: ['.js', '.jsx', '.ts', '.tsx'] },
+				alias: { map: [['@', './src']], extensions: ['.js', '.jsx', '.ts', '.tsx'] },
 			},
 		},
 		rules: {
@@ -47,6 +49,26 @@ export default [
 
 			// Disable expensive rules for performance
 			'import/no-cycle': 'off', // AI rarely makes this error, and the rule is very slow to run
+		},
+	},
+	{
+		files: ['**/*.ts', '**/*.tsx'],
+		languageOptions: {
+			parser: typescriptParser,
+			parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
+			globals: { ...globals.browser, NodeJS: 'readonly' },
+		},
+		plugins: { '@typescript-eslint': typescriptEslint, import: importPlugin },
+		settings: {
+			'import/resolver': {
+				node: { extensions: ['.ts', '.tsx'] },
+				alias: { map: [['@', './src']], extensions: ['.ts', '.tsx'] },
+			},
+		},
+		rules: {
+			'@typescript-eslint/no-unused-vars': 'off',
+			'import/no-unresolved': ['error', { ignore: ['@/.*'] }],
+			'import/named': 'off',
 		},
 	},
 	{ files: ['tools/**/*.js', 'tailwind.config.js'], languageOptions: { globals: globals.node } },
