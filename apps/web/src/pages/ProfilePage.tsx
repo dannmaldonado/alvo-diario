@@ -9,7 +9,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Trophy, Flame, Target, Save, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import Header from '@/components/Header';
-import pb from '@/lib/pocketbaseClient';
 
 const ProfilePage: React.FC = () => {
   const { currentUser, updateUser, logout } = useAuth();
