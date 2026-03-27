@@ -54,11 +54,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
+        // Check for cached user first (faster, but may be stale)
+        const cachedUser = localStorage.getItem('auth_user');
+        if (cachedUser) {
+          setCurrentUser(JSON.parse(cachedUser));
+        }
+
+        // Always verify with AuthService for current state
         const user = await AuthService.getCurrentUser();
-        setCurrentUser(user);
+        if (user) {
+          setCurrentUser(user);
+          localStorage.setItem('auth_user', JSON.stringify(user));
+        } else {
+          localStorage.removeItem('auth_user');
+        }
       } catch (error) {
         console.error('Failed to initialize auth:', error);
         setCurrentUser(null);
+        localStorage.removeItem('auth_user');
       } finally {
         setInitialLoading(false);
       }
@@ -69,6 +82,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Subscribe to auth state changes
     const unsubscribe = AuthService.onAuthStateChange((user) => {
       setCurrentUser(user);
+      if (user) {
+        localStorage.setItem('auth_user', JSON.stringify(user));
+      } else {
+        localStorage.removeItem('auth_user');
+      }
     });
 
     return () => {
@@ -83,6 +101,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await AuthService.login({ email, password });
       setCurrentUser(response.record);
+      localStorage.setItem('auth_user', JSON.stringify(response.record));
       return { success: true, user: response.record };
     } catch (error) {
       const errorMessage = error instanceof APIError ? error.message : 'Login failed';
@@ -96,18 +115,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const signup = async (email: string, password: string, passwordConfirm: string, nome: string) => {
     try {
-      const userData = {
+      const newUser = await AuthService.signup({
         email,
         password,
-        passwordConfirm,
         nome,
-        nivel_atual: 'Iniciante',
-        pontos_totais: 0,
-        streak_atual: 0,
-        meta_diaria_horas: 4,
-      };
-
-      const newUser = await AuthService.signup(userData as any);
+      });
       setCurrentUser(newUser);
       return { success: true, user: newUser };
     } catch (error) {
@@ -123,6 +135,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     AuthService.logout();
     setCurrentUser(null);
+    localStorage.removeItem('auth_user');
   };
 
   /**
@@ -136,6 +149,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const updated = await AuthService.updateUser(updates as any);
       setCurrentUser(updated);
+      localStorage.setItem('auth_user', JSON.stringify(updated));
       return { success: true, user: updated };
     } catch (error) {
       const errorMessage = error instanceof APIError ? error.message : 'Update failed';
