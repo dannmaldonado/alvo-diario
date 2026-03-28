@@ -8,24 +8,24 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 219 88% 52%;
-    --primary: 219 88% 52%; /* #1675F2 - ALVO DIÁRIO Primary Blue */
-    --primary-foreground: 210 40% 98%;
-    --secondary: 54 92% 69%; /* #F2E96D - ALVO DIÁRIO Yellow */
-    --secondary-foreground: 222 47% 11%;
+    --foreground: 0 0% 5%; /* #0D0D0D */
+    --border: 180 14% 80%; /* #8FA6A6 lighter variant */
+    --input: 180 14% 80%;
+    --ring: 56 94% 49%; /* #F2E307 */
+    --primary: 56 94% 49%; /* #F2E307 - ALVO DIÁRIO Golden Yellow */
+    --primary-foreground: 0 0% 5%; /* #0D0D0D */
+    --secondary: 180 14% 61%; /* #8FA6A6 - ALVO DIÁRIO Sage Grey */
+    --secondary-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 54 92% 69%; /* #F2E96D - ALVO DIÁRIO Yellow Accent */
-    --accent-foreground: 222 47% 11%;
+    --muted: 160 16% 83%; /* #D0D9D6 - ALVO DIÁRIO Silver */
+    --muted-foreground: 180 14% 30%;
+    --accent: 62 89% 53%; /* #EBF21D - ALVO DIÁRIO Neon Lime */
+    --accent-foreground: 0 0% 5%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 0 0% 5%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 0 0% 5%;
     --radius: 0.75rem;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -37,51 +37,51 @@
     --sidebar-ring: 217.2 91.2% 59.8%;
 
     /* Chart Colors - ALVO DIÁRIO Brand Palette */
-    --chart-1: 219 88% 52%; /* #1675F2 - Primary Blue */
-    --chart-2: 220 97% 57%; /* #3084F2 - Secondary Blue */
-    --chart-3: 54 92% 69%;  /* #F2E96D - Yellow Accent */
-    --chart-4: 280 65% 60%; /* Purple */
-    --chart-5: 340 82% 52%; /* Pink/Red */
-    --chart-6: 190 90% 40%; /* Cyan */
-    --chart-7: 45 93% 47%;  /* Orange */
-    --chart-8: 260 40% 40%; /* Deep Purple */
+    --chart-1: 56 94% 49%; /* Golden Yellow */
+    --chart-2: 180 14% 61%; /* Sage Grey */
+    --chart-3: 62 89% 53%; /* Neon Lime */
+    --chart-4: 160 16% 83%; /* Silver */
+    --chart-5: 0 0% 5%;    /* Deep Black */
+    --chart-6: 190 90% 40%; 
+    --chart-7: 45 93% 47%; 
+    --chart-8: 260 40% 40%;
   }
 
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 220 97% 57%;
-    --primary: 220 97% 57%; /* #3084F2 - Lighter blue for dark mode */
-    --primary-foreground: 210 40% 98%;
-    --secondary: 54 92% 69%; /* #F2E96D - Yellow stays bright */
-    --secondary-foreground: 222 47% 11%;
+    --background: 0 0% 5%; /* #0D0D0D Deep Black */
+    --foreground: 160 16% 92%; /* Very Light Silver */
+    --border: 180 14% 20%;
+    --input: 180 14% 20%;
+    --ring: 56 94% 49%; /* #F2E307 */
+    --primary: 56 94% 49%; /* #F2E307 - Golden Yellow */
+    --primary-foreground: 0 0% 5%;
+    --secondary: 180 14% 61%; /* #8FA6A6 */
+    --secondary-foreground: 0 0% 5%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 54 92% 69%; /* #F2E96D - Yellow accent dark mode */
-    --accent-foreground: 222 47% 11%;
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --muted: 180 14% 15%; /* Muted Dark Sage */
+    --muted-foreground: 180 14% 61%; /* #8FA6A6 */
+    --accent: 62 89% 53%; /* #EBF21D */
+    --accent-foreground: 0 0% 5%;
+    --card: 0 0% 7%; /* Slightly lighter than background */
+    --card-foreground: 160 16% 92%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 160 16% 92%;
+    --sidebar-background: 0 0% 7%;
+    --sidebar-foreground: 160 16% 92%;
+    --sidebar-primary: 56 94% 49%;
+    --sidebar-primary-foreground: 0 0% 5%;
+    --sidebar-accent: 180 14% 15%;
+    --sidebar-accent-foreground: 160 16% 92%;
+    --sidebar-border: 180 14% 20%;
+    --sidebar-ring: 56 94% 49%;
 
     /* Chart Colors Dark Mode - ALVO DIÁRIO Brand */
-    --chart-1: 220 97% 65%; /* Primary Blue lighter */
-    --chart-2: 219 88% 62%; /* Secondary Blue lighter */
-    --chart-3: 54 92% 69%;  /* Yellow stays same */
-    --chart-4: 280 65% 70%;
-    --chart-5: 340 82% 65%;
+    --chart-1: 56 94% 49%;
+    --chart-2: 180 14% 61%;
+    --chart-3: 62 89% 53%;
+    --chart-4: 160 16% 83%;
+    --chart-5: 0 0% 5%;
     --chart-6: 190 90% 50%;
     --chart-7: 45 93% 55%;
     --chart-8: 260 40% 60%;
@@ -161,5 +161,13 @@
 
   .font-variant-numeric-tabular {
     font-variant-numeric: tabular-nums;
+  }
+
+  .glass {
+    @apply bg-background/60 backdrop-blur-md border border-border/50 shadow-xl;
+  }
+
+  .glow-primary {
+    @apply shadow-[0_0_20px_rgba(242,227,7,0.4)] transition-shadow duration-300 hover:shadow-[0_0_30px_rgba(242,227,7,0.7)];
   }
 }

@@ -7,6 +7,7 @@ import React, { useEffect } from 'react';
 import { Route, Routes, BrowserRouter as Router } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ScrollToTop from '@/components/ScrollToTop';
@@ -31,6 +32,7 @@ const App: React.FC = () => {
 
   return (
     <ErrorBoundary>
+      <ThemeProvider>
       <AuthProvider>
         <Router>
           <Header />
@@ -89,6 +91,7 @@ const App: React.FC = () => {
           <Toaster position="top-right" richColors />
         </Router>
       </AuthProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 };
