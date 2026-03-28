@@ -31,6 +31,26 @@ export const CronogramaService = {
   },
 
   /**
+   * Get active schedule for current user (latest created)
+   */
+  async getActive(userId: string): Promise<Cronograma | null> {
+    return apiCall(
+      async () => {
+        try {
+          const record = await pb.collection('cronogramas').getFirstListItem(`user_id = "${userId}"`, {
+            sort: '-created',
+          });
+          return record as unknown as Cronograma;
+        } catch (err: any) {
+          if (err.status === 404) return null;
+          throw err;
+        }
+      },
+      'CronogramaService.getActive'
+    );
+  },
+
+  /**
    * Get schedule by ID
    */
   async getById(id: string): Promise<Cronograma> {

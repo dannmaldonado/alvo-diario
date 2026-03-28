@@ -26,6 +26,23 @@ export const SessoesService = {
   },
 
   /**
+   * Get sessions by date range
+   */
+  async getByDateRange(userId: string, startDate: string, endDate: string): Promise<Sessao[]> {
+    return apiCall(
+      async () => {
+        const records = await pb.collection('sessoes_estudo').getFullList({
+          filter: `user_id = "${userId}" && data_sessao >= "${startDate}" && data_sessao <= "${endDate}"`,
+          sort: '-data_sessao',
+        });
+
+        return records as unknown as Sessao[];
+      },
+      'SessoesService.getByDateRange'
+    );
+  },
+
+  /**
    * Get sessions by date
    */
   async getByDate(userId: string, date: string): Promise<Sessao[]> {

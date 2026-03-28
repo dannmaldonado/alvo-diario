@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-import Header from '@/components/Header';
+
 import { z } from 'zod';
 import { isValidEmail, isValidPassword } from '@/utils/validators';
 
@@ -93,7 +93,7 @@ const LoginPage: React.FC = () => {
       </Helmet>
 
       <div className="min-h-screen bg-background">
-        <Header />
+
 
         <div className="container mx-auto flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
           <div className="w-full max-w-md">

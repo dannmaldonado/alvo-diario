@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Play, Pause, RotateCcw, BookOpen, Coffee, Trophy, Settings2, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
-import Header from '@/components/Header';
+
 import SubjectBadge from '@/components/SubjectBadge';
 import { useScheduleCalculator } from '@/hooks';
 
@@ -209,7 +209,7 @@ const StudySessionPage: React.FC = () => {
       </Helmet>
 
       <div className="min-h-screen bg-background flex flex-col">
-        <Header />
+
 
         <main className="flex-1 container mx-auto px-4 py-8 flex flex-col items-center max-w-5xl">
           

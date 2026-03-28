@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Trophy, Flame, Play, CalendarDays, ArrowRight, BookOpen, BarChart3, Clock, Target } from 'lucide-react';
 import { toast } from 'sonner';
-import Header from '@/components/Header';
+
 import SubjectBadge from '@/components/SubjectBadge';
 import { useScheduleCalculator } from '@/hooks';
 
@@ -43,11 +43,10 @@ const DashboardPage: React.FC = () => {
       setLoading(true);
 
       // 1. Load active cronograma via service
-      const cronogramas = await CronogramaService.getAll(currentUser.id);
+      const activeSchedule = await CronogramaService.getActive(currentUser.id);
 
-      if (cronogramas.length > 0) {
-        const activeSchedule = cronogramas[0];
-        setCronograma(activeSchedule);
+      if (activeSchedule) {
+        setCronograma(activeSchedule as any);
 
         const today = new Date();
         const tomorrow = new Date(today);
@@ -84,8 +83,7 @@ const DashboardPage: React.FC = () => {
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
 
-      const allSessions = await SessoesService.getByUser(currentUser.id);
-      const monthSessions = allSessions.filter(s => s.data_sessao >= startOfMonth && s.data_sessao <= endOfMonth);
+      const monthSessions = await SessoesService.getByDateRange(currentUser.id, startOfMonth, endOfMonth);
 
       if (monthSessions.length > 0) {
         let totalMins = 0;
@@ -133,7 +131,7 @@ const DashboardPage: React.FC = () => {
       <>
         <Helmet><title>Dashboard - PoliceStudy</title></Helmet>
         <div className="min-h-screen bg-background">
-          <Header />
+
           <div className="container mx-auto px-4 py-8 max-w-7xl">
             <Skeleton className="h-12 w-64 mb-8" />
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -157,7 +155,7 @@ const DashboardPage: React.FC = () => {
       </Helmet>
 
       <div className="min-h-screen bg-background">
-        <Header />
+
 
         <div className="container mx-auto px-4 py-8 max-w-7xl">
           {/* Welcome Header */}

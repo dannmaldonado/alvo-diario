@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Trophy, Flame, Target, Save, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
-import Header from '@/components/Header';
+
 
 const ProfilePage: React.FC = () => {
   const { currentUser, updateUser, logout } = useAuth();
@@ -62,7 +62,7 @@ const ProfilePage: React.FC = () => {
       </Helmet>
 
       <div className="min-h-screen bg-background">
-        <Header />
+
 
         <div className="container mx-auto px-4 py-8">
           <div className="mx-auto max-w-4xl">

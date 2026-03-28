@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, Trash2, Plus, Sparkles, Target, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
-import Header from '@/components/Header';
+
 import SubjectBadge from '@/components/SubjectBadge';
 import { useScheduleCalculator } from '@/hooks';
 
@@ -54,10 +54,9 @@ const CronogramaPage: React.FC = () => {
   const loadCronograma = async () => {
     try {
       setLoading(true);
-      const cronogramas = await CronogramaService.getAll(currentUser.id);
+      const c = await CronogramaService.getActive(currentUser.id) as any;
 
-      if (cronogramas.length > 0) {
-        const c = cronogramas[0] as any;
+      if (c) {
         setCronograma(c);
         setEdital(c.edital);
         setDataAlvo(c.data_alvo || c.data_fim);
@@ -228,7 +227,7 @@ const CronogramaPage: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
+
         <div className="container mx-auto px-4 py-8">Carregando...</div>
       </div>
     );
@@ -242,7 +241,7 @@ const CronogramaPage: React.FC = () => {
       </Helmet>
 
       <div className="min-h-screen bg-background">
-        <Header />
+
 
         <div className="container mx-auto px-4 py-8 max-w-7xl">
           <div className="mb-8">

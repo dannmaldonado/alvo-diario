@@ -8,7 +8,6 @@ import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Target, Calendar, Trophy, Timer, TrendingUp, Award, LucideIcon } from 'lucide-react';
-import Header from '@/components/Header';
 
 interface Feature {
   icon: React.ComponentType<{ className?: string }>;
@@ -48,8 +47,6 @@ const HomePage: React.FC = () => {
       </Helmet>
 
       <div className="min-h-screen bg-background">
-        <Header />
-
         {/* Hero Section */}
         <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
           {/* Background Image with Overlay */}

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext';
 import { SessoesService } from '@/services/sessoes.service';
-import Header from '@/components/Header';
+
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -256,7 +256,7 @@ const ProgressAnalysisPage: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
+
         <div className="container mx-auto px-4 py-8 max-w-7xl space-y-8">
           <Skeleton className="h-10 w-64" />
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -279,7 +279,7 @@ const ProgressAnalysisPage: React.FC = () => {
       </Helmet>
 
       <div className="min-h-screen bg-background">
-        <Header />
+
 
         <main className="container mx-auto px-4 py-8 max-w-7xl">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
