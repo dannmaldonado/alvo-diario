@@ -3,7 +3,7 @@
  * Sets up authentication, routing, and global providers
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { Route, Routes, BrowserRouter as Router } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -13,16 +13,32 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import ScrollToTop from '@/components/ScrollToTop';
 import Header from '@/components/Header';
 import { setupGlobalErrorHandler } from '@/utils/errorHandler';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Pages
+// Pages - Eager loaded (entry pages)
 import HomePage from '@/pages/HomePage';
 import LoginPage from '@/pages/LoginPage';
 import SignupPage from '@/pages/SignupPage';
-import DashboardPage from '@/pages/DashboardPage';
-import CronogramaPage from '@/pages/CronogramaPage';
-import StudySessionPage from '@/pages/StudySessionPage';
-import ProfilePage from '@/pages/ProfilePage';
-import ProgressAnalysisPage from '@/pages/ProgressAnalysisPage';
+
+// Pages - Lazy loaded (app pages)
+const DashboardPage = React.lazy(() => import('@/pages/DashboardPage'));
+const CronogramaPage = React.lazy(() => import('@/pages/CronogramaPage'));
+const StudySessionPage = React.lazy(() => import('@/pages/StudySessionPage'));
+const ProfilePage = React.lazy(() => import('@/pages/ProfilePage'));
+const ProgressAnalysisPage = React.lazy(() => import('@/pages/ProgressAnalysisPage'));
+
+// Loading fallback component
+const PageLoader: React.FC = () => (
+  <div className="min-h-screen bg-background">
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <Skeleton className="h-12 w-64 mb-8" />
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <Skeleton className="h-64 md:col-span-2 rounded-2xl" />
+        <Skeleton className="h-64 rounded-2xl" />
+      </div>
+    </div>
+  </div>
+);
 
 const App: React.FC = () => {
   // Setup global error handler on mount
@@ -43,12 +59,14 @@ const App: React.FC = () => {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
 
-            {/* Protected Routes */}
+            {/* Protected Routes - with lazy loading */}
             <Route
               path="/dashboard"
               element={
                 <ProtectedRoute>
-                  <DashboardPage />
+                  <Suspense fallback={<PageLoader />}>
+                    <DashboardPage />
+                  </Suspense>
                 </ProtectedRoute>
               }
             />
@@ -56,7 +74,9 @@ const App: React.FC = () => {
               path="/cronograma"
               element={
                 <ProtectedRoute>
-                  <CronogramaPage />
+                  <Suspense fallback={<PageLoader />}>
+                    <CronogramaPage />
+                  </Suspense>
                 </ProtectedRoute>
               }
             />
@@ -64,7 +84,9 @@ const App: React.FC = () => {
               path="/study-session"
               element={
                 <ProtectedRoute>
-                  <StudySessionPage />
+                  <Suspense fallback={<PageLoader />}>
+                    <StudySessionPage />
+                  </Suspense>
                 </ProtectedRoute>
               }
             />
@@ -72,7 +94,9 @@ const App: React.FC = () => {
               path="/analise"
               element={
                 <ProtectedRoute>
-                  <ProgressAnalysisPage />
+                  <Suspense fallback={<PageLoader />}>
+                    <ProgressAnalysisPage />
+                  </Suspense>
                 </ProtectedRoute>
               }
             />
@@ -80,7 +104,9 @@ const App: React.FC = () => {
               path="/profile"
               element={
                 <ProtectedRoute>
-                  <ProfilePage />
+                  <Suspense fallback={<PageLoader />}>
+                    <ProfilePage />
+                  </Suspense>
                 </ProtectedRoute>
               }
             />

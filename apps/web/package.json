@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite --host :: --port 3000",
     "build": "node tools/generate-llms.js || true && vite build --outDir ../../dist/apps/web",
+    "build:analyze": "vite build --outDir ../../dist/apps/web && npm run analyze",
+    "analyze": "vite-bundle-visualizer --open ../../dist/apps/web/stats.html",
     "start": "vite preview --outDir ../../dist/apps/web --host :: --port 3000",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --quiet",
@@ -96,6 +98,7 @@
     "jsdom": "^29.0.1",
     "postcss": "^8.4.49",
     "prettier": "^3.8.1",
+    "rollup-plugin-visualizer": "^7.0.1",
     "tailwindcss": "^3.4.17",
     "terser": "^5.37.0",
     "typescript": "^5.9.3",

@@ -1,6 +1,7 @@
 import path from 'node:path';
 import react from '@vitejs/plugin-react';
 import { createLogger, defineConfig } from 'vite';
+import { visualizer } from 'rollup-plugin-visualizer';
 import inlineEditPlugin from './plugins/visual-editor/vite-plugin-react-inline-editor.js';
 import editModeDevPlugin from './plugins/visual-editor/vite-plugin-edit-mode.js';
 import selectionModePlugin from './plugins/selection-mode/vite-plugin-selection-mode.js';
@@ -287,7 +288,15 @@ export default defineConfig({
 					iframeRouteRestorationPlugin(),
 					pocketbaseAuthPlugin(),
 				]
-			: []),
+			: [
+					visualizer({
+						filename: '../../dist/apps/web/stats.html',
+						title: 'Alvo Diário - Bundle Size Analysis',
+						open: false,
+						gzipSize: true,
+						brotliSize: true,
+					}),
+				]),
 		react(),
 		addTransformIndexHtml,
 	],
@@ -306,8 +315,52 @@ export default defineConfig({
 		},
 	},
 	build: {
+		// Target modern browsers for smaller output
+		target: 'esnext',
+		// Increase chunk size warnings
+		chunkSizeWarningLimit: 1000,
+		// Optimize minification
+		minify: 'terser',
+		terserOptions: {
+			compress: {
+				drop_console: true,
+				drop_debugger: true,
+			},
+		},
 		rollupOptions: {
 			external: ['@babel/parser', '@babel/traverse', '@babel/generator', '@babel/types'],
+			output: {
+				// Manual chunking for better caching
+				manualChunks: {
+					// Vendor chunks
+					'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+					'vendor-ui': [
+						'@radix-ui/react-alert-dialog',
+						'@radix-ui/react-avatar',
+						'@radix-ui/react-checkbox',
+						'@radix-ui/react-dialog',
+						'@radix-ui/react-dropdown-menu',
+						'@radix-ui/react-label',
+						'@radix-ui/react-popover',
+						'@radix-ui/react-progress',
+						'@radix-ui/react-scroll-area',
+						'@radix-ui/react-select',
+						'@radix-ui/react-tabs',
+						'@radix-ui/react-toggle',
+					],
+					'vendor-form': ['react-hook-form', '@hookform/resolvers', 'zod'],
+					'vendor-utils': [
+						'sonner',
+						'date-fns',
+						'clsx',
+						'tailwind-merge',
+						'class-variance-authority',
+						'cmdk',
+					],
+					'vendor-icons': ['lucide-react'],
+					'vendor-pb': ['pocketbase'],
+				},
+			},
 		},
 	},
 });
