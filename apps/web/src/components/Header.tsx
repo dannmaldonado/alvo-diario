@@ -56,13 +56,13 @@ const Header: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+      <div className="container mx-auto flex h-24 items-center justify-between px-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <img
             src={theme === 'dark' ? '/assets/logos/logo-dark.png' : '/assets/logos/logo-light.png'}
             alt="Alvo Diário - Disciplina Tática para sua Aprovação"
-            className="h-12 w-auto"
+            className="h-20 w-auto"
           />
         </Link>
 

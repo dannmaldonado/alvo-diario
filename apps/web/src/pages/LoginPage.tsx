@@ -28,7 +28,7 @@ const LoginSchema = z.object({
   password: z
     .string()
     .min(1, 'Senha é obrigatória')
-    .refine(isValidPassword, 'Senha deve ter no mínimo 6 caracteres'),
+    .refine(isValidPassword, 'Senha deve ter no mínimo 8 caracteres'),
 });
 
 type LoginFormData = z.infer<typeof LoginSchema>;

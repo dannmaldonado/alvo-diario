@@ -30,7 +30,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
 
   // Validation
   INVALID_EMAIL: 'Email inválido.',
-  INVALID_PASSWORD: 'Senha inválida (mínimo 6 caracteres).',
+  INVALID_PASSWORD: 'Senha inválida (mínimo 8 caracteres).',
   INVALID_NAME: 'Nome inválido.',
   VALIDATION_ERROR: 'Erro de validação. Verifique os campos.',
 

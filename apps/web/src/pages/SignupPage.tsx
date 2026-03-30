@@ -33,7 +33,7 @@ const SignupSchema = z
     password: z
       .string()
       .min(1, 'Senha é obrigatória')
-      .refine(isValidPassword, 'Senha deve ter no mínimo 6 caracteres'),
+      .refine(isValidPassword, 'Senha deve ter no mínimo 8 caracteres'),
     passwordConfirm: z.string().min(1, 'Confirmar senha é obrigatório'),
   })
   .refine((data) => data.password === data.passwordConfirm, {
@@ -162,7 +162,7 @@ const SignupPage: React.FC = () => {
                     id="password"
                     name="password"
                     type="password"
-                    placeholder="Mínimo 6 caracteres"
+                    placeholder="Mínimo 8 caracteres"
                     value={formData.password || ''}
                     onChange={handleChange}
                     disabled={loading}
