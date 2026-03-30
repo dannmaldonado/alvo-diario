@@ -236,7 +236,7 @@ const CronogramaPage: React.FC = () => {
   return (
     <>
       <Helmet>
-        <title>Cronograma - PoliceStudy</title>
+        <title>Cronograma - Alvo Diário</title>
         <meta name="description" content="Gerencie seu cronograma de estudos em ciclos" />
       </Helmet>
 

@@ -101,8 +101,8 @@ const SignupPage: React.FC = () => {
   return (
     <>
       <Helmet>
-        <title>Criar Conta - PoliceStudy</title>
-        <meta name="description" content="Crie sua conta gratuita no PoliceStudy" />
+        <title>Criar Conta - Alvo Diário</title>
+        <meta name="description" content="Crie sua conta gratuita no Alvo Diário" />
       </Helmet>
 
       <div className="min-h-screen bg-background">

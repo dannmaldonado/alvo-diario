@@ -60,8 +60,8 @@ const Header: React.FC = () => {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <img
-            src="/assets/logos/logo.svg"
-            alt="ALVO DIÁRIO"
+            src={theme === 'dark' ? '/assets/logos/logo-dark.png' : '/assets/logos/logo-light.png'}
+            alt="Alvo Diário - Disciplina Tática para sua Aprovação"
             className="h-12 w-auto"
           />
         </Link>

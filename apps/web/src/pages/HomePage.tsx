@@ -1,6 +1,6 @@
 /**
  * Home Page - Landing Page
- * Displays PoliceStudy platform features and CTAs
+ * Displays Alvo Diário platform features and CTAs
  */
 
 import React from 'react';
@@ -42,7 +42,7 @@ const HomePage: React.FC = () => {
   return (
     <>
       <Helmet>
-        <title>PoliceStudy - Domine os Concursos Policiais</title>
+        <title>Alvo Diário - Disciplina Tática para sua Aprovação</title>
         <meta name="description" content="Plataforma completa de estudos para concursos policiais com cronograma inteligente, timer Pomodoro e gamificação" />
       </Helmet>
 
@@ -168,7 +168,7 @@ const HomePage: React.FC = () => {
           <div className="container mx-auto px-4">
             <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
               <p className="text-sm text-muted-foreground">
-                © 2026 PoliceStudy. Todos os direitos reservados.
+                © 2026 Alvo Diário. Todos os direitos reservados.
               </p>
               <div className="flex gap-6">
                 <Link to="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200">

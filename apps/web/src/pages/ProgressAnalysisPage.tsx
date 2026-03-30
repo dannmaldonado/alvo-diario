@@ -274,7 +274,7 @@ const ProgressAnalysisPage: React.FC = () => {
   return (
     <>
       <Helmet>
-        <title>Análise de Progresso - PoliceStudy</title>
+        <title>Análise de Progresso - Alvo Diário</title>
         <meta name="description" content="Estatísticas detalhadas dos seus estudos" />
       </Helmet>
 

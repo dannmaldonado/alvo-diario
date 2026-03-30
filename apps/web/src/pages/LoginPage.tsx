@@ -88,8 +88,8 @@ const LoginPage: React.FC = () => {
   return (
     <>
       <Helmet>
-        <title>Entrar - PoliceStudy</title>
-        <meta name="description" content="Faça login na sua conta PoliceStudy" />
+        <title>Entrar - Alvo Diário</title>
+        <meta name="description" content="Faça login na sua conta Alvo Diário" />
       </Helmet>
 
       <div className="min-h-screen bg-background">

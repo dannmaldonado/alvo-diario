@@ -129,7 +129,7 @@ const DashboardPage: React.FC = () => {
   if (loading) {
     return (
       <>
-        <Helmet><title>Dashboard - PoliceStudy</title></Helmet>
+        <Helmet>        <title>Dashboard - Alvo Diário</title></Helmet>
         <div className="min-h-screen bg-background">
 
           <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -150,7 +150,7 @@ const DashboardPage: React.FC = () => {
   return (
     <>
       <Helmet>
-        <title>Dashboard - PoliceStudy</title>
+                <title>Dashboard - Alvo Diário</title>
         <meta name="description" content="Acompanhe seu progresso nos estudos" />
       </Helmet>
 

@@ -204,7 +204,7 @@ const StudySessionPage: React.FC = () => {
   return (
     <>
       <Helmet>
-        <title>Sessão de Estudo - PoliceStudy</title>
+        <title>Sessão de Estudo - Alvo Diário</title>
         <meta name="description" content="Timer Pomodoro para seus estudos" />
       </Helmet>
 

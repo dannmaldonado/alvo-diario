@@ -57,7 +57,7 @@ const ProfilePage: React.FC = () => {
   return (
     <>
       <Helmet>
-        <title>Meu Perfil - PoliceStudy</title>
+        <title>Meu Perfil - Alvo Diário</title>
         <meta name="description" content="Gerencie seu perfil e metas de estudo" />
       </Helmet>
 
