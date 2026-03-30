@@ -58,6 +58,7 @@ export type Cronograma = {
   materias: Materia[];
   data_inicio: string;
   data_fim: string;
+  data_alvo?: string;
   created: string;
   updated: string;
 };

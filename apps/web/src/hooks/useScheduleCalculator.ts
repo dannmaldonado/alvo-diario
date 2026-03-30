@@ -5,10 +5,12 @@
 
 import { useCallback } from 'react';
 
-interface ScheduleData {
+import { Cronograma, Materia } from '@/types';
+
+type ScheduleData = Cronograma | {
   created: string;
-  materias?: string[];
-}
+  materias?: string[] | Materia[];
+};
 
 interface CycleInfo {
   cycleNumber: number;
@@ -37,16 +39,17 @@ export const useScheduleCalculator = () => {
   );
 
   const getSubjectForDay = useCallback(
-    (schedule: ScheduleData | null | undefined, dayNumber: number): string | null => {
+    (schedule: ScheduleData | null | undefined, dayNumber: number): string | Materia | null => {
       if (!schedule || !schedule.materias || schedule.materias.length === 0) return null;
       const index = dayNumber % schedule.materias.length;
-      return schedule.materias[index];
+      const subject = schedule.materias[index];
+      return subject || null;
     },
     []
   );
 
   const getCurrentSubject = useCallback(
-    (schedule: ScheduleData | null | undefined, date: Date = new Date()): string | null => {
+    (schedule: ScheduleData | null | undefined, date: Date = new Date()): string | Materia | null => {
       const days = getDaysSinceCreation(schedule, date);
       return getSubjectForDay(schedule, days);
     },

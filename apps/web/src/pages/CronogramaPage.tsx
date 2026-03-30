@@ -9,9 +9,20 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, Trash2, Plus, Sparkles, Target, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { Cronograma, Materia } from '@/types';
 
 import SubjectBadge from '@/components/SubjectBadge';
 import { useScheduleCalculator } from '@/hooks';
+
+interface PageState {
+  loading: boolean;
+  saving: boolean;
+  cronograma: Cronograma | null;
+  edital: string;
+  dataAlvo: string;
+  materias: Materia[];
+  viewCycleOffset: number;
+}
 
 const EDITAL_SUBJECTS = {
   PC: [
@@ -34,18 +45,33 @@ const EDITAL_SUBJECTS = {
 const CronogramaPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { getCycleInfo, getSubjectForDay } = useScheduleCalculator();
-  
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [cronograma, setCronograma] = useState(null);
-  
-  // Form State
-  const [edital, setEdital] = useState('');
-  const [dataAlvo, setDataAlvo] = useState('');
-  const [materias, setMaterias] = useState([]);
-  
-  // View State
-  const [viewCycleOffset, setViewCycleOffset] = useState(0);
+
+  const [pageState, setPageState] = useState<PageState>({
+    loading: true,
+    saving: false,
+    cronograma: null,
+    edital: '',
+    dataAlvo: '',
+    materias: [],
+    viewCycleOffset: 0
+  });
+
+  // Destructure for easier access
+  const { loading, saving, cronograma, edital, dataAlvo, materias, viewCycleOffset } = pageState;
+
+  // Helper functions to update individual state fields
+  const setLoading = (value: boolean) => setPageState(prev => ({ ...prev, loading: value }));
+  const setSaving = (value: boolean) => setPageState(prev => ({ ...prev, saving: value }));
+  const setCronograma = (value: Cronograma | null) => setPageState(prev => ({ ...prev, cronograma: value }));
+  const setEdital = (value: string) => setPageState(prev => ({ ...prev, edital: value }));
+  const setDataAlvo = (value: string) => setPageState(prev => ({ ...prev, dataAlvo: value }));
+  const setMaterias = (value: Materia[]) => setPageState(prev => ({ ...prev, materias: value }));
+  const setViewCycleOffset = (value: number | ((prev: number) => number)) => {
+    setPageState(prev => ({
+      ...prev,
+      viewCycleOffset: typeof value === 'function' ? value(prev.viewCycleOffset) : value
+    }));
+  };
 
   useEffect(() => {
     loadCronograma();
@@ -54,13 +80,17 @@ const CronogramaPage: React.FC = () => {
   const loadCronograma = async () => {
     try {
       setLoading(true);
-      const c = await CronogramaService.getActive(currentUser.id) as any;
+      if (!currentUser) {
+        toast.error('Usuário não autenticado');
+        return;
+      }
+      const c = await CronogramaService.getActive(currentUser.id) as Cronograma;
 
       if (c) {
         setCronograma(c);
         setEdital(c.edital);
-        setDataAlvo(c.data_alvo || c.data_fim);
-        setMaterias(c.materias || []);
+        setDataAlvo(c.data_fim);
+        setMaterias(c.materias);
       }
     } catch (error) {
       console.error('Error loading cronograma:', error);
@@ -76,9 +106,9 @@ const CronogramaPage: React.FC = () => {
       return;
     }
 
-    const subjects = EDITAL_SUBJECTS[edital];
-    const scheduledMaterias = subjects.map((subject) => ({
-      name: subject,
+    const subjects = EDITAL_SUBJECTS[edital as keyof typeof EDITAL_SUBJECTS];
+    const scheduledMaterias: Materia[] = subjects.map((subject) => ({
+      nome: subject,
       status: 'pendente'
     }));
 
@@ -87,16 +117,16 @@ const CronogramaPage: React.FC = () => {
   };
 
   const addMateria = () => {
-    setMaterias([...materias, { name: '', status: 'pendente' }]);
+    setMaterias([...materias, { nome: '', status: 'pendente' }]);
   };
 
-  const removeMateria = (index) => {
+  const removeMateria = (index: number) => {
     setMaterias(materias.filter((_, i) => i !== index));
   };
 
-  const updateMateria = (index, field, value) => {
+  const updateMateria = (index: number, value: string) => {
     const updated = [...materias];
-    updated[index][field] = value;
+    updated[index].nome = value;
     setMaterias(updated);
   };
 
@@ -106,14 +136,18 @@ const CronogramaPage: React.FC = () => {
       return;
     }
 
-    if (materias.some(m => !m.name)) {
+    if (materias.some(m => !m.nome)) {
       toast.error('Todas as matérias devem ter um nome');
       return;
     }
 
     try {
       setSaving(true);
-      const data: any = {
+      if (!currentUser) {
+        toast.error('Usuário não autenticado');
+        return;
+      }
+      const data = {
         user_id: currentUser.id,
         edital,
         data_fim: dataAlvo,
@@ -263,7 +297,7 @@ const CronogramaPage: React.FC = () => {
                     <div>
                       <h2 className="text-xl font-bold">{cronograma.edital}</h2>
                       <p className="text-sm text-muted-foreground">
-                        Prova: {new Date(cronograma.data_alvo).toLocaleDateString('pt-BR')}
+                        Prova: {cronograma.data_alvo ? new Date(cronograma.data_alvo).toLocaleDateString('pt-BR') : 'Não definida'}
                       </p>
                     </div>
                   </div>
@@ -285,8 +319,8 @@ const CronogramaPage: React.FC = () => {
                       <div key={index} className="flex items-center gap-2">
                         <div className="flex-1">
                           <Input
-                            value={materia.name}
-                            onChange={(e: any) => updateMateria(index, 'name', e.target.value)}
+                            value={materia.nome}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateMateria(index, e.target.value)}
                             placeholder="Nome da matéria"
                             className="h-9"
                           />
@@ -345,7 +379,7 @@ const CronogramaPage: React.FC = () => {
                     id="dataAlvo"
                     type="date"
                     value={dataAlvo}
-                    onChange={(e: any) => setDataAlvo(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDataAlvo(e.target.value)}
                     className="h-12"
                   />
                 </div>

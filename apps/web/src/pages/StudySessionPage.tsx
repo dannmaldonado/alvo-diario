@@ -11,59 +11,103 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Play, Pause, RotateCcw, BookOpen, Coffee, Trophy, Settings2, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
+import { Cronograma, Materia } from '@/types';
 
 import SubjectBadge from '@/components/SubjectBadge';
 import { useScheduleCalculator } from '@/hooks';
 
+interface CycleInfo {
+  cycleNumber: number;
+  dayInCycle: number;
+  totalDaysInCycle?: number;
+}
+
+interface PageState {
+  schedule: Cronograma | null;
+  subjects: string[];
+  todaySubject: Materia | null;
+  cycleInfo: CycleInfo | null;
+  studyDuration: number;
+  breakDuration: number;
+  selectedSubject: string;
+  timeLeft: number;
+  isActive: boolean;
+  isBreak: boolean;
+  showCompletionModal: boolean;
+  saving: boolean;
+}
+
 const StudySessionPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { getCurrentSubject, getCycleInfo } = useScheduleCalculator();
-  
-  // Schedule State
-  const [schedule, setSchedule] = useState(null);
-  const [subjects, setSubjects] = useState([]);
-  const [todaySubject, setTodaySubject] = useState(null);
-  const [cycleInfo, setCycleInfo] = useState(null);
-  
-  // Settings State
-  const [studyDuration, setStudyDuration] = useState(25);
-  const [breakDuration, setBreakDuration] = useState(5);
-  const [selectedSubject, setSelectedSubject] = useState('');
-  
-  // Timer State
-  const [timeLeft, setTimeLeft] = useState(studyDuration * 60);
-  const [isActive, setIsActive] = useState(false);
-  const [isBreak, setIsBreak] = useState(false);
-  
-  // Modal & Saving State
-  const [showCompletionModal, setShowCompletionModal] = useState(false);
-  const [saving, setSaving] = useState(false);
+
+  const [pageState, setPageState] = useState<PageState>({
+    schedule: null,
+    subjects: [],
+    todaySubject: null,
+    cycleInfo: null,
+    studyDuration: 25,
+    breakDuration: 5,
+    selectedSubject: '',
+    timeLeft: 25 * 60,
+    isActive: false,
+    isBreak: false,
+    showCompletionModal: false,
+    saving: false
+  });
+
+  // Destructure for easier access
+  const { schedule, subjects, todaySubject, cycleInfo, studyDuration, breakDuration, selectedSubject, timeLeft, isActive, isBreak, showCompletionModal, saving } = pageState;
+
+  // Helper functions to update individual state fields
+  const setSchedule = (value: Cronograma | null) => setPageState(prev => ({ ...prev, schedule: value }));
+  const setSubjects = (value: string[]) => setPageState(prev => ({ ...prev, subjects: value }));
+  const setTodaySubject = (value: Materia | null) => setPageState(prev => ({ ...prev, todaySubject: value }));
+  const setCycleInfo = (value: CycleInfo | null) => setPageState(prev => ({ ...prev, cycleInfo: value }));
+  const setStudyDuration = (value: number) => setPageState(prev => ({ ...prev, studyDuration: value }));
+  const setBreakDuration = (value: number) => setPageState(prev => ({ ...prev, breakDuration: value }));
+  const setSelectedSubject = (value: string) => setPageState(prev => ({ ...prev, selectedSubject: value }));
+  const setTimeLeft = (value: number | ((prev: number) => number)) => {
+    if (typeof value === 'function') {
+      setPageState(prev => ({ ...prev, timeLeft: value(prev.timeLeft) }));
+    } else {
+      setPageState(prev => ({ ...prev, timeLeft: value }));
+    }
+  };
+  const setIsActive = (value: boolean) => setPageState(prev => ({ ...prev, isActive: value }));
+  const setIsBreak = (value: boolean) => setPageState(prev => ({ ...prev, isBreak: value }));
+  const setShowCompletionModal = (value: boolean) => setPageState(prev => ({ ...prev, showCompletionModal: value }));
+  const setSaving = (value: boolean) => setPageState(prev => ({ ...prev, saving: value }));
 
   // Fetch schedule and subjects
   useEffect(() => {
     const fetchSchedule = async () => {
       try {
-        const cronogramas = await CronogramaService.getAll(currentUser.id);
+        if (!currentUser) {
+          toast.error('Usuário não autenticado');
+          return;
+        }
+        const cronogramas = await CronogramaService.getAll(currentUser.id) as Cronograma[];
 
         if (cronogramas.length > 0) {
-          const activeSchedule = cronogramas[0] as any;
+          const activeSchedule = cronogramas[0];
           setSchedule(activeSchedule);
 
           if (activeSchedule.materias) {
-            const subjectNames = activeSchedule.materias.map((m: any) => m.name);
+            const subjectNames = activeSchedule.materias.map((m: Materia) => m.nome);
             setSubjects(subjectNames);
 
             // Calculate today's subject
             const today = new Date();
-            const current = getCurrentSubject(activeSchedule, today);
-            const info = getCycleInfo(activeSchedule, today);
+            const current = getCurrentSubject(activeSchedule, today) as Materia | null;
+            const info = getCycleInfo(activeSchedule, today) as CycleInfo | null;
 
             setTodaySubject(current);
             setCycleInfo(info);
 
             // Auto-select today's subject if available
-            if (current && (current as any).name) {
-              setSelectedSubject((current as any).name);
+            if (current && current.nome) {
+              setSelectedSubject(current.nome);
             } else if (subjectNames.length > 0) {
               setSelectedSubject(subjectNames[0]);
             }
@@ -74,16 +118,16 @@ const StudySessionPage: React.FC = () => {
         toast.error('Não foi possível carregar seu cronograma.');
       }
     };
-    
+
     fetchSchedule();
-  }, [currentUser.id, getCurrentSubject, getCycleInfo]);
+  }, [currentUser, getCurrentSubject, getCycleInfo]);
 
   // Update timer when duration settings change (only if not active)
   useEffect(() => {
     if (!isActive) {
       setTimeLeft((isBreak ? breakDuration : studyDuration) * 60);
     }
-  }, [studyDuration, breakDuration, isBreak, isActive]);
+  }, [studyDuration, breakDuration, isBreak, isActive, setTimeLeft]);
 
   const playBeep = useCallback(() => {
     try {
@@ -121,19 +165,21 @@ const StudySessionPage: React.FC = () => {
 
   // Timer Logic
   useEffect(() => {
-    let interval = null;
-    
+    let interval: NodeJS.Timeout | null = null;
+
     if (isActive && timeLeft > 0) {
       interval = setInterval(() => {
-        setTimeLeft((time) => time - 1);
+        setTimeLeft((time: number) => time - 1);
       }, 1000);
     } else if (isActive && timeLeft === 0) {
       setIsActive(false);
       handleTimerComplete();
     }
-    
-    return () => clearInterval(interval);
-  }, [isActive, timeLeft, handleTimerComplete]);
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isActive, timeLeft, handleTimerComplete, setTimeLeft, setIsActive]);
 
   const toggleTimer = () => {
     if (!selectedSubject && !isBreak) {
@@ -148,7 +194,7 @@ const StudySessionPage: React.FC = () => {
     setTimeLeft((isBreak ? breakDuration : studyDuration) * 60);
   };
 
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number): string => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
@@ -160,7 +206,7 @@ const StudySessionPage: React.FC = () => {
   };
 
   const saveSession = async () => {
-    if (!selectedSubject) return;
+    if (!selectedSubject || !currentUser) return;
 
     setSaving(true);
     try {
@@ -227,7 +273,7 @@ const StudySessionPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-              {selectedSubject !== todaySubject.name && (
+              {todaySubject && selectedSubject !== todaySubject.nome && (
                 <div className="text-sm text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-3 py-1 rounded-full font-medium">
                   Estudando matéria diferente do cronograma
                 </div>
@@ -252,7 +298,7 @@ const StudySessionPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="relative flex justify-center items-center mb-12">
+                <div className="relative flex justify-center items-center mb-12 min-h-[16rem] sm:min-h-[20rem]">
                   <svg className="absolute w-64 h-64 sm:w-80 sm:h-80 -rotate-90 transform" viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="48" className="stroke-muted fill-none" strokeWidth="2" />
                     <circle 
@@ -348,11 +394,11 @@ const StudySessionPage: React.FC = () => {
                       <span>Tempo de Estudo</span>
                       <span className="text-muted-foreground font-medium">{studyDuration} min</span>
                     </Label>
-                    <Input 
-                      type="range" 
+                    <Input
+                      type="range"
                       min="5" max="120" step="5"
                       value={studyDuration}
-                      onChange={(e) => setStudyDuration(parseInt(e.target.value))}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStudyDuration(parseInt(e.target.value))}
                       disabled={isActive}
                       className="cursor-pointer accent-primary"
                     />
@@ -363,11 +409,11 @@ const StudySessionPage: React.FC = () => {
                       <span>Tempo de Pausa</span>
                       <span className="text-muted-foreground font-medium">{breakDuration} min</span>
                     </Label>
-                    <Input 
-                      type="range" 
+                    <Input
+                      type="range"
                       min="1" max="30" step="1"
                       value={breakDuration}
-                      onChange={(e) => setBreakDuration(parseInt(e.target.value))}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBreakDuration(parseInt(e.target.value))}
                       disabled={isActive}
                       className="cursor-pointer accent-secondary"
                     />

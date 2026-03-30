@@ -1,9 +1,9 @@
 ## Pages
-- [Análise de Progresso - PoliceStudy](/progressanalysis): Estatísticas detalhadas dos seus estudos
-- [Criar Conta - PoliceStudy](/signup): Crie sua conta gratuita no PoliceStudy
-- [Cronograma - PoliceStudy](/cronograma): Gerencie seu cronograma de estudos em ciclos
-- [Dashboard - PoliceStudy](/dashboard): No description available
-- [Entrar - PoliceStudy](/login): Faça login na sua conta PoliceStudy
-- [Meu Perfil - PoliceStudy](/profile): Gerencie seu perfil e metas de estudo
-- [PoliceStudy - Domine os Concursos Policiais](/home): Plataforma completa de estudos para concursos policiais com cronograma inteligente, timer Pomodoro e gamificação
-- [Sessão de Estudo - PoliceStudy](/studysession): Timer Pomodoro para seus estudos
+- [Alvo Diário - Disciplina Tática para sua Aprovação](/home): Plataforma completa de estudos para concursos policiais com cronograma inteligente, timer Pomodoro e gamificação
+- [Análise de Progresso - Alvo Diário](/progressanalysis): Estatísticas detalhadas dos seus estudos
+- [Criar Conta - Alvo Diário](/signup): Crie sua conta gratuita no Alvo Diário
+- [Cronograma - Alvo Diário](/cronograma): Gerencie seu cronograma de estudos em ciclos
+- [Dashboard - Alvo Diário](/dashboard): No description available
+- [Entrar - Alvo Diário](/login): Faça login na sua conta Alvo Diário
+- [Meu Perfil - Alvo Diário](/profile): Gerencie seu perfil e metas de estudo
+- [Sessão de Estudo - Alvo Diário](/studysession): Timer Pomodoro para seus estudos

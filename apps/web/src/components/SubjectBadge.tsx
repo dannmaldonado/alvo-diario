@@ -8,14 +8,15 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 interface SubjectObject {
-  name: string;
+  name?: string;
+  nome?: string;
   [key: string]: any;
 }
 
 type SizeVariant = 'sm' | 'md' | 'lg';
 
 interface SubjectBadgeProps {
-  subject: string | SubjectObject;
+  subject: string | SubjectObject | null | undefined;
   className?: string;
   size?: SizeVariant;
 }
@@ -53,7 +54,10 @@ const SubjectBadge: React.FC<SubjectBadgeProps> = ({
   className,
   size = 'md',
 }) => {
-  const name = typeof subject === 'string' ? subject : subject?.name || 'Sem matéria';
+  const name =
+    typeof subject === 'string'
+      ? subject
+      : (subject?.name || subject?.nome || 'Sem matéria');
   const colorClass = getColorForSubject(name);
 
   const sizeClasses: Record<SizeVariant, string> = {

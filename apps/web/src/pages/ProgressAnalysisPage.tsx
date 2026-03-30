@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext';
 import { SessoesService } from '@/services/sessoes.service';
+import { Sessao } from '@/types';
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -10,6 +11,38 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Clock, Calendar as CalendarIcon, TrendingUp, ArrowUpDown, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
+
+interface SubjectData {
+  name: string;
+  hours: number;
+  fill: string;
+}
+
+interface EvolutionData {
+  date: string;
+  hours: number;
+  dailyHours: number;
+}
+
+interface TableRow {
+  name: string;
+  totalHours: number;
+  monthHours: number;
+  weekHours: number;
+  percentage: number;
+}
+
+interface Stats {
+  totalHoursAll: string;
+  totalHoursMonth: string;
+  totalHoursWeek: string;
+  avgHoursPerDay: string;
+}
+
+interface SortConfig {
+  key: keyof TableRow;
+  direction: 'asc' | 'desc';
+}
 
 const CHART_COLORS = [
   'hsl(var(--chart-1))',
@@ -25,15 +58,19 @@ const CHART_COLORS = [
 const ProgressAnalysisPage: React.FC = () => {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [allSessions, setAllSessions] = useState([]);
-  const [period, setPeriod] = useState('month'); // 'all', 'month', 'week', '7days'
-  const [sortConfig, setSortConfig] = useState({ key: 'totalHours', direction: 'desc' });
+  const [allSessions, setAllSessions] = useState<Sessao[]>([]);
+  const [period, setPeriod] = useState<'all' | 'month' | 'week' | '7days'>('month');
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'totalHours', direction: 'desc' });
 
   useEffect(() => {
     const fetchSessions = async () => {
       try {
         setLoading(true);
-        const sessions = await SessoesService.getByUser(currentUser.id);
+        if (!currentUser) {
+          toast.error('Usuário não autenticado');
+          return;
+        }
+        const sessions = await SessoesService.getByUser(currentUser.id) as Sessao[];
         setAllSessions(sessions);
       } catch (error) {
         console.error('Error fetching sessions:', error);
@@ -44,7 +81,7 @@ const ProgressAnalysisPage: React.FC = () => {
     };
 
     fetchSessions();
-  }, [currentUser.id]);
+  }, [currentUser]);
 
   // Helper to get date boundaries
   const getDateBoundaries = () => {
@@ -69,9 +106,8 @@ const ProgressAnalysisPage: React.FC = () => {
 
     const { startOfMonth, startOfWeek, startOf7Days } = getDateBoundaries();
 
-    return allSessions.filter(session => {
-      const typedSession = session as unknown as { data_sessao: string };
-      const sessionDate = new Date(typedSession.data_sessao);
+    return allSessions.filter((session: Sessao) => {
+      const sessionDate = new Date(session.data_sessao);
       // Normalize session date to midnight for fair comparison
       sessionDate.setHours(0, 0, 0, 0);
 
@@ -85,24 +121,23 @@ const ProgressAnalysisPage: React.FC = () => {
   }, [allSessions, period]);
 
   // Calculate Key Statistics
-  const stats = useMemo(() => {
+  const stats = useMemo<Stats>(() => {
     const { startOfMonth, startOfWeek } = getDateBoundaries();
-    
+
     let totalMinutesAll = 0;
     let totalMinutesMonth = 0;
     let totalMinutesWeek = 0;
-    
+
     // For average calculation
-    const uniqueDays = new Set();
+    const uniqueDays = new Set<string>();
 
     allSessions.forEach(session => {
-      const typedSession = session as unknown as { duracao_minutos: number; data_sessao: string };
-      const mins = typedSession.duracao_minutos || 0;
-      const sessionDate = new Date(typedSession.data_sessao);
+      const mins = session.duracao_minutos || 0;
+      const sessionDate = new Date(session.data_sessao);
       sessionDate.setHours(0, 0, 0, 0);
 
       totalMinutesAll += mins;
-      uniqueDays.add(typedSession.data_sessao);
+      uniqueDays.add(session.data_sessao);
 
       if (sessionDate >= startOfMonth) totalMinutesMonth += mins;
       if (sessionDate >= startOfWeek) totalMinutesWeek += mins;
@@ -112,82 +147,77 @@ const ProgressAnalysisPage: React.FC = () => {
     const avgMinutesPerDay = totalMinutesAll / daysCount;
 
     return {
-      totalHoursAll: (totalMinutesAll / 60).toFixed(1),
-      totalHoursMonth: (totalMinutesMonth / 60).toFixed(1),
-      totalHoursWeek: (totalMinutesWeek / 60).toFixed(1),
-      avgHoursPerDay: (avgMinutesPerDay / 60).toFixed(1)
+      totalHoursAll: Number((totalMinutesAll / 60).toFixed(1)).toString(),
+      totalHoursMonth: Number((totalMinutesMonth / 60).toFixed(1)).toString(),
+      totalHoursWeek: Number((totalMinutesWeek / 60).toFixed(1)).toString(),
+      avgHoursPerDay: Number((avgMinutesPerDay / 60).toFixed(1)).toString()
     };
   }, [allSessions]);
 
   // Data for Subject Bar Chart & Pie Chart
-  const subjectData = useMemo(() => {
+  const subjectData = useMemo<SubjectData[]>(() => {
     const subjectMap: Record<string, number> = {};
 
-    filteredSessions.forEach(session => {
-      const typedSession = session as unknown as { materia: string; duracao_minutos: number };
-      const name = typedSession.materia || 'Desconhecida';
+    filteredSessions.forEach((session: Sessao) => {
+      const name = session.materia || 'Desconhecida';
       if (!subjectMap[name]) subjectMap[name] = 0;
-      subjectMap[name] += typedSession.duracao_minutos;
+      subjectMap[name] += session.duracao_minutos;
     });
 
     return Object.entries(subjectMap)
       .map(([name, minutes], index) => ({
         name,
-        hours: Number(((minutes as unknown as number) / 60).toFixed(2)),
+        hours: Number((minutes / 60).toFixed(2)),
         fill: CHART_COLORS[index % CHART_COLORS.length]
       }))
-      .sort((a, b) => (b.hours as number) - (a.hours as number));
+      .sort((a, b) => b.hours - a.hours);
   }, [filteredSessions]);
 
   // Data for Cumulative Line Chart
-  const evolutionData = useMemo(() => {
+  const evolutionData = useMemo<EvolutionData[]>(() => {
     if (filteredSessions.length === 0) return [];
 
     // Sort ascending for timeline
     const sorted = [...filteredSessions].sort((a, b) => {
-      const aData = (a as unknown as { data_sessao: string }).data_sessao;
-      const bData = (b as unknown as { data_sessao: string }).data_sessao;
-      const aDate = new Date(aData);
-      const bDate = new Date(bData);
+      const aDate = new Date(a.data_sessao);
+      const bDate = new Date(b.data_sessao);
       return aDate.getTime() - bDate.getTime();
     });
 
     const dailyMap: Record<string, number> = {};
-    sorted.forEach(session => {
-      const typedSession = session as unknown as { data_sessao: string; duracao_minutos: number };
-      const dateStr = typedSession.data_sessao.split('T')[0];
+    sorted.forEach((session: Sessao) => {
+      const dateStr = session.data_sessao.split('T')[0];
       if (!dailyMap[dateStr]) dailyMap[dateStr] = 0;
-      dailyMap[dateStr] += typedSession.duracao_minutos;
+      dailyMap[dateStr] += session.duracao_minutos;
     });
 
     let cumulativeMinutes = 0;
     return Object.entries(dailyMap).map(([date, minutes]) => {
-      cumulativeMinutes += minutes as unknown as number;
+      cumulativeMinutes += minutes;
       return {
         date: new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-        hours: Number(((cumulativeMinutes / 60).toFixed(2))),
-        dailyHours: Number((((minutes as unknown as number) / 60).toFixed(2)))
+        hours: Number((cumulativeMinutes / 60).toFixed(2)),
+        dailyHours: Number((minutes / 60).toFixed(2))
       };
     });
   }, [filteredSessions]);
 
   // Data for Detailed Table
-  const tableData = useMemo(() => {
+  const tableData = useMemo<TableRow[]>(() => {
     const { startOfMonth, startOfWeek } = getDateBoundaries();
     const subjectMap: Record<string, { name: string; totalAll: number; totalMonth: number; totalWeek: number; periodMinutes: number }> = {};
     let totalPeriodMinutes = 0;
 
     // Initialize map with all subjects ever studied to show 0s if needed,
     // or just subjects in current filter. Let's show all subjects ever studied.
-    allSessions.forEach(session => {
-      const typedSession = session as unknown as { materia: string; duracao_minutos: number; data_sessao: string };
-      const name = typedSession.materia || 'Desconhecida';
+    allSessions.forEach((session: Sessao) => {
+      const name = session.materia || 'Desconhecida';
       if (!subjectMap[name]) {
         subjectMap[name] = { name, totalAll: 0, totalMonth: 0, totalWeek: 0, periodMinutes: 0 };
       }
 
-      const mins = typedSession.duracao_minutos;
-      const sessionDate = new Date(typedSession.data_sessao);
+      const mins = session.duracao_minutos;
+      const sessionDate = new Date(session.data_sessao);
       sessionDate.setHours(0, 0, 0, 0);
 
       subjectMap[name].totalAll += mins;
@@ -214,23 +244,23 @@ const ProgressAnalysisPage: React.FC = () => {
 
     const data = Object.values(subjectMap).map(item => ({
       name: item.name,
-      totalHours: Number(((item.totalAll / 60).toFixed(1))),
-      monthHours: Number(((item.totalMonth / 60).toFixed(1))),
-      weekHours: Number(((item.totalWeek / 60).toFixed(1))),
+      totalHours: Number((item.totalAll / 60).toFixed(1)),
+      monthHours: Number((item.totalMonth / 60).toFixed(1)),
+      weekHours: Number((item.totalWeek / 60).toFixed(1)),
       percentage: totalPeriodMinutes > 0 ? Number((((item.periodMinutes / totalPeriodMinutes) * 100).toFixed(1))) : 0
     }));
 
     // Apply sorting
     return data.sort((a, b) => {
-      const aVal = a[sortConfig.key as keyof typeof a];
-      const bVal = b[sortConfig.key as keyof typeof b];
+      const aVal = a[sortConfig.key];
+      const bVal = b[sortConfig.key];
       if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
       if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
     });
   }, [allSessions, period, sortConfig]);
 
-  const handleSort = (key) => {
+  const handleSort = (key: keyof TableRow) => {
     setSortConfig(current => ({
       key,
       direction: current.key === key && current.direction === 'desc' ? 'asc' : 'desc'
@@ -290,22 +320,20 @@ const ProgressAnalysisPage: React.FC = () => {
 
             <div className="flex flex-wrap gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
               {[
-                { id: '7days', label: 'Últimos 7 Dias' },
-                { id: 'week', label: 'Esta Semana' },
-                { id: 'month', label: 'Este Mês' },
-                { id: 'all', label: 'Todo Período' }
+                { id: '7days' as const, label: 'Últimos 7 Dias' },
+                { id: 'week' as const, label: 'Esta Semana' },
+                { id: 'month' as const, label: 'Este Mês' },
+                { id: 'all' as const, label: 'Todo Período' }
               ].map(p => (
-                <>
-                  <Button
-                    key={p.id}
-                    variant={period === p.id ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setPeriod(p.id)}
-                    className={`rounded-lg ${period === p.id ? 'shadow-sm' : 'hover:bg-background'}`}
-                  >
-                    {p.label}
-                  </Button>
-                </>
+                <Button
+                  key={p.id}
+                  variant={period === p.id ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setPeriod(p.id)}
+                  className={`rounded-lg ${period === p.id ? 'shadow-sm' : 'hover:bg-background'}`}
+                >
+                  {p.label}
+                </Button>
               ))}
             </div>
           </div>

@@ -18,7 +18,7 @@ const ProfilePage: React.FC = () => {
     meta_diaria_horas: currentUser?.meta_diaria_horas || 4
   });
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
@@ -49,9 +49,9 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  const getInitials = (name) => {
+  const getInitials = (name: string | undefined | null): string => {
     if (!name) return 'PS';
-    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    return name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
   };
 
   return (

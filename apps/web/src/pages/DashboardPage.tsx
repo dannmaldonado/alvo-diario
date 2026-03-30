@@ -10,25 +10,48 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Trophy, Flame, Play, CalendarDays, ArrowRight, BookOpen, BarChart3, Clock, Target } from 'lucide-react';
 import { toast } from 'sonner';
+import { Materia } from '@/types';
 
 import SubjectBadge from '@/components/SubjectBadge';
 import { useScheduleCalculator } from '@/hooks';
 
+interface CycleInfo {
+  cycleNumber: number;
+  dayInCycle: number;
+  totalDaysInCycle: number;
+  totalDaysElapsed?: number;
+}
+
+interface Cronograma {
+  id: string;
+}
+
+interface MonthlyStats {
+  totalHours: number;
+  topSubject: string | null;
+  avgSessionMins: number;
+}
+
+interface DailyProgress {
+  horas_realizadas: number;
+  horas_meta: number;
+}
+
 const DashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { getCurrentSubject, getCycleInfo } = useScheduleCalculator();
-  
+
   const [loading, setLoading] = useState(true);
-  const [cronograma, setCronograma] = useState(null);
-  const [todayProgress, setTodayProgress] = useState({ horas_realizadas: 0, horas_meta: 0 });
-  
+  const [cronograma, setCronograma] = useState<Cronograma | null>(null);
+  const [todayProgress, setTodayProgress] = useState<DailyProgress>({ horas_realizadas: 0, horas_meta: 0 });
+
   // Derived schedule state
-  const [todaySubject, setTodaySubject] = useState(null);
-  const [tomorrowSubject, setTomorrowSubject] = useState(null);
-  const [cycleInfo, setCycleInfo] = useState(null);
+  const [todaySubject, setTodaySubject] = useState<Materia | string | null>(null);
+  const [tomorrowSubject, setTomorrowSubject] = useState<Materia | string | null>(null);
+  const [cycleInfo, setCycleInfo] = useState<CycleInfo | null>(null);
 
   // Monthly Stats State
-  const [monthlyStats, setMonthlyStats] = useState({
+  const [monthlyStats, setMonthlyStats] = useState<MonthlyStats>({
     totalHours: 0,
     topSubject: null,
     avgSessionMins: 0
@@ -42,19 +65,24 @@ const DashboardPage: React.FC = () => {
     try {
       setLoading(true);
 
+      if (!currentUser?.id) {
+        toast.error('Usuário não autenticado');
+        return;
+      }
+
       // 1. Load active cronograma via service
       const activeSchedule = await CronogramaService.getActive(currentUser.id);
 
       if (activeSchedule) {
-        setCronograma(activeSchedule as any);
+        setCronograma(activeSchedule);
 
         const today = new Date();
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
-        setTodaySubject(getCurrentSubject(activeSchedule as unknown as any, today));
-        setTomorrowSubject(getCurrentSubject(activeSchedule as unknown as any, tomorrow));
-        setCycleInfo(getCycleInfo(activeSchedule as unknown as any, today));
+        setTodaySubject(getCurrentSubject(activeSchedule, today));
+        setTomorrowSubject(getCurrentSubject(activeSchedule, tomorrow));
+        setCycleInfo(getCycleInfo(activeSchedule, today));
       }
 
       // 2. Load today's progress via service
@@ -72,6 +100,7 @@ const DashboardPage: React.FC = () => {
           });
         } catch (error) {
           console.error('Error creating daily goal:', error);
+          toast.error('Erro ao criar meta diária');
           meta = { id: '', user_id: currentUser.id, data: todayStr, horas_meta: currentUser.meta_diaria_horas || 4, horas_realizadas: 0, status: 'pendente', created: '', updated: '' };
         }
       }
@@ -99,8 +128,8 @@ const DashboardPage: React.FC = () => {
         let topSubj: string | null = null;
         let maxMins = 0;
         for (const [subj, mins] of Object.entries(subjectCounts)) {
-          if ((mins as number) > maxMins) {
-            maxMins = mins as number;
+          if (mins > maxMins) {
+            maxMins = mins;
             topSubj = subj;
           }
         }
@@ -207,7 +236,7 @@ const DashboardPage: React.FC = () => {
                   </div>
                   
                   <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-4 text-balance">
-                    {todaySubject?.name || 'Revisão Geral'}
+                    {typeof todaySubject === 'string' ? todaySubject : (todaySubject?.nome || 'Revisão Geral')}
                   </h2>
                   
                   <div className="flex items-center gap-3 text-muted-foreground mb-8">
@@ -244,9 +273,9 @@ const DashboardPage: React.FC = () => {
                   </div>
                   
                   <div className="h-3 w-full bg-muted rounded-full overflow-hidden mt-4">
-                    <div 
+                    <div
                       className="h-full bg-primary rounded-full transition-all duration-1000 ease-out"
-                      style={{ width: `${(cycleInfo?.dayInCycle / cycleInfo?.totalDaysInCycle) * 100}%` }}
+                      style={{ width: `${cycleInfo && cycleInfo.dayInCycle && cycleInfo.totalDaysInCycle ? (cycleInfo.dayInCycle / cycleInfo.totalDaysInCycle) * 100 : 0}%` }}
                     />
                   </div>
                   <p className="text-center text-sm text-muted-foreground mt-4">
@@ -295,7 +324,7 @@ const DashboardPage: React.FC = () => {
                     <ArrowRight className="h-6 w-6 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="font-semibold text-lg line-clamp-2">{tomorrowSubject?.name || 'Revisão'}</p>
+                    <p className="font-semibold text-lg line-clamp-2">{typeof tomorrowSubject === 'string' ? tomorrowSubject : (tomorrowSubject?.nome || 'Revisão')}</p>
                     <SubjectBadge subject={tomorrowSubject} size="sm" className="mt-1" />
                   </div>
                 </div>

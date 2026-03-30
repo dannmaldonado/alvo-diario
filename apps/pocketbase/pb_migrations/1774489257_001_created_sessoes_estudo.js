@@ -49,7 +49,7 @@ migrate((app) => {
           {
                 "hidden": false,
                 "id": "date2571913581",
-                "name": "data",
+                "name": "data_sessao",
                 "presentable": false,
                 "primaryKey": false,
                 "required": true,
@@ -77,7 +77,7 @@ migrate((app) => {
                 "name": "pontos_ganhos",
                 "presentable": false,
                 "primaryKey": false,
-                "required": true,
+                "required": false,
                 "system": false,
                 "type": "number",
                 "max": null,
@@ -113,8 +113,21 @@ migrate((app) => {
                 "onCreate": true,
                 "onUpdate": true,
                 "presentable": false,
-                "system": false,
                 "type": "autodate"
+          },
+          {
+                "hidden": false,
+                "id": "text1234567890",
+                "name": "cronograma_id",
+                "presentable": false,
+                "primaryKey": false,
+                "required": false,
+                "system": false,
+                "type": "text",
+                "autogeneratePattern": "",
+                "max": 0,
+                "min": 0,
+                "pattern": ""
           }
     ],
     "id": "pbc_7661808328",

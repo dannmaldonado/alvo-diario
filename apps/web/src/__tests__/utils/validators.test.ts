@@ -28,20 +28,21 @@ describe('Validators', () => {
   });
 
   describe('isValidPassword', () => {
-    it('should accept passwords with 6 or more characters', () => {
+    it('should accept passwords with 8 or more characters', () => {
       expect(isValidPassword('password')).toBe(true);
-      expect(isValidPassword('123456')).toBe(true);
+      expect(isValidPassword('12345678')).toBe(true);
       expect(isValidPassword('MyP@ssw0rd')).toBe(true);
     });
 
-    it('should reject passwords with less than 6 characters', () => {
+    it('should reject passwords with less than 8 characters', () => {
       expect(isValidPassword('pass')).toBe(false);
       expect(isValidPassword('12345')).toBe(false);
+      expect(isValidPassword('1234567')).toBe(false);
       expect(isValidPassword('')).toBe(false);
     });
 
-    it('should accept exactly 6 character passwords', () => {
-      expect(isValidPassword('123456')).toBe(true);
+    it('should accept exactly 8 character passwords', () => {
+      expect(isValidPassword('12345678')).toBe(true);
     });
   });
 
