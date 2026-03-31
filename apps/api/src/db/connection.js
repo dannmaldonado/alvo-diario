@@ -16,15 +16,14 @@ export const pool = mysql.createPool({
   keepAliveInitialDelayMs: 0
 });
 
-// Test connection
+// Test connection (non-fatal - server starts even if DB is temporarily unavailable)
 pool.getConnection()
   .then(conn => {
     console.log('Database connected successfully');
     conn.release();
   })
   .catch(err => {
-    console.error('Database connection error:', err);
-    process.exit(1);
+    console.error('Database connection warning:', err.message);
   });
 
 export default pool;
