@@ -7,21 +7,29 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Trash2, Plus, Sparkles, Target, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Trash2, Plus, Sparkles, Target, BookOpen, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Cronograma, Materia } from '@/types';
 
 import SubjectBadge from '@/components/SubjectBadge';
 import { useScheduleCalculator } from '@/hooks';
+import { FormInput } from '@/components/FormInput';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 interface PageState {
   loading: boolean;
   saving: boolean;
+  deleting: boolean;
+  showDeleteConfirm: boolean;
   cronograma: Cronograma | null;
   edital: string;
   dataAlvo: string;
   materias: Materia[];
   viewCycleOffset: number;
+  errors: {
+    edital?: string;
+    dataAlvo?: string;
+  };
 }
 
 const EDITAL_SUBJECTS = {
@@ -49,19 +57,24 @@ const CronogramaPage: React.FC = () => {
   const [pageState, setPageState] = useState<PageState>({
     loading: true,
     saving: false,
+    deleting: false,
+    showDeleteConfirm: false,
     cronograma: null,
     edital: '',
     dataAlvo: '',
     materias: [],
-    viewCycleOffset: 0
+    viewCycleOffset: 0,
+    errors: {}
   });
 
   // Destructure for easier access
-  const { loading, saving, cronograma, edital, dataAlvo, materias, viewCycleOffset } = pageState;
+  const { loading, saving, deleting, showDeleteConfirm, cronograma, edital, dataAlvo, materias, viewCycleOffset } = pageState;
 
   // Helper functions to update individual state fields
   const setLoading = (value: boolean) => setPageState(prev => ({ ...prev, loading: value }));
   const setSaving = (value: boolean) => setPageState(prev => ({ ...prev, saving: value }));
+  const setDeleting = (value: boolean) => setPageState(prev => ({ ...prev, deleting: value }));
+  const setShowDeleteConfirm = (value: boolean) => setPageState(prev => ({ ...prev, showDeleteConfirm: value }));
   const setCronograma = (value: Cronograma | null) => setPageState(prev => ({ ...prev, cronograma: value }));
   const setEdital = (value: string) => setPageState(prev => ({ ...prev, edital: value }));
   const setDataAlvo = (value: string) => setPageState(prev => ({ ...prev, dataAlvo: value }));
@@ -89,7 +102,7 @@ const CronogramaPage: React.FC = () => {
       if (c) {
         setCronograma(c);
         setEdital(c.edital);
-        setDataAlvo(c.data_fim);
+        setDataAlvo(c.data_alvo);
         setMaterias(c.materias);
       }
     } catch (error) {
@@ -150,8 +163,7 @@ const CronogramaPage: React.FC = () => {
       const data = {
         user_id: currentUser.id,
         edital,
-        data_fim: dataAlvo,
-        data_inicio: dataAlvo,
+        data_alvo: dataAlvo,
         materias
       };
 
@@ -169,6 +181,28 @@ const CronogramaPage: React.FC = () => {
       toast.error('Erro ao salvar cronograma');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const deleteCronograma = async () => {
+    if (!cronograma) return;
+    try {
+      setDeleting(true);
+      await CronogramaService.delete(cronograma.id);
+      setPageState(prev => ({
+        ...prev,
+        cronograma: null,
+        edital: '',
+        dataAlvo: '',
+        materias: [],
+        showDeleteConfirm: false,
+        deleting: false,
+      }));
+      toast.success('Cronograma excluído com sucesso');
+    } catch (error) {
+      console.error('Error deleting cronograma:', error);
+      toast.error('Erro ao excluir cronograma');
+      setDeleting(false);
     }
   };
 
@@ -260,10 +294,12 @@ const CronogramaPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-
-        <div className="container mx-auto px-4 py-8">Carregando...</div>
-      </div>
+      <>
+        <Helmet><title>Cronograma - Alvo Diário</title></Helmet>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <LoadingSpinner text="Carregando seu cronograma..." size="lg" />
+        </div>
+      </>
     );
   }
 
@@ -289,7 +325,7 @@ const CronogramaPage: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Left Column: Overview & Edit */}
               <div className="space-y-6 lg:col-span-1">
-                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm animate-slide-up transition-all duration-250 hover:shadow-lg">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="bg-primary/10 p-3 rounded-xl">
                       <Target className="h-6 w-6 text-primary" />
@@ -309,10 +345,18 @@ const CronogramaPage: React.FC = () => {
                       </span>
                       <span className="font-bold text-lg">{materias.length}</span>
                     </div>
+                    <Button
+                      variant="outline"
+                      className="w-full border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => setShowDeleteConfirm(true)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Excluir Cronograma
+                    </Button>
                   </div>
                 </div>
 
-                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm animate-slide-up transition-all duration-250 hover:shadow-lg" style={{ animationDelay: '0.1s' }}>
                   <h3 className="font-semibold text-lg mb-4">Editar Matérias do Ciclo</h3>
                   <div className="space-y-3 mb-4 max-h-[400px] overflow-y-auto pr-2">
                     {materias.map((materia, index) => (
@@ -349,7 +393,7 @@ const CronogramaPage: React.FC = () => {
             </div>
           ) : (
             /* Create Schedule State */
-            <div className="max-w-2xl mx-auto bg-card border border-border rounded-2xl p-8 shadow-sm">
+            <div className="max-w-2xl mx-auto bg-card border border-border rounded-2xl p-8 shadow-sm animate-scale-in transition-all duration-250">
               <div className="text-center mb-8">
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Sparkles className="w-8 h-8 text-primary" />
@@ -362,8 +406,8 @@ const CronogramaPage: React.FC = () => {
                 <div className="space-y-2">
                   <Label htmlFor="edital">Edital Foco</Label>
                   <Select value={edital} onValueChange={setEdital}>
-                    <SelectTrigger id="edital" className="h-12">
-                      <SelectValue placeholder="Selecione o edital" />
+                    <SelectTrigger id="edital" className="w-full">
+                      <SelectValue placeholder="Selecione um edital" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="PC">Polícia Civil (PC)</SelectItem>
@@ -371,18 +415,19 @@ const CronogramaPage: React.FC = () => {
                       <SelectItem value="PF">Polícia Federal (PF)</SelectItem>
                     </SelectContent>
                   </Select>
+                  {pageState.errors.edital && <p className="text-sm text-destructive">{pageState.errors.edital}</p>}
+                  <p className="text-xs text-muted-foreground">Selecione o edital para gerar as matérias recomendadas</p>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="dataAlvo">Data Prevista da Prova</Label>
-                  <Input
-                    id="dataAlvo"
-                    type="date"
-                    value={dataAlvo}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDataAlvo(e.target.value)}
-                    className="h-12"
-                  />
-                </div>
+                <FormInput
+                  label="Data Prevista da Prova"
+                  type="date"
+                  value={dataAlvo}
+                  onChange={(e) => setDataAlvo(e.target.value)}
+                  error={pageState.errors.dataAlvo}
+                  hint="Sua data alvo de preparação"
+                  required
+                />
 
                 {materias.length === 0 ? (
                   <>
@@ -410,6 +455,47 @@ const CronogramaPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <div
+            className="bg-card border border-border shadow-2xl rounded-2xl p-6 max-w-sm w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-destructive/10 rounded-full flex items-center justify-center shrink-0">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+              </div>
+              <h2 className="text-lg font-bold">Excluir Cronograma</h2>
+            </div>
+            <p className="text-muted-foreground mb-6">
+              Tem certeza que deseja excluir seu cronograma? Esta ação não pode ser desfeita e todas as suas matérias serão perdidas.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={deleteCronograma}
+                disabled={deleting}
+              >
+                {deleting ? 'Excluindo...' : 'Sim, excluir'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

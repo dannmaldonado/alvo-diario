@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Clock, Calendar as CalendarIcon, TrendingUp, ArrowUpDown, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
+import { Card, StatsCard } from '@/components/Card';
 
 interface SubjectData {
   name: string;
@@ -286,7 +287,6 @@ const ProgressAnalysisPage: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-
         <div className="container mx-auto px-4 py-8 max-w-7xl space-y-8">
           <Skeleton className="h-10 w-64" />
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -340,56 +340,36 @@ const ProgressAnalysisPage: React.FC = () => {
 
           {/* Key Stats Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col justify-between">
-              <div className="flex items-center gap-3 text-muted-foreground mb-4">
-                <Clock className="h-5 w-5 text-primary" />
-                <span className="font-medium">Total (Sempre)</span>
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold tracking-tight">{stats.totalHoursAll}</span>
-                <span className="text-muted-foreground font-medium">horas</span>
-              </div>
-            </div>
-            
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col justify-between">
-              <div className="flex items-center gap-3 text-muted-foreground mb-4">
-                <CalendarIcon className="h-5 w-5 text-secondary" />
-                <span className="font-medium">Este Mês</span>
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold tracking-tight">{stats.totalHoursMonth}</span>
-                <span className="text-muted-foreground font-medium">horas</span>
-              </div>
-            </div>
+            <StatsCard
+              label="Total (Sempre)"
+              value={stats.totalHoursAll}
+              icon={<Clock className="h-5 w-5" />}
+            />
 
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col justify-between">
-              <div className="flex items-center gap-3 text-muted-foreground mb-4">
-                <CalendarIcon className="h-5 w-5 text-amber-500" />
-                <span className="font-medium">Esta Semana</span>
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold tracking-tight">{stats.totalHoursWeek}</span>
-                <span className="text-muted-foreground font-medium">horas</span>
-              </div>
-            </div>
+            <StatsCard
+              label="Este Mês"
+              value={stats.totalHoursMonth}
+              icon={<CalendarIcon className="h-5 w-5" />}
+            />
 
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col justify-between">
-              <div className="flex items-center gap-3 text-muted-foreground mb-4">
-                <TrendingUp className="h-5 w-5 text-indigo-500" />
-                <span className="font-medium">Média Diária</span>
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold tracking-tight">{stats.avgHoursPerDay}</span>
-                <span className="text-muted-foreground font-medium">h/dia</span>
-              </div>
-            </div>
+            <StatsCard
+              label="Esta Semana"
+              value={stats.totalHoursWeek}
+              icon={<CalendarIcon className="h-5 w-5" />}
+            />
+
+            <StatsCard
+              label="Média Diária"
+              value={stats.avgHoursPerDay}
+              icon={<TrendingUp className="h-5 w-5" />}
+            />
           </div>
 
           {/* Charts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            
+
             {/* Bar Chart: Hours per Subject */}
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col">
+            <Card className="flex flex-col animate-fade-in">
               <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-muted-foreground" />
                 Horas por Matéria ({period === 'all' ? 'Sempre' : 'Período'})
@@ -413,10 +393,10 @@ const ProgressAnalysisPage: React.FC = () => {
                   <div className="h-full flex items-center justify-center text-muted-foreground">Nenhum dado no período.</div>
                 )}
               </div>
-            </div>
+            </Card>
 
             {/* Line Chart: Evolution */}
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col">
+            <Card className="flex flex-col animate-fade-in" style={{ animationDelay: '0.1s' }}>
               <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-muted-foreground" />
                 Evolução Acumulada ({period === 'all' ? 'Sempre' : 'Período'})
@@ -444,10 +424,10 @@ const ProgressAnalysisPage: React.FC = () => {
                   <div className="h-full flex items-center justify-center text-muted-foreground">Nenhum dado no período.</div>
                 )}
               </div>
-            </div>
+            </Card>
 
             {/* Pie Chart: Distribution */}
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col lg:col-span-2">
+            <Card className="flex flex-col lg:col-span-2 animate-fade-in" style={{ animationDelay: '0.2s' }}>
               <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
                 <PieChart className="h-5 w-5 text-muted-foreground" />
                 Distribuição de Tempo ({period === 'all' ? 'Sempre' : 'Período'})
@@ -483,12 +463,12 @@ const ProgressAnalysisPage: React.FC = () => {
                   <div className="text-muted-foreground">Nenhum dado no período.</div>
                 )}
               </div>
-            </div>
+            </Card>
 
           </div>
 
           {/* Detailed Table */}
-          <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+          <Card className="overflow-hidden animate-fade-in" style={{ animationDelay: '0.3s' }}>
             <div className="p-6 border-b border-border">
               <h3 className="text-lg font-semibold">Detalhamento por Matéria</h3>
               <p className="text-sm text-muted-foreground">Visão geral de horas estudadas em diferentes períodos.</p>
@@ -555,7 +535,7 @@ const ProgressAnalysisPage: React.FC = () => {
                 </TableBody>
               </Table>
             </div>
-          </div>
+          </Card>
 
         </main>
       </div>

@@ -7,13 +7,15 @@ import { CronogramaService } from '@/services/cronograma.service';
 import { MetasService } from '@/services/metas.service';
 import { SessoesService } from '@/services/sessoes.service';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Trophy, Flame, Play, CalendarDays, ArrowRight, BookOpen, BarChart3, Clock, Target } from 'lucide-react';
 import { toast } from 'sonner';
 import { Materia } from '@/types';
 
 import SubjectBadge from '@/components/SubjectBadge';
 import { useScheduleCalculator } from '@/hooks';
+import { Card, StatsCard } from '@/components/Card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 interface CycleInfo {
   cycleNumber: number;
@@ -96,12 +98,12 @@ const DashboardPage: React.FC = () => {
             data: todayStr,
             horas_meta: currentUser.meta_diaria_horas || 4,
             horas_realizadas: 0,
-            status: 'pendente'
+            status: 'nao_iniciada'
           });
         } catch (error) {
           console.error('Error creating daily goal:', error);
           toast.error('Erro ao criar meta diária');
-          meta = { id: '', user_id: currentUser.id, data: todayStr, horas_meta: currentUser.meta_diaria_horas || 4, horas_realizadas: 0, status: 'pendente', created: '', updated: '' };
+          meta = { id: '', user_id: currentUser.id, data: todayStr, horas_meta: currentUser.meta_diaria_horas || 4, horas_realizadas: 0, status: 'nao_iniciada', created: '', updated: '' };
         }
       }
 
@@ -158,17 +160,32 @@ const DashboardPage: React.FC = () => {
   if (loading) {
     return (
       <>
-        <Helmet>        <title>Dashboard - Alvo Diário</title></Helmet>
+        <Helmet><title>Dashboard - Alvo Diário</title></Helmet>
         <div className="min-h-screen bg-background">
-
           <div className="container mx-auto px-4 py-8 max-w-7xl">
-            <Skeleton className="h-12 w-64 mb-8" />
+            {/* Header skeleton */}
+            <div className="mb-8 animate-pulse">
+              <div className="h-8 w-48 bg-muted rounded-lg mb-2" />
+              <div className="h-5 w-72 bg-muted rounded-lg" />
+            </div>
+
+            {/* Cards grid with animation */}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-              <Skeleton className="h-64 md:col-span-2 rounded-2xl" />
-              <Skeleton className="h-64 rounded-2xl" />
+              <Skeleton className="h-48 rounded-2xl md:col-span-2" />
               <Skeleton className="h-48 rounded-2xl" />
               <Skeleton className="h-48 rounded-2xl" />
+              <Skeleton className="h-48 rounded-2xl md:col-span-2" />
               <Skeleton className="h-48 rounded-2xl" />
+            </div>
+
+            {/* Stats section */}
+            <div className="mt-8">
+              <Skeleton className="h-6 w-40 rounded-lg mb-4" />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Skeleton className="h-32 rounded-2xl" />
+                <Skeleton className="h-32 rounded-2xl" />
+                <Skeleton className="h-32 rounded-2xl" />
+              </div>
             </div>
           </div>
         </div>
@@ -222,9 +239,9 @@ const DashboardPage: React.FC = () => {
 
           {cronograma ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              
+
               {/* Hero Card: Today's Subject */}
-              <div className="md:col-span-2 bg-card border border-border rounded-2xl p-6 sm:p-8 shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[320px]">
+              <div className="md:col-span-2 bg-card border border-border rounded-2xl p-6 sm:p-8 shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[320px] animate-slide-up transition-all duration-250 hover:shadow-xl">
                 <div className="absolute top-0 right-0 -mt-16 -mr-16 text-primary/5 pointer-events-none">
                   <BookOpen className="w-64 h-64" />
                 </div>
@@ -247,7 +264,7 @@ const DashboardPage: React.FC = () => {
                 </div>
 
                 <div className="relative z-10 mt-auto">
-                  <Button size="lg" asChild className="w-full sm:w-auto rounded-xl h-14 px-8 text-lg shadow-md hover:shadow-xl transition-all">
+                  <Button size="lg" asChild className="w-full sm:w-auto rounded-xl h-14 px-8 text-lg shadow-md hover:shadow-xl transition-all text-black dark:text-black hover:text-black dark:hover:text-black">
                     <Link to="/study-session">
                       <Play className="mr-2 h-5 w-5 fill-current" />
                       Iniciar Sessão
@@ -257,7 +274,7 @@ const DashboardPage: React.FC = () => {
               </div>
 
               {/* Cycle Progress Card */}
-              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col">
+              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col animate-slide-up transition-all duration-250 hover:shadow-lg" style={{ animationDelay: '0.1s' }}>
                 <h3 className="text-lg font-semibold mb-6">Progresso do Ciclo</h3>
                 
                 <div className="flex-1 flex flex-col justify-center">
@@ -285,7 +302,7 @@ const DashboardPage: React.FC = () => {
               </div>
 
               {/* Daily Goal Card */}
-              <div className="md:col-span-2 bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row items-center gap-6">
+              <div className="md:col-span-2 bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row items-center gap-6 animate-slide-up transition-all duration-250 hover:shadow-lg" style={{ animationDelay: '0.2s' }}>
                 <div className="relative w-24 h-24 shrink-0 flex items-center justify-center">
                   <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="44" className="stroke-muted fill-none" strokeWidth="8" />
@@ -317,7 +334,7 @@ const DashboardPage: React.FC = () => {
               </div>
 
               {/* Next Subject Card */}
-              <div className="bg-muted/50 border border-border rounded-2xl p-6 flex flex-col justify-center">
+              <div className="bg-muted/50 border border-border rounded-2xl p-6 flex flex-col justify-center animate-slide-up transition-all duration-250 hover:bg-muted" style={{ animationDelay: '0.3s' }}>
                 <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">Amanhã</h3>
                 <div className="flex items-center gap-4">
                   <div className="h-12 w-12 rounded-full bg-background flex items-center justify-center shadow-sm shrink-0">
@@ -331,45 +348,42 @@ const DashboardPage: React.FC = () => {
               </div>
 
               {/* Monthly Stats Section */}
-              <div className="md:col-span-3 mt-4">
+              <div className="md:col-span-3 mt-4 animate-slide-up">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-bold">Estatísticas do Mês</h3>
-                  <Button variant="ghost" size="sm" asChild className="text-primary">
-                    <Link to="/analise">Ver Análise Completa <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                  <Button variant="ghost" size="sm" asChild className="text-primary hover:bg-primary/10">
+                    <Link to="/analise">
+                      Ver Análise Completa <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
                   </Button>
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="bg-card border border-border rounded-xl p-5 shadow-sm flex items-center gap-4">
-                    <div className="bg-primary/10 p-3 rounded-lg shrink-0">
-                      <Clock className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground font-medium">Total Estudado</p>
-                      <p className="text-2xl font-bold">{monthlyStats.totalHours}h</p>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-card border border-border rounded-xl p-5 shadow-sm flex items-center gap-4">
-                    <div className="bg-secondary/10 p-3 rounded-lg shrink-0">
-                      <Target className="h-6 w-6 text-secondary" />
-                    </div>
-                    <div className="overflow-hidden">
-                      <p className="text-sm text-muted-foreground font-medium">Mais Estudada</p>
-                      <p className="text-lg font-bold truncate" title={monthlyStats.topSubject || 'Nenhuma'}>
-                        {monthlyStats.topSubject || 'Nenhuma'}
-                      </p>
-                    </div>
+                  <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                    <StatsCard
+                      label="Total Estudado"
+                      value={`${monthlyStats.totalHours}h`}
+                      icon={<Clock className="h-5 w-5" />}
+                      description="Horas de estudo este mês"
+                    />
                   </div>
 
-                  <div className="bg-card border border-border rounded-xl p-5 shadow-sm flex items-center gap-4">
-                    <div className="bg-amber-500/10 p-3 rounded-lg shrink-0">
-                      <BarChart3 className="h-6 w-6 text-amber-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground font-medium">Média por Sessão</p>
-                      <p className="text-2xl font-bold">{monthlyStats.avgSessionMins} min</p>
-                    </div>
+                  <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                    <StatsCard
+                      label="Mais Estudada"
+                      value={monthlyStats.topSubject || 'Nenhuma'}
+                      icon={<Target className="h-5 w-5" />}
+                      description="Sua matéria favorita"
+                    />
+                  </div>
+
+                  <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
+                    <StatsCard
+                      label="Média por Sessão"
+                      value={`${monthlyStats.avgSessionMins}m`}
+                      icon={<BarChart3 className="h-5 w-5" />}
+                      description="Tempo médio de estudo"
+                    />
                   </div>
                 </div>
               </div>
@@ -384,7 +398,7 @@ const DashboardPage: React.FC = () => {
               <p className="text-muted-foreground mb-8 text-lg">
                 Crie seu cronograma de estudos baseado no edital para começar a acompanhar seu progresso diário.
               </p>
-              <Button size="lg" asChild className="rounded-xl px-8">
+              <Button size="lg" asChild className="rounded-xl px-8 text-black dark:text-black hover:text-black dark:hover:text-black">
                 <Link to="/cronograma">Criar Meu Cronograma</Link>
               </Button>
             </div>

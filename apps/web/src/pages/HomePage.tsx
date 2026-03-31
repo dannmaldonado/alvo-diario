@@ -8,6 +8,7 @@ import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Target, Calendar, Trophy, Timer, TrendingUp, Award, LucideIcon } from 'lucide-react';
+import { Card } from '@/components/Card';
 
 interface Feature {
   icon: React.ComponentType<{ className?: string }>;
@@ -70,13 +71,13 @@ const HomePage: React.FC = () => {
               </p>
 
               <div className="flex flex-col gap-4 sm:flex-row sm:justify-center w-full max-w-md">
-                <Button size="lg" asChild className="text-base font-bold glow-primary sm:flex-1 h-14">
+                <Button size="lg" asChild className="text-base font-bold text-black dark:text-black hover:text-black dark:hover:text-black glow-primary sm:flex-1 h-14">
                   <Link to="/signup">
                     <Target className="mr-2 h-5 w-5" />
                     Começar Agora
                   </Link>
                 </Button>
-                <Button size="lg" variant="outline" asChild className="text-base font-semibold sm:flex-1 backdrop-blur-sm bg-background/50 hover:bg-background/80 h-14">
+                <Button size="lg" variant="outline" asChild className="text-base font-semibold text-foreground sm:flex-1 backdrop-blur-sm bg-background/50 hover:bg-background/80 h-14 border-foreground/20">
                   <Link to="/login">
                     Entrar
                   </Link>
@@ -121,9 +122,9 @@ const HomePage: React.FC = () => {
               {features.map((feature, index) => {
                 const Icon = feature.icon;
                 return (
-                  <div
+                  <Card
                     key={index}
-                    className="study-card group hover:-translate-y-1"
+                    className="group hover:-translate-y-1 transition-all duration-300"
                   >
                     <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors duration-200 group-hover:bg-primary group-hover:text-primary-foreground">
                       <Icon className="h-7 w-7" />
@@ -134,7 +135,7 @@ const HomePage: React.FC = () => {
                     <p className="leading-relaxed text-muted-foreground">
                       {feature.description}
                     </p>
-                  </div>
+                  </Card>
                 );
               })}
             </div>
@@ -154,7 +155,7 @@ const HomePage: React.FC = () => {
               <p className="mb-10 text-xl text-muted-foreground max-w-2xl mx-auto">
                 Mude a forma como você estuda. Acelere sua aprovação nos maiores concursos policiais do Brasil de forma tática.
               </p>
-              <Button size="lg" asChild className="text-lg font-bold px-12 py-6 h-auto glow-primary">
+              <Button size="lg" asChild className="text-lg font-bold text-black dark:text-black hover:text-black dark:hover:text-black px-12 py-6 h-auto glow-primary">
                 <Link to="/signup">
                   Criar conta gratuita
                 </Link>

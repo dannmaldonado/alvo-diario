@@ -117,7 +117,7 @@ const Header: React.FC = () => {
               <Button variant="ghost" asChild>
                 <Link to="/login">Entrar</Link>
               </Button>
-              <Button asChild>
+              <Button asChild className="text-black dark:text-black hover:text-black dark:hover:text-black">
                 <Link to="/signup">Começar Agora</Link>
               </Button>
             </>
@@ -205,7 +205,7 @@ const Header: React.FC = () => {
                       Entrar
                     </Link>
                   </Button>
-                  <Button asChild className="w-full">
+                  <Button asChild className="w-full text-black dark:text-black hover:text-black dark:hover:text-black">
                     <Link to="/signup" onClick={() => setMobileMenuOpen(false)}>
                       Começar Agora
                     </Link>

@@ -9,13 +9,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthService } from '@/services';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 
 import { z } from 'zod';
 import { isValidEmail, isValidPassword } from '@/utils/validators';
+import { FormInput } from '@/components/FormInput';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/Card';
 
 /**
  * Zod schema for login form validation
@@ -40,7 +39,8 @@ const LoginPage: React.FC = () => {
     email: '',
     password: '',
   });
-  const [error, setError] = useState<string>('');
+  const [globalError, setGlobalError] = useState<string>('');
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -49,12 +49,33 @@ const LoginPage: React.FC = () => {
       ...prev,
       [name]: value,
     }));
-    setError('');
+    setGlobalError('');
+
+    // Validação em tempo real
+    const newErrors = { ...fieldErrors };
+    if (name === 'email') {
+      if (!value.trim()) {
+        newErrors.email = 'Email é obrigatório';
+      } else if (!isValidEmail(value)) {
+        newErrors.email = 'Email inválido';
+      } else {
+        delete newErrors.email;
+      }
+    } else if (name === 'password') {
+      if (!value.trim()) {
+        newErrors.password = 'Senha é obrigatória';
+      } else if (!isValidPassword(value)) {
+        newErrors.password = 'Senha deve ter no mínimo 8 caracteres';
+      } else {
+        delete newErrors.password;
+      }
+    }
+    setFieldErrors(newErrors);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    setError('');
+    setGlobalError('');
     setLoading(true);
 
     try {
@@ -73,12 +94,12 @@ const LoginPage: React.FC = () => {
       // Handle validation errors
       if (err instanceof z.ZodError) {
         const firstError = err.issues[0];
-        setError(firstError.message);
+        setGlobalError(firstError.message);
       } else if (err instanceof Error) {
         // Handle API errors
-        setError(err.message || 'Email ou senha incorretos');
+        setGlobalError(err.message || 'Email ou senha incorretos');
       } else {
-        setError('Erro ao fazer login. Tente novamente.');
+        setGlobalError('Erro ao fazer login. Tente novamente.');
       }
     } finally {
       setLoading(false);
@@ -93,60 +114,58 @@ const LoginPage: React.FC = () => {
       </Helmet>
 
       <div className="min-h-screen bg-background">
-
-
         <div className="container mx-auto flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
-          <div className="w-full max-w-md">
-            <div className="study-card">
-              <div className="mb-8 text-center">
-                <h1 className="mb-2 text-3xl font-bold">Bem-vindo de volta</h1>
-                <p className="text-muted-foreground">
-                  Entre para continuar seus estudos
-                </p>
-              </div>
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <CardTitle className="text-3xl">Bem-vindo de volta</CardTitle>
+              <CardDescription>
+                Entre para continuar seus estudos
+              </CardDescription>
+            </CardHeader>
 
-              {error && (
-                <Alert variant="destructive" className="mb-6">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
+            <CardContent>
+              {/* Global error message */}
+              {globalError && (
+                <div className="mb-6 p-4 bg-destructive/10 border border-destructive rounded-md flex items-start gap-3 animate-slide-down">
+                  <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-destructive">{globalError}</p>
+                  </div>
+                </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={formData.email || ''}
-                    onChange={handleChange}
-                    disabled={loading}
-                    className="text-foreground"
-                    required
-                  />
-                </div>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <FormInput
+                  label="Email"
+                  type="email"
+                  name="email"
+                  placeholder="seu@email.com"
+                  value={formData.email || ''}
+                  onChange={handleChange}
+                  disabled={loading}
+                  error={fieldErrors.email}
+                  hint="Use seu email registrado"
+                  required
+                />
 
-                <div className="space-y-2">
-                  <Label htmlFor="password">Senha</Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={formData.password || ''}
-                    onChange={handleChange}
-                    disabled={loading}
-                    className="text-foreground"
-                    required
-                  />
-                </div>
+                <FormInput
+                  label="Senha"
+                  type="password"
+                  name="password"
+                  placeholder="••••••••"
+                  value={formData.password || ''}
+                  onChange={handleChange}
+                  disabled={loading}
+                  error={fieldErrors.password}
+                  showPasswordToggle
+                  hint="Senha de no mínimo 8 caracteres"
+                  required
+                />
 
                 <Button
                   type="submit"
-                  className="w-full"
-                  disabled={loading}
+                  className="w-full h-11 text-base"
+                  disabled={loading || Object.keys(fieldErrors).length > 0}
                 >
                   {loading ? 'Entrando...' : 'Entrar'}
                 </Button>
@@ -161,8 +180,8 @@ const LoginPage: React.FC = () => {
                   Criar conta
                 </Link>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </>

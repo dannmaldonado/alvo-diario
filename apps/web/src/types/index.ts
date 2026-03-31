@@ -56,9 +56,8 @@ export type Cronograma = {
   user_id: string;
   edital: string;
   materias: Materia[];
-  data_inicio: string;
-  data_fim: string;
-  data_alvo?: string;
+  data_alvo: string;
+  status?: 'ativo' | 'concluido' | 'pausado';
   created: string;
   updated: string;
 };
@@ -100,7 +99,7 @@ export type Meta = {
   data: string;
   horas_meta: number;
   horas_realizadas: number;
-  status: 'pendente' | 'em_progresso' | 'completo';
+  status: 'nao_iniciada' | 'em_progresso' | 'concluida';
   created: string;
   updated: string;
 };

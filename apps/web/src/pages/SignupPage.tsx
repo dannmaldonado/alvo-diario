@@ -9,13 +9,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthService } from '@/services';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-
 import { z } from 'zod';
 import { isValidEmail, isValidPassword, isValidName } from '@/utils/validators';
+import { FormInput } from '@/components/FormInput';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/Card';
 
 /**
  * Zod schema for signup form validation
@@ -52,7 +50,8 @@ const SignupPage: React.FC = () => {
     password: '',
     passwordConfirm: '',
   });
-  const [error, setError] = useState<string>('');
+  const [globalError, setGlobalError] = useState<string>('');
+  const [fieldErrors, setFieldErrors] = useState<{ nome?: string; email?: string; password?: string; passwordConfirm?: string }>({});
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -61,12 +60,49 @@ const SignupPage: React.FC = () => {
       ...prev,
       [name]: value,
     }));
-    setError('');
+    setGlobalError('');
+
+    // Validação em tempo real
+    const newErrors = { ...fieldErrors };
+    if (name === 'nome') {
+      if (!value.trim()) {
+        newErrors.nome = 'Nome é obrigatório';
+      } else if (!isValidName(value)) {
+        newErrors.nome = 'Nome deve ter no mínimo 2 caracteres';
+      } else {
+        delete newErrors.nome;
+      }
+    } else if (name === 'email') {
+      if (!value.trim()) {
+        newErrors.email = 'Email é obrigatório';
+      } else if (!isValidEmail(value)) {
+        newErrors.email = 'Email inválido';
+      } else {
+        delete newErrors.email;
+      }
+    } else if (name === 'password') {
+      if (!value.trim()) {
+        newErrors.password = 'Senha é obrigatória';
+      } else if (!isValidPassword(value)) {
+        newErrors.password = 'Senha deve ter no mínimo 8 caracteres';
+      } else {
+        delete newErrors.password;
+      }
+    } else if (name === 'passwordConfirm') {
+      if (!value.trim()) {
+        newErrors.passwordConfirm = 'Confirme sua senha';
+      } else if (value !== formData.password) {
+        newErrors.passwordConfirm = 'As senhas não coincidem';
+      } else {
+        delete newErrors.passwordConfirm;
+      }
+    }
+    setFieldErrors(newErrors);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    setError('');
+    setGlobalError('');
     setLoading(true);
 
     try {
@@ -86,12 +122,12 @@ const SignupPage: React.FC = () => {
       // Handle validation errors
       if (err instanceof z.ZodError) {
         const firstError = err.issues[0];
-        setError(firstError.message);
+        setGlobalError(firstError.message);
       } else if (err instanceof Error) {
         // Handle API errors (duplicate email, etc)
-        setError(err.message || 'Erro ao criar conta');
+        setGlobalError(err.message || 'Erro ao criar conta');
       } else {
-        setError('Erro ao criar conta. Tente novamente.');
+        setGlobalError('Erro ao criar conta. Tente novamente.');
       }
     } finally {
       setLoading(false);
@@ -106,90 +142,85 @@ const SignupPage: React.FC = () => {
       </Helmet>
 
       <div className="min-h-screen bg-background">
-
-
         <div className="container mx-auto flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
-          <div className="w-full max-w-md">
-            <div className="study-card">
-              <div className="mb-8 text-center">
-                <h1 className="mb-2 text-3xl font-bold">Criar conta</h1>
-                <p className="text-muted-foreground">
-                  Comece sua jornada rumo à aprovação
-                </p>
-              </div>
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <CardTitle className="text-3xl">Criar conta</CardTitle>
+              <CardDescription>
+                Comece sua jornada rumo à aprovação
+              </CardDescription>
+            </CardHeader>
 
-              {error && (
-                <Alert variant="destructive" className="mb-6">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
+            <CardContent>
+              {/* Global error message */}
+              {globalError && (
+                <div className="mb-6 p-4 bg-destructive/10 border border-destructive rounded-md flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-destructive">{globalError}</p>
+                  </div>
+                </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="nome">Nome completo</Label>
-                  <Input
-                    id="nome"
-                    name="nome"
-                    type="text"
-                    placeholder="Seu nome"
-                    value={formData.nome || ''}
-                    onChange={handleChange}
-                    disabled={loading}
-                    className="text-foreground"
-                    required
-                  />
-                </div>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <FormInput
+                  label="Nome Completo"
+                  type="text"
+                  name="nome"
+                  placeholder="Seu nome"
+                  value={formData.nome || ''}
+                  onChange={handleChange}
+                  disabled={loading}
+                  error={fieldErrors.nome}
+                  hint="Seu nome será exibido no dashboard"
+                  required
+                />
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={formData.email || ''}
-                    onChange={handleChange}
-                    disabled={loading}
-                    className="text-foreground"
-                    required
-                  />
-                </div>
+                <FormInput
+                  label="Email"
+                  type="email"
+                  name="email"
+                  placeholder="seu@email.com"
+                  value={formData.email || ''}
+                  onChange={handleChange}
+                  disabled={loading}
+                  error={fieldErrors.email}
+                  hint="Use um email válido para sua conta"
+                  required
+                />
 
-                <div className="space-y-2">
-                  <Label htmlFor="password">Senha</Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    placeholder="Mínimo 8 caracteres"
-                    value={formData.password || ''}
-                    onChange={handleChange}
-                    disabled={loading}
-                    className="text-foreground"
-                    required
-                  />
-                </div>
+                <FormInput
+                  label="Senha"
+                  type="password"
+                  name="password"
+                  placeholder="••••••••"
+                  value={formData.password || ''}
+                  onChange={handleChange}
+                  disabled={loading}
+                  error={fieldErrors.password}
+                  showPasswordToggle
+                  hint="Senha de no mínimo 8 caracteres"
+                  required
+                />
 
-                <div className="space-y-2">
-                  <Label htmlFor="passwordConfirm">Confirmar senha</Label>
-                  <Input
-                    id="passwordConfirm"
-                    name="passwordConfirm"
-                    type="password"
-                    placeholder="Digite a senha novamente"
-                    value={formData.passwordConfirm || ''}
-                    onChange={handleChange}
-                    disabled={loading}
-                    className="text-foreground"
-                    required
-                  />
-                </div>
+                <FormInput
+                  label="Confirmar Senha"
+                  type="password"
+                  name="passwordConfirm"
+                  placeholder="••••••••"
+                  value={formData.passwordConfirm || ''}
+                  onChange={handleChange}
+                  disabled={loading}
+                  error={fieldErrors.passwordConfirm}
+                  showPasswordToggle
+                  hint="Digite a mesma senha novamente"
+                  required
+                />
 
                 <Button
                   type="submit"
-                  className="w-full"
-                  disabled={loading}
+                  className="w-full h-11 text-base"
+                  disabled={loading || Object.keys(fieldErrors).length > 0}
                 >
                   {loading ? 'Criando conta...' : 'Criar conta'}
                 </Button>
@@ -204,8 +235,8 @@ const SignupPage: React.FC = () => {
                   Entrar
                 </Link>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </>

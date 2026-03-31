@@ -3,11 +3,11 @@ import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Trophy, Flame, Target, Save, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
+import { FormInput } from '@/components/FormInput';
+import { Card } from '@/components/Card';
 
 
 const ProfilePage: React.FC = () => {
@@ -17,12 +17,34 @@ const ProfilePage: React.FC = () => {
     nome: currentUser?.nome || '',
     meta_diaria_horas: currentUser?.meta_diaria_horas || 4
   });
+  const [errors, setErrors] = useState<{ nome?: string; meta_diaria_horas?: string }>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: name === 'meta_diaria_horas' ? parseFloat(value) : value
     });
+
+    // Validação em tempo real
+    const newErrors = { ...errors };
+    if (name === 'nome') {
+      if (!value.trim()) {
+        newErrors.nome = 'Nome é obrigatório';
+      } else if (value.length < 3) {
+        newErrors.nome = 'Nome deve ter pelo menos 3 caracteres';
+      } else {
+        delete newErrors.nome;
+      }
+    } else if (name === 'meta_diaria_horas') {
+      const numValue = parseFloat(value);
+      if (numValue < 1 || numValue > 24) {
+        newErrors.meta_diaria_horas = 'Meta deve estar entre 1 e 24 horas';
+      } else {
+        delete newErrors.meta_diaria_horas;
+      }
+    }
+    setErrors(newErrors);
   };
 
   const handleSave = async () => {
@@ -76,7 +98,7 @@ const ProfilePage: React.FC = () => {
             <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
               {/* Left Column - Stats & Avatar */}
               <div className="space-y-6 md:col-span-1">
-                <div className="study-card text-center">
+                <div className="study-card text-center animate-slide-up transition-all duration-250 hover:shadow-lg">
                   <Avatar className="mx-auto mb-4 h-24 w-24">
                     <AvatarImage src="" />
                     <AvatarFallback className="bg-primary/10 text-2xl text-primary">
@@ -115,56 +137,53 @@ const ProfilePage: React.FC = () => {
 
               {/* Right Column - Settings */}
               <div className="space-y-6 md:col-span-2">
-                <div className="study-card">
+                <Card className="animate-slide-up transition-all duration-250 hover:shadow-lg">
                   <h2 className="mb-6 text-xl font-semibold">Informações Pessoais</h2>
-                  
+
                   <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="nome">Nome Completo</Label>
-                      <Input
-                        id="nome"
-                        name="nome"
-                        value={formData.nome}
-                        onChange={(e: any) => handleChange(e)}
-                        className="text-foreground"
-                      />
-                    </div>
+                    <FormInput
+                      label="Nome Completo"
+                      name="nome"
+                      value={formData.nome}
+                      onChange={handleChange}
+                      error={errors.nome}
+                      hint="Seu nome será exibido no dashboard"
+                      required
+                    />
 
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email (não editável)</Label>
-                      <Input
-                        id="email"
+                      <label className="block text-sm font-medium text-foreground">
+                        Email (não editável)
+                      </label>
+                      <input
+                        type="email"
                         value={currentUser?.email || ''}
                         disabled
-                        className="bg-muted text-muted-foreground"
+                        className="w-full px-3 py-2 border border-border rounded-md bg-muted text-muted-foreground opacity-60 cursor-not-allowed"
                       />
                     </div>
                   </div>
-                </div>
+                </Card>
 
-                <div className="study-card">
+                <Card className="animate-slide-up transition-all duration-250 hover:shadow-lg" style={{ animationDelay: '0.1s' }}>
                   <h2 className="mb-6 text-xl font-semibold">Metas de Estudo</h2>
-                  
+
                   <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="meta_diaria_horas">Meta Diária (horas)</Label>
-                      <Input
-                        id="meta_diaria_horas"
-                        name="meta_diaria_horas"
-                        type="number"
-                        min="1"
-                        max="24"
-                        step="0.5"
-                        value={formData.meta_diaria_horas}
-                        onChange={(e: any) => handleChange(e)}
-                        className="text-foreground"
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Defina quantas horas você pretende estudar por dia.
-                      </p>
-                    </div>
+                    <FormInput
+                      label="Meta Diária (horas)"
+                      name="meta_diaria_horas"
+                      type="number"
+                      min="1"
+                      max="24"
+                      step="0.5"
+                      value={formData.meta_diaria_horas.toString()}
+                      onChange={handleChange}
+                      error={errors.meta_diaria_horas}
+                      hint="Defina quantas horas você pretende estudar por dia"
+                      required
+                    />
                   </div>
-                </div>
+                </Card>
 
                 <div className="flex items-center justify-between">
                   <Button
