@@ -2,7 +2,7 @@
 - [Alvo Diário - Disciplina Tática para sua Aprovação](/home): Plataforma completa de estudos para concursos policiais com cronograma inteligente, timer Pomodoro e gamificação
 - [Análise de Progresso - Alvo Diário](/progressanalysis): Estatísticas detalhadas dos seus estudos
 - [Criar Conta - Alvo Diário](/signup): Crie sua conta gratuita no Alvo Diário
-- [Cronograma - Alvo Diário](/cronograma): Gerencie seu cronograma de estudos em ciclos
+- [Cronograma - Alvo Diário](/cronograma): No description available
 - [Dashboard - Alvo Diário](/dashboard): No description available
 - [Entrar - Alvo Diário](/login): Faça login na sua conta Alvo Diário
 - [Meu Perfil - Alvo Diário](/profile): Gerencie seu perfil e metas de estudo
