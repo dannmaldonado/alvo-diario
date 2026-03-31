@@ -5,9 +5,12 @@
 
 import { logError } from '@/utils/errors';
 
+// Em produção, a API está no mesmo servidor (URL relativa)
+// Em desenvolvimento, aponta para localhost:3001
 const API_BASE_URL =
-  (import.meta.env.VITE_API_URL as string | undefined) ||
-  'http://localhost:3001';
+  import.meta.env.PROD
+    ? ''
+    : (import.meta.env.VITE_API_URL as string | undefined) || 'http://localhost:3001';
 
 /**
  * HTTP API Client
