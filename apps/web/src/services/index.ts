@@ -7,4 +7,4 @@ export { AuthService } from './auth.service';
 export { CronogramaService } from './cronograma.service';
 export { SessoesService } from './sessoes.service';
 export { MetasService } from './metas.service';
-export { pb, apiCall, apiCallTyped, isAuthenticated, getCurrentUser } from './api';
+export { apiClient, apiCall, apiCallTyped, isAuthenticated, getCurrentUser } from './api';
