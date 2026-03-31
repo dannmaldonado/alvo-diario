@@ -3,7 +3,7 @@
  * Handles user login, signup, logout, and profile management
  */
 
-import { apiCall, pb, onAuthStateChange, clearAuth } from './api';
+import { apiCall, apiClient, onAuthStateChange, clearAuth } from './api';
 import { User, AuthResponse, LoginInput, SignupInput, UpdateUserInput } from '@/types';
 import { AuthenticationError } from '@/types';
 
@@ -14,13 +14,20 @@ export const AuthService = {
   async login(input: LoginInput): Promise<AuthResponse> {
     return apiCall(
       async () => {
-        const authData = await pb
-          .collection('users')
-          .authWithPassword(input.email, input.password);
+        const response = await apiClient.post<{ user: User; token: string }>(
+          '/api/auth/login',
+          {
+            email: input.email,
+            password: input.password
+          }
+        );
+
+        localStorage.setItem('auth_token', response.token);
+        localStorage.setItem('user', JSON.stringify(response.user));
 
         return {
-          token: pb.authStore.token,
-          record: authData.record as unknown as User,
+          token: response.token,
+          record: response.user
         };
       },
       'AuthService.login'
@@ -33,18 +40,20 @@ export const AuthService = {
   async signup(input: SignupInput): Promise<User> {
     return apiCall(
       async () => {
-        // Create user account
-        const newUser = await pb.collection('users').create({
-          email: input.email,
-          password: input.password,
-          passwordConfirm: input.passwordConfirm || input.password,
-          nome: input.nome,
-        });
+        const response = await apiClient.post<{ user: User; token: string }>(
+          '/api/auth/signup',
+          {
+            email: input.email,
+            password: input.password,
+            passwordConfirm: input.passwordConfirm || input.password,
+            nome: input.nome
+          }
+        );
 
-        // Auto-login after signup
-        await pb.collection('users').authWithPassword(input.email, input.password);
+        localStorage.setItem('auth_token', response.token);
+        localStorage.setItem('user', JSON.stringify(response.user));
 
-        return newUser as unknown as User;
+        return response.user;
       },
       'AuthService.signup'
     );
@@ -61,13 +70,14 @@ export const AuthService = {
    * Get current authenticated user
    */
   async getCurrentUser(): Promise<User | null> {
-    if (!pb.authStore.isValid) {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
       return null;
     }
 
     return apiCall(
       async () => {
-        const user = pb.authStore.model as unknown as User;
+        const user = await apiClient.get<User>('/api/auth/me');
         return user;
       },
       'AuthService.getCurrentUser'
@@ -78,17 +88,16 @@ export const AuthService = {
    * Update user profile
    */
   async updateUser(updates: UpdateUserInput): Promise<User> {
-    if (!pb.authStore.model?.id) {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
       throw new AuthenticationError('Not authenticated');
     }
 
     return apiCall(
       async () => {
-        const updated = await pb
-          .collection('users')
-          .update(pb.authStore.model!.id, updates);
-
-        return updated as unknown as User;
+        const updated = await apiClient.patch<User>('/api/auth/me', updates);
+        localStorage.setItem('user', JSON.stringify(updated));
+        return updated;
       },
       'AuthService.updateUser'
     );
@@ -98,8 +107,8 @@ export const AuthService = {
    * Subscribe to auth state changes
    */
   onAuthStateChange(callback: (user: User | null) => void): () => void {
-    return onAuthStateChange(() => {
-      const user = pb.authStore.isValid ? (pb.authStore.model as unknown as User) : null;
+    return onAuthStateChange((token) => {
+      const user = token ? (localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : null) : null;
       callback(user);
     });
   },
@@ -108,34 +117,6 @@ export const AuthService = {
    * Check if user is authenticated
    */
   isAuthenticated(): boolean {
-    return pb.authStore.isValid;
-  },
-
-  /**
-   * Request password reset
-   */
-  async requestPasswordReset(email: string): Promise<void> {
-    return apiCall(
-      async () => {
-        await pb.collection('users').requestPasswordReset(email);
-      },
-      'AuthService.requestPasswordReset'
-    );
-  },
-
-  /**
-   * Confirm password reset with token
-   */
-  async confirmPasswordReset(
-    resetToken: string,
-    password: string,
-    passwordConfirm: string
-  ): Promise<void> {
-    return apiCall(
-      async () => {
-        await pb.collection('users').confirmPasswordReset(resetToken, password, passwordConfirm);
-      },
-      'AuthService.confirmPasswordReset'
-    );
-  },
+    return !!localStorage.getItem('auth_token');
+  }
 };

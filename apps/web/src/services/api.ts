@@ -1,23 +1,115 @@
 /**
  * API Service Layer
- * Centralized HTTP/PocketBase wrapper with error handling
+ * Centralized HTTP wrapper with error handling
  */
 
-import PocketBase from 'pocketbase';
-import { handlePBError, logError } from '@/utils/errors';
-import { APIError } from '@/types';
+import { logError } from '@/utils/errors';
+
+const API_BASE_URL =
+  (import.meta.env.VITE_API_URL as string | undefined) ||
+  'http://localhost:3001';
 
 /**
- * Initialize PocketBase client
- * URL can be configured via environment variable
+ * HTTP API Client
  */
-export const pb = new PocketBase(
-  (import.meta.env.VITE_PB_URL as string | undefined) || 'http://localhost:8090'
-);
+export const apiClient = {
+  async request<T>(
+    method: string,
+    path: string,
+    data?: any,
+    options?: RequestInit
+  ): Promise<T> {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` })
+      };
+
+      const response = await fetch(`${API_BASE_URL}${path}`, {
+        method,
+        headers,
+        body: data ? JSON.stringify(data) : undefined,
+        ...options
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || `HTTP ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      logError(`API Error (${method} ${path})`, error);
+      throw error;
+    }
+  },
+
+  get: <T = any>(path: string, options?: RequestInit) =>
+    apiClient.request<T>('GET', path, undefined, options),
+
+  post: <T = any>(path: string, data: any, options?: RequestInit) =>
+    apiClient.request<T>('POST', path, data, options),
+
+  patch: <T = any>(path: string, data: any, options?: RequestInit) =>
+    apiClient.request<T>('PATCH', path, data, options),
+
+  delete: <T = any>(path: string, options?: RequestInit) =>
+    apiClient.request<T>('DELETE', path, undefined, options)
+};
+
+/**
+ * Check if user is authenticated
+ */
+export function isAuthenticated(): boolean {
+  return !!localStorage.getItem('auth_token');
+}
+
+/**
+ * Get current authenticated user
+ */
+export function getCurrentUser() {
+  const user = localStorage.getItem('user');
+  return user ? JSON.parse(user) : null;
+}
+
+/**
+ * Get current auth token
+ */
+export function getAuthToken(): string {
+  return localStorage.getItem('auth_token') || '';
+}
+
+/**
+ * Subscribe to auth state changes
+ */
+export function onAuthStateChange(
+  callback: (token: string | null, user: any) => void
+): () => void {
+  // Simple implementation using storage events
+  const handler = () => {
+    const token = localStorage.getItem('auth_token');
+    const user = localStorage.getItem('user');
+    callback(token, user ? JSON.parse(user) : null);
+  };
+
+  window.addEventListener('storage', handler);
+
+  return () => {
+    window.removeEventListener('storage', handler);
+  };
+}
+
+/**
+ * Clear authentication (logout)
+ */
+export function clearAuth(): void {
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('user');
+}
 
 /**
  * Wrapper for API calls with error handling
- * Converts PocketBase errors to standardized APIError instances
  */
 export async function apiCall<T>(
   fn: () => Promise<T>,
@@ -27,13 +119,12 @@ export async function apiCall<T>(
     return await fn();
   } catch (error) {
     logError(`API Error (${errorContext})`, error);
-    throw handlePBError(error);
+    throw error;
   }
 }
 
 /**
  * Type-safe API call wrapper
- * Use this for calls that need explicit typing
  */
 export async function apiCallTyped<T>(
   fn: () => Promise<T>,
@@ -42,54 +133,4 @@ export async function apiCallTyped<T>(
   return apiCall(fn, errorContext);
 }
 
-/**
- * Check if PocketBase client is authenticated
- */
-export function isAuthenticated(): boolean {
-  return pb.authStore.isValid;
-}
-
-/**
- * Get current authenticated user
- */
-export function getCurrentUser() {
-  return pb.authStore.model;
-}
-
-/**
- * Get current auth token
- */
-export function getAuthToken(): string {
-  return pb.authStore.token || '';
-}
-
-/**
- * Subscribe to auth state changes
- * Returns unsubscribe function
- */
-export function onAuthStateChange(
-  callback: (token: string, model: any) => void
-): () => void {
-  return pb.authStore.onChange(callback);
-}
-
-/**
- * Clear authentication (logout)
- */
-export function clearAuth(): void {
-  pb.authStore.clear();
-}
-
-/**
- * Refresh authentication token
- */
-export async function refreshAuth(): Promise<void> {
-  try {
-    await pb.collection('users').authRefresh();
-  } catch (error) {
-    clearAuth();
-    throw handlePBError(error);
-  }
-}
-
-export default pb;
+export default apiClient;

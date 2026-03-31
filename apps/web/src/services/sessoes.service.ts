@@ -3,23 +3,19 @@
  * Handles study session CRUD operations
  */
 
-import { apiCall, pb } from './api';
-import { Sessao, CreateSessaoInput, UpdateSessaoInput, PBListResponse } from '@/types';
+import { apiCall, apiClient } from './api';
+import { Sessao, CreateSessaoInput, UpdateSessaoInput } from '@/types';
 import { NotFoundError } from '@/types';
 
 export const SessoesService = {
   /**
    * Get all sessions for a user
    */
-  async getByUser(userId: string): Promise<Sessao[]> {
+  async getByUser(): Promise<Sessao[]> {
     return apiCall(
       async () => {
-        const records = await pb.collection('sessoes_estudo').getFullList({
-          filter: `user_id = "${userId}"`,
-          sort: '-data_sessao',
-        });
-
-        return records as unknown as Sessao[];
+        const records = await apiClient.get<Sessao[]>('/api/sessoes');
+        return records;
       },
       'SessoesService.getByUser'
     );
@@ -28,15 +24,13 @@ export const SessoesService = {
   /**
    * Get sessions by date range
    */
-  async getByDateRange(userId: string, startDate: string, endDate: string): Promise<Sessao[]> {
+  async getByDateRange(startDate: string, endDate: string): Promise<Sessao[]> {
     return apiCall(
       async () => {
-        const records = await pb.collection('sessoes_estudo').getFullList({
-          filter: `user_id = "${userId}" && data_sessao >= "${startDate}" && data_sessao <= "${endDate}"`,
-          sort: '-data_sessao',
-        });
-
-        return records as unknown as Sessao[];
+        const records = await apiClient.get<Sessao[]>(
+          `/api/sessoes?startDate=${startDate}&endDate=${endDate}`
+        );
+        return records;
       },
       'SessoesService.getByDateRange'
     );
@@ -45,15 +39,11 @@ export const SessoesService = {
   /**
    * Get sessions by date
    */
-  async getByDate(userId: string, date: string): Promise<Sessao[]> {
+  async getByDate(date: string): Promise<Sessao[]> {
     return apiCall(
       async () => {
-        const records = await pb.collection('sessoes_estudo').getFullList({
-          filter: `user_id = "${userId}" && data_sessao = "${date}"`,
-          sort: 'created',
-        });
-
-        return records as unknown as Sessao[];
+        const records = await apiClient.get<Sessao[]>(`/api/sessoes?data=${date}`);
+        return records;
       },
       'SessoesService.getByDate'
     );
@@ -65,12 +55,8 @@ export const SessoesService = {
   async getByCronograma(cronogramaId: string): Promise<Sessao[]> {
     return apiCall(
       async () => {
-        const records = await pb.collection('sessoes_estudo').getFullList({
-          filter: `cronograma_id = "${cronogramaId}"`,
-          sort: '-data_sessao',
-        });
-
-        return records as unknown as Sessao[];
+        const records = await apiClient.get<Sessao[]>('/api/sessoes');
+        return records.filter(s => s.cronograma_id === cronogramaId);
       },
       'SessoesService.getByCronograma'
     );
@@ -82,11 +68,12 @@ export const SessoesService = {
   async getById(id: string): Promise<Sessao> {
     return apiCall(
       async () => {
-        const record = await pb.collection('sessoes_estudo').getOne(id);
-        if (!record) {
+        try {
+          const record = await apiClient.get<Sessao>(`/api/sessoes/${id}`);
+          return record;
+        } catch (err: any) {
           throw new NotFoundError('Sessão');
         }
-        return record as unknown as Sessao;
       },
       'SessoesService.getById'
     );
@@ -98,8 +85,8 @@ export const SessoesService = {
   async create(data: CreateSessaoInput): Promise<Sessao> {
     return apiCall(
       async () => {
-        const record = await pb.collection('sessoes_estudo').create(data);
-        return record as unknown as Sessao;
+        const record = await apiClient.post<Sessao>('/api/sessoes', data);
+        return record;
       },
       'SessoesService.create'
     );
@@ -111,8 +98,8 @@ export const SessoesService = {
   async update(id: string, data: UpdateSessaoInput): Promise<Sessao> {
     return apiCall(
       async () => {
-        const record = await pb.collection('sessoes_estudo').update(id, data);
-        return record as unknown as Sessao;
+        const record = await apiClient.patch<Sessao>(`/api/sessoes/${id}`, data);
+        return record;
       },
       'SessoesService.update'
     );
@@ -124,45 +111,24 @@ export const SessoesService = {
   async delete(id: string): Promise<void> {
     return apiCall(
       async () => {
-        await pb.collection('sessoes_estudo').delete(id);
+        await apiClient.delete(`/api/sessoes/${id}`);
       },
       'SessoesService.delete'
     );
   },
 
   /**
-   * Get sessions with pagination
-   */
-  async getWithPagination(
-    userId: string,
-    page: number = 1,
-    perPage: number = 20
-  ): Promise<PBListResponse<Sessao>> {
-    return apiCall(
-      async () => {
-        const response = await pb.collection('sessoes_estudo').getList(page, perPage, {
-          filter: `user_id = "${userId}"`,
-          sort: '-data_sessao',
-        });
-
-        return response as unknown as PBListResponse<Sessao>;
-      },
-      'SessoesService.getWithPagination'
-    );
-  },
-
-  /**
    * Get total duration of sessions in a date range
    */
-  async getTotalDuration(userId: string, startDate: string, endDate: string): Promise<number> {
+  async getTotalDuration(startDate: string, endDate: string): Promise<number> {
     return apiCall(
       async () => {
-        const records = await pb.collection('sessoes_estudo').getFullList({
-          filter: `user_id = "${userId}" && data_sessao >= "${startDate}" && data_sessao <= "${endDate}"`,
-        });
+        const records = await apiClient.get<Sessao[]>(
+          `/api/sessoes?startDate=${startDate}&endDate=${endDate}`
+        );
 
         const total = records.reduce(
-          (sum, session: any) => sum + (session.duracao_minutos || 0),
+          (sum, session) => sum + (session.duracao_minutos || 0),
           0
         );
 
@@ -170,5 +136,5 @@ export const SessoesService = {
       },
       'SessoesService.getTotalDuration'
     );
-  },
+  }
 };

@@ -3,23 +3,19 @@
  * Handles daily goal CRUD operations
  */
 
-import { apiCall, pb } from './api';
-import { Meta, CreateMetaInput, UpdateMetaInput, PBListResponse } from '@/types';
+import { apiCall, apiClient } from './api';
+import { Meta, CreateMetaInput, UpdateMetaInput } from '@/types';
 import { NotFoundError } from '@/types';
 
 export const MetasService = {
   /**
    * Get all goals for a user
    */
-  async getByUser(userId: string): Promise<Meta[]> {
+  async getByUser(): Promise<Meta[]> {
     return apiCall(
       async () => {
-        const records = await pb.collection('metas_diarias').getFullList({
-          filter: `user_id = "${userId}"`,
-          sort: '-data',
-        });
-
-        return records as unknown as Meta[];
+        const records = await apiClient.get<Meta[]>('/api/metas');
+        return records;
       },
       'MetasService.getByUser'
     );
@@ -28,14 +24,11 @@ export const MetasService = {
   /**
    * Get goal by date
    */
-  async getByDate(userId: string, date: string): Promise<Meta | null> {
+  async getByDate(date: string): Promise<Meta | null> {
     return apiCall(
       async () => {
-        const records = await pb.collection('metas_diarias').getFullList({
-          filter: `user_id = "${userId}" && data = "${date}"`,
-        });
-
-        return records.length > 0 ? (records[0] as unknown as Meta) : null;
+        const record = await apiClient.get<Meta | null>(`/api/metas/by-date/${date}`);
+        return record;
       },
       'MetasService.getByDate'
     );
@@ -44,15 +37,13 @@ export const MetasService = {
   /**
    * Get goals in date range
    */
-  async getByDateRange(userId: string, startDate: string, endDate: string): Promise<Meta[]> {
+  async getByDateRange(startDate: string, endDate: string): Promise<Meta[]> {
     return apiCall(
       async () => {
-        const records = await pb.collection('metas_diarias').getFullList({
-          filter: `user_id = "${userId}" && data >= "${startDate}" && data <= "${endDate}"`,
-          sort: '-data',
-        });
-
-        return records as unknown as Meta[];
+        const records = await apiClient.get<Meta[]>('/api/metas');
+        return records.filter(
+          m => m.data >= startDate && m.data <= endDate
+        );
       },
       'MetasService.getByDateRange'
     );
@@ -64,11 +55,12 @@ export const MetasService = {
   async getById(id: string): Promise<Meta> {
     return apiCall(
       async () => {
-        const record = await pb.collection('metas_diarias').getOne(id);
-        if (!record) {
+        try {
+          const record = await apiClient.get<Meta>(`/api/metas/${id}`);
+          return record;
+        } catch (err: any) {
           throw new NotFoundError('Meta');
         }
-        return record as unknown as Meta;
       },
       'MetasService.getById'
     );
@@ -80,8 +72,8 @@ export const MetasService = {
   async create(data: CreateMetaInput): Promise<Meta> {
     return apiCall(
       async () => {
-        const record = await pb.collection('metas_diarias').create(data);
-        return record as unknown as Meta;
+        const record = await apiClient.post<Meta>('/api/metas', data);
+        return record;
       },
       'MetasService.create'
     );
@@ -93,8 +85,8 @@ export const MetasService = {
   async update(id: string, data: UpdateMetaInput): Promise<Meta> {
     return apiCall(
       async () => {
-        const record = await pb.collection('metas_diarias').update(id, data);
-        return record as unknown as Meta;
+        const record = await apiClient.patch<Meta>(`/api/metas/${id}`, data);
+        return record;
       },
       'MetasService.update'
     );
@@ -106,52 +98,31 @@ export const MetasService = {
   async delete(id: string): Promise<void> {
     return apiCall(
       async () => {
-        await pb.collection('metas_diarias').delete(id);
+        await apiClient.delete(`/api/metas/${id}`);
       },
       'MetasService.delete'
     );
   },
 
   /**
-   * Get goals with pagination
-   */
-  async getWithPagination(
-    userId: string,
-    page: number = 1,
-    perPage: number = 30
-  ): Promise<PBListResponse<Meta>> {
-    return apiCall(
-      async () => {
-        const response = await pb.collection('metas_diarias').getList(page, perPage, {
-          filter: `user_id = "${userId}"`,
-          sort: '-data',
-        });
-
-        return response as unknown as PBListResponse<Meta>;
-      },
-      'MetasService.getWithPagination'
-    );
-  },
-
-  /**
    * Get today's goal
    */
-  async getTodaysGoal(userId: string): Promise<Meta | null> {
+  async getTodaysGoal(): Promise<Meta | null> {
     const today = new Date().toISOString().split('T')[0];
-    return this.getByDate(userId, today);
+    return this.getByDate(today);
   },
 
   /**
    * Create or update today's goal
    */
-  async upsertTodaysGoal(userId: string, data: Omit<CreateMetaInput, 'data'>): Promise<Meta> {
+  async upsertTodaysGoal(data: Omit<CreateMetaInput, 'data'>): Promise<Meta> {
     const today = new Date().toISOString().split('T')[0];
-    const existing = await this.getByDate(userId, today);
+    const existing = await this.getByDate(today);
 
     if (existing) {
       return this.update(existing.id, data);
     } else {
-      return this.create({ ...data, data: today, user_id: userId });
+      return this.create({ ...data, data: today } as CreateMetaInput);
     }
-  },
+  }
 };
