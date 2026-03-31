@@ -1,0 +1,5 @@
+pocketbase
+pb_data/
+pb_out.log
+node_modules/
+*.md
