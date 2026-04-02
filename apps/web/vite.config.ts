@@ -288,7 +288,7 @@ export default defineConfig({
 				]
 			: [
 					visualizer({
-						filename: '../../dist/apps/web/stats.html',
+						filename: path.resolve(__dirname, '../../dist/apps/web/stats.html'),
 						title: 'Alvo Diário - Bundle Size Analysis',
 						open: false,
 						gzipSize: true,
