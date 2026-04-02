@@ -90,7 +90,7 @@ const ProgressAnalysisPage: React.FC = () => {
           toast.error('Usuário não autenticado');
           return;
         }
-        const sessions = await SessoesService.getByUser() as Sessao[];
+        const sessions = await SessoesService.getByUser(currentUser.id) as Sessao[];
         setAllSessions(sessions);
         try {
           const examesData = await apiClient.get<ExameDiario[]>('/api/exames');

@@ -14,7 +14,7 @@ const mockMeta: Meta = {
   data: '2026-03-30',
   horas_meta: 4,
   horas_realizadas: 0,
-  status: 'pendente',
+  status: 'nao_iniciada',
   created: '2026-03-30T10:00:00Z',
   updated: '2026-03-30T10:00:00Z'
 };
@@ -57,7 +57,7 @@ describe('MetasService', () => {
     });
 
     it('should accept valid status values', () => {
-      const validStatuses = ['pendente', 'em_progresso', 'completo'];
+      const validStatuses = ['nao_iniciada', 'em_progresso', 'concluida'];
       expect(validStatuses).toContain(mockMeta.status);
     });
   });
@@ -73,7 +73,7 @@ describe('MetasService', () => {
       const completedMeta: Meta = {
         ...mockMeta,
         horas_realizadas: 4,
-        status: 'completo'
+        status: 'concluida'
       };
       expect(completedMeta.horas_realizadas).toBe(completedMeta.horas_meta);
     });

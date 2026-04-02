@@ -47,7 +47,7 @@ export type UpdateUserInput = Partial<
 
 export type Materia = {
   nome: string;
-  status: 'pendente' | 'em_progresso' | 'completo';
+  status: 'nao_iniciada' | 'em_progresso' | 'concluida';
   horas_dedicadas?: number;
 };
 

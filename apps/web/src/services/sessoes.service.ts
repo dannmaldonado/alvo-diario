@@ -11,10 +11,10 @@ export const SessoesService = {
   /**
    * Get all sessions for a user
    */
-  async getByUser(): Promise<Sessao[]> {
+  async getByUser(userId: string): Promise<Sessao[]> {
     return apiCall(
       async () => {
-        const records = await apiClient.get<Sessao[]>('/api/sessoes');
+        const records = await apiClient.get<Sessao[]>(`/api/sessoes?user_id=${userId}`);
         return records;
       },
       'SessoesService.getByUser'
@@ -24,11 +24,11 @@ export const SessoesService = {
   /**
    * Get sessions by date range
    */
-  async getByDateRange(startDate: string, endDate: string): Promise<Sessao[]> {
+  async getByDateRange(userId: string, startDate: string, endDate: string): Promise<Sessao[]> {
     return apiCall(
       async () => {
         const records = await apiClient.get<Sessao[]>(
-          `/api/sessoes?startDate=${startDate}&endDate=${endDate}`
+          `/api/sessoes?user_id=${userId}&startDate=${startDate}&endDate=${endDate}`
         );
         return records;
       },

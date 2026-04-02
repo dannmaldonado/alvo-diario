@@ -15,10 +15,10 @@ export const CronogramaService = {
   /**
    * Get all schedules for current user
    */
-  async getAll(): Promise<Cronograma[]> {
+  async getAll(userId: string): Promise<Cronograma[]> {
     return apiCall(
       async () => {
-        const records = await apiClient.get<Cronograma[]>('/api/cronogramas');
+        const records = await apiClient.get<Cronograma[]>(`/api/cronogramas?user_id=${userId}`);
         return records;
       },
       'CronogramaService.getAll'
@@ -28,10 +28,10 @@ export const CronogramaService = {
   /**
    * Get active schedule for current user (latest created)
    */
-  async getActive(): Promise<Cronograma | null> {
+  async getActive(userId: string): Promise<Cronograma | null> {
     return apiCall(
       async () => {
-        const records = await apiClient.get<Cronograma[]>('/api/cronogramas');
+        const records = await apiClient.get<Cronograma[]>(`/api/cronogramas?user_id=${userId}`);
         return records.length > 0 ? records[0] : null;
       },
       'CronogramaService.getActive'

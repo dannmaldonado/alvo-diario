@@ -48,13 +48,11 @@ export const mockCronogramaResponse = {
   materias: [
     {
       nome: 'Matemática',
-      status: 'pendente',
+      status: 'nao_iniciada',
       horas_dedicadas: 0,
     },
   ],
-  data_inicio: '2026-01-01',
-  data_fim: '2026-12-31',
-  criado_em: '2026-01-01T00:00:00Z',
+  data_alvo: '2026-12-31',
   created: '2026-01-01T00:00:00Z',
   updated: '2026-01-01T00:00:00Z',
 };

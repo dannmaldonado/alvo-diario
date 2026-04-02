@@ -103,7 +103,7 @@ const CronogramaPage: React.FC = () => {
         toast.error('Usuário não autenticado');
         return;
       }
-      const c = await CronogramaService.getActive() as Cronograma;
+      const c = await CronogramaService.getActive(currentUser.id) as Cronograma;
 
       if (c) {
         setCronograma(c);
@@ -129,7 +129,7 @@ const CronogramaPage: React.FC = () => {
     const subjects = EDITAL_SUBJECTS[edital as keyof typeof EDITAL_SUBJECTS];
     const scheduledMaterias: Materia[] = subjects.map((subject) => ({
       nome: subject,
-      status: 'pendente'
+      status: 'nao_iniciada'
     }));
 
     setMaterias(scheduledMaterias);
@@ -137,7 +137,7 @@ const CronogramaPage: React.FC = () => {
   };
 
   const addMateria = () => {
-    setMaterias([...materias, { nome: '', status: 'pendente' }]);
+    setMaterias([...materias, { nome: '', status: 'nao_iniciada' }]);
   };
 
   const removeMateria = (index: number) => {

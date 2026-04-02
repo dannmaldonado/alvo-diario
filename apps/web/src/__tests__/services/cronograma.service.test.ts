@@ -10,7 +10,7 @@ import { Cronograma, Materia } from '@/types';
 // Mock data
 const mockMateria: Materia = {
   nome: 'Português',
-  status: 'pendente'
+  status: 'nao_iniciada'
 };
 
 const mockCronograma: Cronograma = {
@@ -18,8 +18,7 @@ const mockCronograma: Cronograma = {
   user_id: 'user-1',
   edital: 'PC',
   materias: [mockMateria],
-  data_inicio: '2026-03-30',
-  data_fim: '2026-12-31',
+  data_alvo: '2026-12-31',
   created: '2026-03-30T10:00:00Z',
   updated: '2026-03-30T10:00:00Z'
 };
@@ -57,8 +56,7 @@ describe('CronogramaService', () => {
       expect(mockCronograma).toHaveProperty('user_id');
       expect(mockCronograma).toHaveProperty('edital');
       expect(mockCronograma).toHaveProperty('materias');
-      expect(mockCronograma).toHaveProperty('data_inicio');
-      expect(mockCronograma).toHaveProperty('data_fim');
+      expect(mockCronograma).toHaveProperty('data_alvo');
       expect(mockCronograma).toHaveProperty('created');
       expect(mockCronograma).toHaveProperty('updated');
     });
@@ -67,7 +65,7 @@ describe('CronogramaService', () => {
       const materia = mockCronograma.materias[0];
       expect(materia).toHaveProperty('nome');
       expect(materia).toHaveProperty('status');
-      expect(['pendente', 'em_progresso', 'completo']).toContain(materia.status);
+      expect(['nao_iniciada', 'em_progresso', 'concluida']).toContain(materia.status);
     });
 
     it('should accept valid edital values', () => {
@@ -82,10 +80,10 @@ describe('CronogramaService', () => {
       expect(new Date(isoDate)).not.toBeNaN();
     });
 
-    it('should have data_fim after data_inicio', () => {
-      const inicio = new Date(mockCronograma.data_inicio);
-      const fim = new Date(mockCronograma.data_fim);
-      expect(fim.getTime()).toBeGreaterThan(inicio.getTime());
+    it('should have data_alvo as target date', () => {
+      const alvo = new Date(mockCronograma.data_alvo);
+      expect(alvo.getTime()).toBeGreaterThan(0);
+      expect(mockCronograma.data_alvo).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
   });
 
@@ -94,9 +92,9 @@ describe('CronogramaService', () => {
       const cronWithMultiMateria: Cronograma = {
         ...mockCronograma,
         materias: [
-          { nome: 'Português', status: 'pendente' },
-          { nome: 'Matemática', status: 'pendente' },
-          { nome: 'Raciocínio Lógico', status: 'pendente' }
+          { nome: 'Português', status: 'nao_iniciada' },
+          { nome: 'Matemática', status: 'nao_iniciada' },
+          { nome: 'Raciocínio Lógico', status: 'nao_iniciada' }
         ]
       };
       expect(cronWithMultiMateria.materias).toHaveLength(3);

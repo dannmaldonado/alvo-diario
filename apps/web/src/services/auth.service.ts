@@ -118,5 +118,33 @@ export const AuthService = {
    */
   isAuthenticated(): boolean {
     return !!localStorage.getItem('auth_token');
+  },
+
+  /**
+   * Request password reset via email
+   */
+  async requestPasswordReset(email: string): Promise<void> {
+    return apiCall(
+      async () => {
+        await apiClient.post('/api/auth/request-password-reset', { email });
+      },
+      'AuthService.requestPasswordReset'
+    );
+  },
+
+  /**
+   * Confirm password reset with token and new password
+   */
+  async confirmPasswordReset(token: string, newPassword: string): Promise<void> {
+    return apiCall(
+      async () => {
+        await apiClient.post('/api/auth/confirm-password-reset', {
+          token,
+          password: newPassword,
+          passwordConfirm: newPassword
+        });
+      },
+      'AuthService.confirmPasswordReset'
+    );
   }
 };

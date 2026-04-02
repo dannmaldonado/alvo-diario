@@ -115,7 +115,7 @@ const StudySessionPage: React.FC = () => {
 
     const fetchSchedule = async () => {
       try {
-        const cronogramas = await CronogramaService.getAll() as Cronograma[];
+        const cronogramas = await CronogramaService.getAll(currentUser.id) as Cronograma[];
         if (cronogramas.length > 0) {
           const active = cronogramas[0];
           setSchedule(active);

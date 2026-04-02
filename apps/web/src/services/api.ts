@@ -2,6 +2,7 @@
  * API Service Layer
  * Centralized HTTP wrapper with error handling
  */
+/* eslint-disable no-undef */
 
 import { logError } from '@/utils/errors';
 

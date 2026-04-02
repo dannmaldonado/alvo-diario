@@ -11,10 +11,10 @@ export const MetasService = {
   /**
    * Get all goals for a user
    */
-  async getByUser(): Promise<Meta[]> {
+  async getByUser(userId: string): Promise<Meta[]> {
     return apiCall(
       async () => {
-        const records = await apiClient.get<Meta[]>('/api/metas');
+        const records = await apiClient.get<Meta[]>(`/api/metas?user_id=${userId}`);
         return records;
       },
       'MetasService.getByUser'
@@ -24,10 +24,10 @@ export const MetasService = {
   /**
    * Get goal by date
    */
-  async getByDate(date: string): Promise<Meta | null> {
+  async getByDate(userId: string, date: string): Promise<Meta | null> {
     return apiCall(
       async () => {
-        const record = await apiClient.get<Meta | null>(`/api/metas/by-date/${date}`);
+        const record = await apiClient.get<Meta | null>(`/api/metas/by-date/${date}?user_id=${userId}`);
         return record;
       },
       'MetasService.getByDate'
@@ -37,10 +37,10 @@ export const MetasService = {
   /**
    * Get goals in date range
    */
-  async getByDateRange(startDate: string, endDate: string): Promise<Meta[]> {
+  async getByDateRange(userId: string, startDate: string, endDate: string): Promise<Meta[]> {
     return apiCall(
       async () => {
-        const records = await apiClient.get<Meta[]>('/api/metas');
+        const records = await apiClient.get<Meta[]>(`/api/metas?user_id=${userId}`);
         return records.filter(
           m => m.data >= startDate && m.data <= endDate
         );
@@ -107,17 +107,17 @@ export const MetasService = {
   /**
    * Get today's goal
    */
-  async getTodaysGoal(): Promise<Meta | null> {
+  async getTodaysGoal(userId: string): Promise<Meta | null> {
     const today = new Date().toISOString().split('T')[0];
-    return this.getByDate(today);
+    return this.getByDate(userId, today);
   },
 
   /**
    * Create or update today's goal
    */
-  async upsertTodaysGoal(data: Omit<CreateMetaInput, 'data'>): Promise<Meta> {
+  async upsertTodaysGoal(userId: string, data: Omit<CreateMetaInput, 'data'>): Promise<Meta> {
     const today = new Date().toISOString().split('T')[0];
-    const existing = await this.getByDate(today);
+    const existing = await this.getByDate(userId, today);
 
     if (existing) {
       return this.update(existing.id, data);
