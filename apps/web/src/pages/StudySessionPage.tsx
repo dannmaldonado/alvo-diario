@@ -2,12 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext';
 import { CronogramaService } from '@/services/cronograma.service';
+import { apiClient } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Play, Pause, RotateCcw, BookOpen, CalendarDays,
-  Brain, PenLine, ClipboardList, ChevronRight, Settings2, Check
+  Brain, PenLine, ClipboardList, ChevronRight, Settings2, Check,
+  Trophy, X, ThumbsUp, ThumbsDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Cronograma, Materia } from '@/types';
@@ -17,6 +19,19 @@ import SubjectBadge from '@/components/SubjectBadge';
 import { useScheduleCalculator } from '@/hooks';
 
 type Phase = 'revisao' | 'estudo' | 'questoes';
+
+const EXAM_QUESTIONS = [
+  { id: 'horarios',    categoria: 'Disciplina',   texto: 'Cumpri os horários planejados?' },
+  { id: 'distracao',  categoria: 'Disciplina',   texto: 'Evitei distrações (celular, redes sociais)?' },
+  { id: 'retencao',   categoria: 'Aprendizado',  texto: 'Estou retendo o conteúdo?' },
+  { id: 'explicar',   categoria: 'Aprendizado',  texto: 'Consigo explicar o que estudei com minhas palavras?' },
+  { id: 'questoes',   categoria: 'Prática',      texto: 'Resolvi questões hoje?' },
+  { id: 'erros',      categoria: 'Prática',      texto: 'Revisei os erros das questões?' },
+  { id: 'plano',      categoria: 'Progresso',    texto: 'Cumpri o plano do dia?' },
+  { id: 'evolucao',   categoria: 'Progresso',    texto: 'Me sinto mais preparado do que ontem?' },
+];
+
+type ExamAnswers = Record<string, boolean | null>;
 
 interface PhaseConfig {
   id: Phase;
@@ -87,6 +102,10 @@ const StudySessionPage: React.FC = () => {
   const [isActive, setIsActive] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60 * 60);
   const [showSettings, setShowSettings] = useState(false);
+  const [showExame, setShowExame] = useState(false);
+  const [examAnswers, setExamAnswers] = useState<ExamAnswers>({});
+  const [examObservacoes, setExamObservacoes] = useState('');
+  const [savingExame, setSavingExame] = useState(false);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const currentPhase = DEFAULT_PHASES[currentPhaseIdx];
@@ -148,18 +167,45 @@ const StudySessionPage: React.FC = () => {
   }, [isActive]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePhaseComplete = () => {
-    setCompletedPhases(prev => new Set([...prev, currentPhase.id]));
+    const updated = new Set([...completedPhases, currentPhase.id]);
+    setCompletedPhases(updated);
     if (currentPhaseIdx < DEFAULT_PHASES.length - 1) {
       toast.success(`${currentPhase.label} concluída! Avance para a próxima fase.`);
     } else {
-      toast.success('Sessão de estudo completa! Excelente trabalho! 🎉');
+      // Última fase (questões) — abre Exame Diário
+      setTimeout(() => setShowExame(true), 800);
+    }
+  };
+
+  const saveExameDiario = async () => {
+    const totalRespondidas = Object.values(examAnswers).filter(v => v !== null).length;
+    if (totalRespondidas < EXAM_QUESTIONS.length) {
+      toast.error('Responda todas as perguntas antes de concluir.');
+      return;
+    }
+    try {
+      setSavingExame(true);
+      const pontuacao = Object.values(examAnswers).filter(Boolean).length;
+      await apiClient.post('/api/exames', {
+        respostas: examAnswers,
+        observacoes: examObservacoes,
+        pontuacao,
+      });
+      setShowExame(false);
+      toast.success(`Exame salvo! Você acertou ${pontuacao} de ${EXAM_QUESTIONS.length} critérios. 🎉`);
+    } catch {
+      toast.error('Erro ao salvar o exame. Tente novamente.');
+    } finally {
+      setSavingExame(false);
     }
   };
 
   const goToNextPhase = () => {
+    setCompletedPhases(prev => new Set([...prev, currentPhase.id]));
     if (currentPhaseIdx < DEFAULT_PHASES.length - 1) {
-      setCompletedPhases(prev => new Set([...prev, currentPhase.id]));
       setCurrentPhaseIdx(prev => prev + 1);
+    } else {
+      setShowExame(true);
     }
   };
 
@@ -462,6 +508,112 @@ const StudySessionPage: React.FC = () => {
           </div>
         </main>
       </div>
+
+      {/* Modal Exame Diário */}
+      {showExame && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+
+            {/* Header */}
+            <div className="p-6 border-b border-border flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <Trophy className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold">Exame Diário</h2>
+                  <p className="text-xs text-muted-foreground">Avalie sua sessão de hoje</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowExame(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Perguntas */}
+            <div className="p-6 space-y-6">
+              {(['Disciplina', 'Aprendizado', 'Prática', 'Progresso'] as const).map(categoria => {
+                const perguntas = EXAM_QUESTIONS.filter(q => q.categoria === categoria);
+                return (
+                  <div key={categoria}>
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">{categoria}</p>
+                    <div className="space-y-3">
+                      {perguntas.map(q => (
+                        <div key={q.id} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-muted/50">
+                          <p className="text-sm flex-1">{q.texto}</p>
+                          <div className="flex gap-2 shrink-0">
+                            <button
+                              onClick={() => setExamAnswers(prev => ({ ...prev, [q.id]: true }))}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                                examAnswers[q.id] === true
+                                  ? 'bg-green-500 text-white shadow-sm'
+                                  : 'bg-background border border-border text-muted-foreground hover:border-green-500 hover:text-green-500'
+                              }`}
+                            >
+                              <ThumbsUp className="w-3.5 h-3.5" /> Sim
+                            </button>
+                            <button
+                              onClick={() => setExamAnswers(prev => ({ ...prev, [q.id]: false }))}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                                examAnswers[q.id] === false
+                                  ? 'bg-destructive text-white shadow-sm'
+                                  : 'bg-background border border-border text-muted-foreground hover:border-destructive hover:text-destructive'
+                              }`}
+                            >
+                              <ThumbsDown className="w-3.5 h-3.5" /> Não
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Pontuação parcial */}
+              {Object.keys(examAnswers).length > 0 && (
+                <div className="flex items-center justify-between p-3 bg-primary/5 border border-primary/20 rounded-xl">
+                  <span className="text-sm font-medium">Critérios cumpridos</span>
+                  <span className="font-bold text-primary text-lg">
+                    {Object.values(examAnswers).filter(Boolean).length}/{EXAM_QUESTIONS.length}
+                  </span>
+                </div>
+              )}
+
+              {/* Observações */}
+              <div>
+                <Label className="text-xs font-medium text-muted-foreground mb-2 block">
+                  Observações (opcional)
+                </Label>
+                <textarea
+                  value={examObservacoes}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setExamObservacoes(e.target.value)}
+                  placeholder="O que foi difícil hoje? O que precisa melhorar amanhã?"
+                  rows={3}
+                  className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+
+              {/* Botão concluir */}
+              <Button
+                onClick={saveExameDiario}
+                disabled={savingExame || Object.keys(examAnswers).length < EXAM_QUESTIONS.length}
+                className="w-full h-12 text-base"
+              >
+                {savingExame ? 'Salvando...' : 'Concluir Sessão'}
+              </Button>
+              <p className="text-xs text-center text-muted-foreground">
+                {EXAM_QUESTIONS.length - Object.keys(examAnswers).length > 0
+                  ? `Responda mais ${EXAM_QUESTIONS.length - Object.keys(examAnswers).length} pergunta(s) para concluir`
+                  : 'Todas as perguntas respondidas ✓'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

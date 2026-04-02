@@ -64,6 +64,22 @@ CREATE TABLE IF NOT EXISTS metas_diarias (
   UNIQUE KEY unique_user_date (user_id, data)
 );
 
+-- Create exames_diarios table
+CREATE TABLE IF NOT EXISTS exames_diarios (
+  id VARCHAR(36) PRIMARY KEY,
+  user_id VARCHAR(36) NOT NULL,
+  data DATE NOT NULL,
+  respostas JSON NOT NULL,
+  observacoes TEXT,
+  pontuacao TINYINT,
+  created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_user_id (user_id),
+  INDEX idx_data (data),
+  UNIQUE KEY unique_user_date (user_id, data)
+);
+
 -- Create badges table
 CREATE TABLE IF NOT EXISTS badges (
   id VARCHAR(36) PRIMARY KEY,

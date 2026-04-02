@@ -10,6 +10,7 @@ import sessoesRoutes from './routes/sessoes.js';
 import metasRoutes from './routes/metas.js';
 import badgesRoutes from './routes/badges.js';
 import historicoRoutes from './routes/historico.js';
+import examesRoutes from './routes/exames.js';
 
 dotenv.config();
 
@@ -39,6 +40,7 @@ app.use('/api/sessoes', sessoesRoutes);
 app.use('/api/metas', metasRoutes);
 app.use('/api/badges', badgesRoutes);
 app.use('/api/historico', historicoRoutes);
+app.use('/api/exames', examesRoutes);
 
 // Serve React frontend in production
 if (isProd) {
