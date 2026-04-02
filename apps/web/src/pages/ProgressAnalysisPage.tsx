@@ -9,9 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Clock, Calendar as CalendarIcon, TrendingUp, ArrowUpDown, BookOpen } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, TrendingUp, ArrowUpDown, BookOpen, Trophy, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, StatsCard } from '@/components/Card';
+import { apiClient } from '@/services/api';
 
 interface SubjectData {
   name: string;
@@ -45,6 +46,23 @@ interface SortConfig {
   direction: 'asc' | 'desc';
 }
 
+const EXAM_QUESTIONS_META = [
+  { id: 'horarios',   categoria: 'Disciplina',  label: 'Cumpriu horários' },
+  { id: 'distracao',  categoria: 'Disciplina',  label: 'Evitou distrações' },
+  { id: 'retencao',   categoria: 'Aprendizado', label: 'Reteve conteúdo' },
+  { id: 'explicar',   categoria: 'Aprendizado', label: 'Conseguiu explicar' },
+  { id: 'questoes',   categoria: 'Prática',     label: 'Resolveu questões' },
+  { id: 'erros',      categoria: 'Prática',     label: 'Revisou erros' },
+  { id: 'plano',      categoria: 'Progresso',   label: 'Cumpriu o plano' },
+  { id: 'evolucao',   categoria: 'Progresso',   label: 'Sentiu evolução' },
+];
+
+interface ExameDiario {
+  data: string;
+  respostas: Record<string, boolean>;
+  pontuacao: number;
+}
+
 const CHART_COLORS = [
   'hsl(var(--chart-1))',
   'hsl(var(--chart-2))',
@@ -60,6 +78,7 @@ const ProgressAnalysisPage: React.FC = () => {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [allSessions, setAllSessions] = useState<Sessao[]>([]);
+  const [exames, setExames] = useState<ExameDiario[]>([]);
   const [period, setPeriod] = useState<'all' | 'month' | 'week' | '7days'>('month');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'totalHours', direction: 'desc' });
 
@@ -71,8 +90,14 @@ const ProgressAnalysisPage: React.FC = () => {
           toast.error('Usuário não autenticado');
           return;
         }
-        const sessions = await SessoesService.getByUser(currentUser.id) as Sessao[];
+        const sessions = await SessoesService.getByUser() as Sessao[];
         setAllSessions(sessions);
+        try {
+          const examesData = await apiClient.get<ExameDiario[]>('/api/exames');
+          setExames(examesData || []);
+        } catch {
+          // exames opcionais — não bloqueia a página
+        }
       } catch (error) {
         console.error('Error fetching sessions:', error);
         toast.error('Erro ao carregar dados de análise.');
@@ -260,6 +285,36 @@ const ProgressAnalysisPage: React.FC = () => {
       return 0;
     });
   }, [allSessions, period, sortConfig]);
+
+  // Métricas dos Exames Diários
+  const examStats = useMemo(() => {
+    if (exames.length === 0) return null;
+
+    const last30 = exames.slice(0, 30);
+    const avgScore = last30.reduce((acc, e) => acc + (e.pontuacao ?? 0), 0) / last30.length;
+    const totalQuestions = EXAM_QUESTIONS_META.length;
+
+    const byQuestion = EXAM_QUESTIONS_META.map(q => {
+      const respondidas = last30.filter(e => e.respostas && e.respostas[q.id] !== undefined);
+      const positivas = respondidas.filter(e => e.respostas[q.id] === true).length;
+      return {
+        ...q,
+        pct: respondidas.length > 0 ? Math.round((positivas / respondidas.length) * 100) : 0,
+        total: respondidas.length,
+      };
+    });
+
+    // Últimos 7 dias: quais dias tiveram exame
+    const today = new Date();
+    const last7 = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(today);
+      d.setDate(d.getDate() - (6 - i));
+      return d.toISOString().split('T')[0];
+    });
+    const examDates = new Set(exames.map(e => e.data?.split('T')[0]));
+
+    return { avgScore, totalQuestions, byQuestion, last7, examDates };
+  }, [exames]);
 
   const handleSort = (key: keyof TableRow) => {
     setSortConfig(current => ({
@@ -536,6 +591,74 @@ const ProgressAnalysisPage: React.FC = () => {
               </Table>
             </div>
           </Card>
+
+          {/* Exame Diário */}
+          {examStats && (
+            <Card className="mt-8">
+              <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-primary" />
+                Exame Diário — Métricas de Consistência
+              </h3>
+
+              {/* Consistência dos últimos 7 dias */}
+              <div className="mb-6">
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Últimos 7 Dias</p>
+                <div className="flex gap-2">
+                  {examStats.last7.map(date => {
+                    const feito = examStats.examDates.has(date);
+                    const label = new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit' });
+                    return (
+                      <div key={date} className="flex-1 flex flex-col items-center gap-1">
+                        <div className={`w-full h-10 rounded-lg flex items-center justify-center ${feito ? 'bg-green-500/20 border border-green-500/40' : 'bg-muted border border-border'}`}>
+                          {feito
+                            ? <CheckCircle2 className="w-5 h-5 text-green-500" />
+                            : <XCircle className="w-5 h-5 text-muted-foreground/40" />}
+                        </div>
+                        <span className="text-[10px] text-muted-foreground text-center leading-tight">{label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Média geral */}
+              <div className="flex items-center gap-4 p-4 bg-primary/5 border border-primary/20 rounded-xl mb-6">
+                <div className="text-center min-w-[80px]">
+                  <p className="text-3xl font-bold text-primary">{examStats.avgScore.toFixed(1)}</p>
+                  <p className="text-xs text-muted-foreground">de {examStats.totalQuestions}</p>
+                </div>
+                <div>
+                  <p className="font-semibold">Média de critérios cumpridos</p>
+                  <p className="text-sm text-muted-foreground">Baseado nos últimos {Math.min(exames.length, 30)} exames respondidos</p>
+                </div>
+              </div>
+
+              {/* Por critério */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {(['Disciplina', 'Aprendizado', 'Prática', 'Progresso'] as const).map(cat => (
+                  <div key={cat}>
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">{cat}</p>
+                    <div className="space-y-2">
+                      {examStats.byQuestion.filter(q => q.categoria === cat).map(q => (
+                        <div key={q.id} className="flex items-center gap-3">
+                          <span className="text-xs text-muted-foreground flex-1 truncate">{q.label}</span>
+                          <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${q.pct >= 70 ? 'bg-green-500' : q.pct >= 40 ? 'bg-amber-500' : 'bg-destructive'}`}
+                              style={{ width: `${q.pct}%` }}
+                            />
+                          </div>
+                          <span className={`text-xs font-bold w-8 text-right ${q.pct >= 70 ? 'text-green-500' : q.pct >= 40 ? 'text-amber-500' : 'text-destructive'}`}>
+                            {q.pct}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
 
         </main>
       </div>

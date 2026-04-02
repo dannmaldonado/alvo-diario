@@ -106,3 +106,6 @@ CREATE TABLE IF NOT EXISTS historico_pontos (
   INDEX idx_user_id (user_id),
   INDEX idx_data (data)
 );
+
+-- Migrations for existing tables (safe to re-run)
+ALTER TABLE cronogramas ADD COLUMN IF NOT EXISTS data_inicio DATE;
