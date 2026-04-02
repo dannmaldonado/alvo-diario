@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**alvo-diario** is a monorepo for a study platform helping Brazilian students prepare for police exams (PC, PRF, PF). It has a React frontend and a Node.js/Express REST API backend with MySQL (hosted on Hostinger).
+**alvo-diario** is a monorepo for a study platform helping Brazilian students prepare for police exams (PC, PRF, PF). It has a React frontend and a Node.js/Express REST API backend with MySQL.
 
 ## Architecture
 
@@ -47,7 +47,7 @@ These plugins are **only active in development** (`isDev` check in vite.config.t
 
 **Tech Stack:**
 - Node.js + Express
-- MySQL (Hostinger managed database)
+- MySQL (managed database)
 - JWT authentication
 - `apps/api/src/db/schema.sql` — database schema + migrations
 

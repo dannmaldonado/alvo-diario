@@ -21,10 +21,6 @@ out/
 coverage/
 .nyc_output/
 
-# PocketBase
-pb_data/
-.pocketbase-version
-
 # Temporary files
 *.tmp
 .cache/

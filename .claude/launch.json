@@ -1,0 +1,51 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Web App (Vite)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "apps/web"
+      ],
+      "port": 3000,
+      "cwd": "."
+    },
+    {
+      "name": "API Backend (Express.js + MySQL)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "apps/api"
+      ],
+      "port": 3001,
+      "cwd": "."
+    },
+    {
+      "name": "Full Stack (Web + API)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 3000,
+      "cwd": "."
+    },
+    {
+      "name": "E2E Tests",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "test:e2e:ui",
+        "--prefix",
+        "apps/web"
+      ],
+      "port": 3000,
+      "cwd": "."
+    }
+  ]
+}

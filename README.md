@@ -41,8 +41,7 @@ npm run dev
 | Serviço | URL | Descrição |
 |---------|-----|-----------|
 | **Web App** | http://localhost:3000 | React app com Vite HMR |
-| **PocketBase** | http://localhost:8090 | Backend & DB |
-| **Admin Dashboard** | http://localhost:8090/admin | Gerenciar dados |
+| **API Backend** | http://localhost:3001 | Express.js + MySQL |
 
 ---
 
@@ -64,10 +63,14 @@ alvo-diario/
 │   │   ├── plugins/            # Custom Vite plugins (dev-only)
 │   │   └── vite.config.js      # Vite configuration
 │   │
-│   └── pocketbase/             # PocketBase backend
-│       ├── pb_migrations/      # Database migrations
-│       ├── pb_hooks/           # PocketBase event hooks
-│       └── pb_data/            # Database files (gitignored)
+│   └── api/                    # Node.js/Express backend
+│       ├── src/
+│       │   ├── index.js        # Server entry point
+│       │   ├── routes/         # Express routers (auth, data endpoints)
+│       │   ├── services/       # Business logic
+│       │   ├── middleware/     # Auth & error handling
+│       │   └── db/             # MySQL connection & schema
+│       └── package.json        # API dependencies
 │
 ├── docs/                       # Documentation
 │   ├── ARCHITECTURE.md         # System design & patterns
@@ -86,9 +89,9 @@ alvo-diario/
 - Vitest (testing)
 
 **Backend:**
-- PocketBase (self-hosted BaaS)
-- TypeScript type definitions
-- Row-level security (RLS) policies
+- Express.js (Node.js REST API)
+- MySQL (database)
+- JWT authentication
 
 **Development:**
 - ESLint + Prettier
@@ -138,7 +141,7 @@ src/
 
 ```bash
 # Desenvolvimento
-npm run dev              # Start web (3000) + pocketbase (8090)
+npm run dev              # Start web (3000) + API (3001)
 npm run dev:web         # Start only web app
 
 # Building
@@ -153,10 +156,6 @@ npm test -- --watch     # Watch mode
 npm run lint            # ESLint check
 npm run lint:warn       # Show warnings
 npm run typecheck       # TypeScript strict check
-
-# Database
-npm run migrations:up   # Apply migrations
-npm run migrations:revert # Revert last migration
 ```
 
 ### Padrões de Código
@@ -186,18 +185,28 @@ Services encapsulam lógica de API:
 ```typescript
 // services/cronograma.service.ts
 export const CronogramaService = {
-  getActive: async (userId: string): Promise<Cronograma> => {
-    const pb = getPocketBase();
-    return pb.collection('cronogramas').getFirstListItem(`user_id = '${userId}'`);
+  getActive: async (userId: string): Promise<Cronograma | null> => {
+    return apiCall(
+      async () => {
+        const records = await apiClient.get<Cronograma[]>(`/api/cronogramas?user_id=${userId}`);
+        return records.length > 0 ? records[0] : null;
+      },
+      'CronogramaService.getActive'
+    );
   },
 
   create: async (data: CreateCronogramaInput): Promise<Cronograma> => {
-    // Validation + API call
+    return apiCall(
+      async () => {
+        return await apiClient.post<Cronograma>('/api/cronogramas', data);
+      },
+      'CronogramaService.create'
+    );
   }
 };
 
 // No component:
-const schedule = await CronogramaService.getActive(userId);
+const schedule = await CronogramaService.getActive(currentUser.id);
 ```
 
 #### 3. **Error Handling**
@@ -302,21 +311,30 @@ npm run build
 # Serve with: npm run start
 ```
 
-### PocketBase em Produção
+### API em Produção
 
 ```bash
-# Start with persistence
-npm run start
+# Start API server
+npm run start --prefix apps/api
 
-# PocketBase será acessível em http://localhost:8090
-# Admin panel: http://localhost:8090/admin
+# API será acessível em http://localhost:3001
 ```
 
-### Environment Variables
+### Environment Variables (apps/api/.env)
 
 ```bash
-# .env
-PB_ENCRYPTION_KEY=your_key_here
+# Database
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=alvo_diario
+
+# Server
+PORT=3001
+NODE_ENV=production
+
+# JWT
+JWT_SECRET=your_jwt_secret_key
 ```
 
 ---
@@ -333,14 +351,14 @@ lsof -ti :3000 | xargs kill -9
 PORT=3001 npm run dev:web
 ```
 
-### PocketBase não conecta
+### API não conecta
 
 ```bash
-# Verificar se PocketBase está rodando
-curl http://localhost:8090/api/health
+# Verificar se API está rodando
+curl http://localhost:3001/api/health
 
 # Reiniciar
-npm run start
+npm run dev --prefix apps/api
 ```
 
 ### TypeScript errors

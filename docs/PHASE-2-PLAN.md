@@ -1,6 +1,6 @@
 # Phase 2 Implementation Plan — Feature Development & Integration
 
-**Project:** alvo-diario (Hostinger Horizons)
+**Project:** alvo-diario
 **Phase:** 2 of 4
 **Duration:** 2-3 weeks
 **Target Date:** 2026-04-23 (estimated)

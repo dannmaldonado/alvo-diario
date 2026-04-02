@@ -1,9 +1,9 @@
 # Brownfield Architecture Assessment — alvo-diario
 
-**Project:** Hostinger Horizons / alvo-diario
+**Project:** alvo-diario
 **Assessment Date:** 2026-03-25
 **Status:** Active Development
-**Architecture Class:** Modern Monorepo (React + PocketBase)
+**Architecture Class:** Modern Monorepo (React + Express.js + MySQL)
 
 ---
 

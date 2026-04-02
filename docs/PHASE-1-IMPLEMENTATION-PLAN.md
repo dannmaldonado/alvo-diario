@@ -1,6 +1,6 @@
 # Phase 1 Implementation Plan — TypeScript Migration & Service Layer
 
-**Project:** alvo-diario (Hostinger Horizons)
+**Project:** alvo-diario
 **Phase:** 1 of 4
 **Duration:** 2-3 weeks
 **Target Date:** 2026-04-09 (estimated)

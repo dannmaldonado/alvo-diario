@@ -9,9 +9,9 @@
 
 ### 1. Setup do Banco de Dados MySQL
 
-#### No Hostinger cPanel:
+#### Criar Banco de Dados:
 
-1. Acesse **cPanel → MySQL Database**
+1. Acesse seu painel de controle MySQL (cPanel, Plesk, ou seu provedor)
 2. Crie um novo banco de dados:
    - **Database name**: `alvo_diario`
    - **Username**: Crie um novo usuário
@@ -20,8 +20,8 @@
 
 #### Ativar Acesso Remoto (se necessário):
 
-1. Em cPanel, vá para **MySQL Remote**
-2. Adicione `%` para permitir conexão remota
+1. No painel de controle, procure pela opção de acesso remoto
+2. Configure para aceitar conexões do seu servidor/IP
 
 ### 2. Configurar a API Node.js
 
@@ -35,7 +35,7 @@ cp .env.example .env
 #### 2.2 Editar `.env` com credenciais do MySQL:
 
 ```env
-DB_HOST=seu-host-mysql.hostinger.com
+DB_HOST=seu-host-mysql.seu-provedor.com
 DB_USER=seu_usuario_mysql
 DB_PASSWORD=sua_senha_muito_segura
 DB_NAME=alvo_diario
@@ -211,7 +211,7 @@ npm run dev --prefix apps/web
 
 Acesse: `http://localhost:3000`
 
-### 5. Deploy na Hostinger
+### 5. Deploy em Produção
 
 #### 5.1 Push para GitHub:
 
@@ -221,16 +221,27 @@ git commit -m "Migration: PocketBase to MySQL + Node.js API"
 git push origin main
 ```
 
-#### 5.2 O Hostinger deploiará automaticamente:
+#### 5.2 Deploy (procedimento varia por plataforma):
 
-1. Cria as tabelas (migrations)
-2. Inicia a API na porta 3001
-3. Constrói o frontend
-4. Publica no servidor
+Dependendo da sua plataforma de hosting:
 
-#### 5.3 Configurar variáveis de ambiente no painel Hostinger:
+**Para Lovable/Vercel/Netlify:**
+1. Conecte seu repositório GitHub
+2. Configure as variáveis de ambiente (ver seção 5.3)
+3. Deploy será automático ao push
 
-No painel do Hostinger → Configurações → Variáveis de ambiente:
+**Para servidores tradicionais (VPS, Hostinger, etc.):**
+1. SSH para seu servidor
+2. Clone o repositório
+3. Instale dependências: `npm install`
+4. Execute migrations: `npm run migrate`
+5. Inicie a API: `npm start` (ou configure PM2/systemd)
+6. Configure o frontend para produção: `npm run build`
+7. Sirva o build com nginx/apache
+
+#### 5.3 Configurar variáveis de ambiente:
+
+Configure estas variáveis no painel do seu provedor ou em `.env` no servidor:
 
 ```
 VITE_API_URL=https://alvodiario.com.br/api
@@ -256,7 +267,7 @@ git push --force origin main
 
 ## Checklist de Migração
 
-- [ ] Criar banco de dados MySQL no Hostinger
+- [ ] Criar banco de dados MySQL no seu provedor
 - [ ] Configurar credenciais do MySQL
 - [ ] Instalar dependências da API
 - [ ] Executar migrations
@@ -266,5 +277,5 @@ git push --force origin main
 - [ ] Atualizar todos os serviços de dados
 - [ ] Testar localmente
 - [ ] Push para GitHub
-- [ ] Verificar deploy no Hostinger
+- [ ] Verificar deploy em produção
 - [ ] Testar funcionalidades no ambiente de produção
