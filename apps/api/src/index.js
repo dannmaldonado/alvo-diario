@@ -75,7 +75,9 @@ if (isProd) {
 
   // SPA fallback - all non-API routes serve index.html
   app.get('*', (req, res) => {
-    res.set('Cache-Control', 'public, max-age=0, must-revalidate');
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
     res.set('Content-Type', 'text/html; charset=utf-8');
     res.sendFile(path.join(frontendPath, 'index.html'));
   });
