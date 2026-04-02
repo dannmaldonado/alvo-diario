@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth.js';
+import { authMiddleware } from '../middleware/auth.js';
 import { saveExame, getExameByDate, getExamesRecentes } from '../services/exames.js';
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authMiddleware);
 
 // POST /api/exames — salvar exame do dia
 router.post('/', async (req, res) => {
