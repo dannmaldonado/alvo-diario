@@ -46,17 +46,61 @@ app.use('/api/exames', examesRoutes);
 // Serve React frontend in production
 if (isProd) {
   const frontendPath = path.join(__dirname, '../../../dist/apps/web');
-  app.use(express.static(frontendPath));
+
+  // Serve static files with proper MIME types and caching headers
+  app.use(express.static(frontendPath, {
+    maxAge: '1d', // Cache static assets for 1 day
+    etag: false,
+    setHeaders: (res, path, stat) => {
+      // Cache assets (with hash in filename) for longer
+      if (path.includes('/assets/')) {
+        res.set('Cache-Control', 'public, max-age=31536000, immutable');
+      } else {
+        // Don't cache HTML, CSS, JS entry points
+        res.set('Cache-Control', 'public, max-age=0, must-revalidate');
+      }
+
+      // Set correct MIME types
+      if (path.endsWith('.js')) {
+        res.set('Content-Type', 'application/javascript; charset=utf-8');
+      } else if (path.endsWith('.css')) {
+        res.set('Content-Type', 'text/css; charset=utf-8');
+      } else if (path.endsWith('.woff2')) {
+        res.set('Content-Type', 'font/woff2');
+      } else if (path.endsWith('.woff')) {
+        res.set('Content-Type', 'font/woff');
+      }
+    }
+  }));
 
   // SPA fallback - all non-API routes serve index.html
   app.get('*', (req, res) => {
+    res.set('Cache-Control', 'public, max-age=0, must-revalidate');
+    res.set('Content-Type', 'text/html; charset=utf-8');
     res.sendFile(path.join(frontendPath, 'index.html'));
   });
 }
 
+// Handle 404 for API routes (assets should be handled by express.static above)
+app.use((req, res) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({
+      error: 'API endpoint not found'
+    });
+  }
+  // For non-API routes, this shouldn't be reached (SPA fallback handles it)
+  res.status(404).send('Not found');
+});
+
 // Error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error(`[${new Date().toISOString()}] Error:`, err.message, err.stack);
+
+  // Avoid sending error details for static asset requests
+  if (req.path.includes('/assets/')) {
+    return res.status(err.status || 500).send('Internal server error');
+  }
+
   res.status(err.status || 500).json({
     error: err.message || 'Internal server error'
   });
