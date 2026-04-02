@@ -7,9 +7,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const runMigrations = async () => {
-  const connection = await pool.getConnection();
-
+  let connection;
   try {
+    connection = await pool.getConnection();
+
     const schemaPath = path.join(__dirname, '../db/schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf-8');
 
@@ -24,12 +25,12 @@ const runMigrations = async () => {
     }
 
     console.log('\n✓ All migrations completed successfully!');
+    process.exit(0);
   } catch (error) {
     console.error('Migration error:', error.message);
     process.exit(1);
   } finally {
-    connection.release();
-    process.exit(0);
+    if (connection) connection.release();
   }
 };
 

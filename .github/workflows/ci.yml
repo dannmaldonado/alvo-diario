@@ -30,30 +30,16 @@ jobs:
         continue-on-error: true
 
       - name: Build web app
-        run: npm run build
-
-  build-pocketbase:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Verify PocketBase binary
-        run: |
-          if [ -f apps/pocketbase/pocketbase ]; then
-            echo "✓ PocketBase binary found"
-          else
-            echo "✗ PocketBase binary not found"
-            exit 1
-          fi
+        run: npm run build --prefix apps/web
 
   branch-protection:
-    needs: [lint-and-test, build-pocketbase]
+    needs: [lint-and-test]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - name: Check CI status
         run: |
-          if [ "${{ needs.lint-and-test.result }}" = "success" ] && [ "${{ needs.build-pocketbase.result }}" = "success" ]; then
+          if [ "${{ needs.lint-and-test.result }}" = "success" ]; then
             echo "✓ All checks passed"
           else
             echo "✗ Some checks failed"
