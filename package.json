@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently --kill-others --raw \"npm run dev --prefix apps/web\" \"npm run dev --prefix apps/api\"",
-    "build": "npm run build --prefix apps/web",
+    "build": "rm -rf dist && npm run build --prefix apps/web",
     "start": "npm run start --prefix apps/api",
     "lint": "npm run lint --prefix apps/web",
     "migrate": "npm run migrate --prefix apps/api"

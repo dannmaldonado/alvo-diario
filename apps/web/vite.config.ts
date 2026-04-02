@@ -313,6 +313,8 @@ export default defineConfig({
 		},
 	},
 	build: {
+		// Clean output directory before each build
+		emptyOutDir: true,
 		// Target modern browsers for smaller output
 		target: 'esnext',
 		// Increase chunk size warnings

@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { pool } from './db/connection.js';
 import { runMigrations } from './migrations/index.js';
@@ -13,25 +14,92 @@ import badgesRoutes from './routes/badges.js';
 import historicoRoutes from './routes/historico.js';
 import examesRoutes from './routes/exames.js';
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// ============================================================
+// ENV LOADING: Try multiple paths to find .env
+// Hostinger sets cwd to the app root, but dotenv.config()
+// with no args looks at cwd which may differ from file location.
+// ============================================================
+const envCandidates = [
+  path.join(__dirname, '../../../.env'),   // repo root from apps/api/src/
+  path.join(__dirname, '../.env'),          // apps/api/.env
+  path.join(process.cwd(), '.env'),         // Hostinger app root
+];
+
+let envLoaded = false;
+for (const envPath of envCandidates) {
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+    console.log(`[env] Loaded .env from: ${envPath}`);
+    envLoaded = true;
+    break;
+  }
+}
+
+if (!envLoaded) {
+  // No .env file found -- rely on system environment variables (Hostinger panel)
+  console.log('[env] No .env file found, using system environment variables');
+  console.log('[env] Searched paths:', envCandidates.join(', '));
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
-const isProd = process.env.NODE_ENV === 'production';
+
+// In production when NODE_ENV is unset OR explicitly 'production', serve frontend.
+// Only skip frontend serving when explicitly in 'development' mode.
+const isProd = process.env.NODE_ENV !== 'development';
+
+console.log(`[config] NODE_ENV=${process.env.NODE_ENV || '(unset)'}, isProd=${isProd}, PORT=${PORT}`);
+console.log(`[config] DB_HOST=${process.env.DB_HOST || '(unset)'}, DB_NAME=${process.env.DB_NAME || '(unset)'}`);
+
+// Validate critical env vars
+if (!process.env.DB_HOST && !process.env.DATABASE_URL) {
+  console.error('[WARNING] No DB_HOST or DATABASE_URL set. Database connections will fail.');
+}
+if (!process.env.JWT_SECRET) {
+  console.error('[WARNING] JWT_SECRET not set. Using insecure fallback.');
+}
 
 // Middleware
 app.use(express.json());
+
+// CORS: In production (same-origin), use explicit domain.
+// `origin: true` with credentials causes browser rejections.
+const corsOrigin = isProd
+  ? (process.env.FRONTEND_URL || 'https://alvodiario.com.br')
+  : (process.env.FRONTEND_URL || 'http://localhost:3000');
+
 app.use(cors({
-  origin: isProd ? true : (process.env.FRONTEND_URL || 'http://localhost:3000'),
+  origin: corsOrigin,
   credentials: true
 }));
 
-// Health check
+// ============================================================
+// GLOBAL HEADERS: Anti-CDN cache for HTML responses
+// Hostinger CDN (LiteSpeed) aggressively caches responses.
+// These headers ensure HTML is never cached by CDN or browser.
+// ============================================================
+app.use((req, res, next) => {
+  // Prevent Hostinger CDN from caching non-asset responses
+  // Assets get their own cache headers from express.static
+  if (!req.path.startsWith('/assets/')) {
+    res.set('Surrogate-Control', 'no-store');
+    res.set('X-Accel-Expires', '0');
+  }
+  next();
+});
+
+// Health check (before auth, before static)
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV || 'unset',
+    port: PORT,
+    dbConfigured: !!(process.env.DB_HOST || process.env.DATABASE_URL)
+  });
 });
 
 // API Routes
@@ -43,88 +111,154 @@ app.use('/api/badges', badgesRoutes);
 app.use('/api/historico', historicoRoutes);
 app.use('/api/exames', examesRoutes);
 
-// Serve React frontend in production
+// ============================================================
+// FRONTEND SERVING
+// Serve React SPA from the build output directory.
+// Activated when NOT in explicit development mode.
+// ============================================================
 if (isProd) {
-  const frontendPath = path.join(__dirname, '../../../dist/apps/web');
+  // Resolve frontend path with fallback options
+  const primaryPath = path.join(__dirname, '../../../dist/apps/web');
+  const altPaths = [
+    path.join(process.cwd(), 'dist/apps/web'),
+    path.join(process.cwd(), 'dist'),
+    path.join(process.cwd(), 'public'),
+  ];
 
-  // Serve static files with proper MIME types and caching headers
-  app.use(express.static(frontendPath, {
-    maxAge: '1d', // Cache static assets for 1 day
-    etag: false,
-    setHeaders: (res, path, stat) => {
-      // Cache assets (with hash in filename) for longer
-      if (path.includes('/assets/')) {
-        res.set('Cache-Control', 'public, max-age=31536000, immutable');
-      } else {
-        // Don't cache HTML, CSS, JS entry points
-        res.set('Cache-Control', 'public, max-age=0, must-revalidate');
-      }
+  let frontendPath = primaryPath;
 
-      // Set correct MIME types
-      if (path.endsWith('.js')) {
-        res.set('Content-Type', 'application/javascript; charset=utf-8');
-      } else if (path.endsWith('.css')) {
-        res.set('Content-Type', 'text/css; charset=utf-8');
-      } else if (path.endsWith('.woff2')) {
-        res.set('Content-Type', 'font/woff2');
-      } else if (path.endsWith('.woff')) {
-        res.set('Content-Type', 'font/woff');
+  if (!fs.existsSync(primaryPath)) {
+    console.error(`[frontend] Primary path not found: ${primaryPath}`);
+    console.error(`[frontend] __dirname: ${__dirname}`);
+    console.error(`[frontend] cwd: ${process.cwd()}`);
+
+    for (const alt of altPaths) {
+      if (fs.existsSync(alt) && fs.existsSync(path.join(alt, 'index.html'))) {
+        frontendPath = alt;
+        console.log(`[frontend] Using alternative path: ${alt}`);
+        break;
       }
     }
-  }));
+  }
 
-  // SPA fallback - all non-API routes serve index.html
-  app.get('*', (req, res) => {
-    res.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
-    res.set('Pragma', 'no-cache');
-    res.set('Expires', '0');
-    res.set('Content-Type', 'text/html; charset=utf-8');
-    res.sendFile(path.join(frontendPath, 'index.html'));
-  });
+  const indexHtmlPath = path.join(frontendPath, 'index.html');
+  const frontendExists = fs.existsSync(indexHtmlPath);
+
+  if (!frontendExists) {
+    console.error(`[frontend] FATAL: index.html not found at: ${indexHtmlPath}`);
+    console.error(`[frontend] Run 'npm run build' to generate frontend assets.`);
+  } else {
+    console.log(`[frontend] Serving from: ${frontendPath}`);
+
+    // Serve static files with proper MIME types and caching headers
+    app.use(express.static(frontendPath, {
+      maxAge: 0,
+      etag: true,
+      lastModified: true,
+      setHeaders: (res, filePath) => {
+        // Hashed assets (e.g., index-BU7d93Yp.js) can be cached aggressively
+        if (filePath.includes('/assets/') && !filePath.endsWith('.html')) {
+          res.set('Cache-Control', 'public, max-age=31536000, immutable');
+        } else {
+          // HTML and non-hashed files: never cache
+          res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.set('Pragma', 'no-cache');
+          res.set('Expires', '0');
+        }
+
+        // Explicit MIME types to override any CDN/proxy interference
+        if (filePath.endsWith('.js') || filePath.endsWith('.mjs')) {
+          res.set('Content-Type', 'application/javascript; charset=utf-8');
+        } else if (filePath.endsWith('.css')) {
+          res.set('Content-Type', 'text/css; charset=utf-8');
+        } else if (filePath.endsWith('.woff2')) {
+          res.set('Content-Type', 'font/woff2');
+        } else if (filePath.endsWith('.woff')) {
+          res.set('Content-Type', 'font/woff');
+        } else if (filePath.endsWith('.svg')) {
+          res.set('Content-Type', 'image/svg+xml');
+        } else if (filePath.endsWith('.png')) {
+          res.set('Content-Type', 'image/png');
+        } else if (filePath.endsWith('.json')) {
+          res.set('Content-Type', 'application/json; charset=utf-8');
+        }
+      }
+    }));
+
+    // SPA fallback: serve index.html for all non-API, non-asset routes
+    app.get('*', (req, res, next) => {
+      // Skip API routes and health check -- let them fall through to 404 handler
+      if (req.path.startsWith('/api/') || req.path === '/health') {
+        return next();
+      }
+
+      // Aggressive no-cache for HTML to defeat Hostinger CDN
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      res.set('Surrogate-Control', 'no-store');
+      res.set('X-Accel-Expires', '0');
+      res.set('Content-Type', 'text/html; charset=utf-8');
+      // Prevent CDN from treating this as cacheable
+      res.set('Vary', 'Accept-Encoding, Cookie');
+      res.sendFile(indexHtmlPath);
+    });
+  }
 }
 
-// Handle 404 for API routes (assets should be handled by express.static above)
+// Handle 404 for API routes
 app.use((req, res) => {
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({
-      error: 'API endpoint not found'
+      error: 'API endpoint not found',
+      path: req.path,
+      method: req.method
     });
   }
-  // For non-API routes, this shouldn't be reached (SPA fallback handles it)
   res.status(404).send('Not found');
 });
 
 // Error handler
 app.use((err, req, res, next) => {
-  console.error(`[${new Date().toISOString()}] Error:`, err.message, err.stack);
+  console.error(`[${new Date().toISOString()}] Error on ${req.method} ${req.path}:`, err.message);
 
-  // Avoid sending error details for static asset requests
-  if (req.path.includes('/assets/')) {
-    return res.status(err.status || 500).send('Internal server error');
+  if (req.path.startsWith('/api/')) {
+    return res.status(err.status || 500).json({
+      error: err.message || 'Internal server error'
+    });
   }
 
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal server error'
-  });
+  res.status(err.status || 500).send('Internal server error');
 });
 
 // Prevent unhandled rejections from crashing the process
 process.on('unhandledRejection', (reason) => {
-  console.error('Unhandled rejection:', reason);
+  console.error('[unhandledRejection]', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('[uncaughtException]', error.message, error.stack);
+  // Don't exit -- let the server keep running
 });
 
 // Start server FIRST, then run migrations
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT} (${isProd ? 'production' : 'development'})`);
+  console.log(`[server] Running on port ${PORT} (${isProd ? 'production' : 'development'})`);
+  console.log(`[server] CORS origin: ${corsOrigin}`);
 
-  // Run migrations after server is up
+  // Run migrations after server is up (non-blocking)
   runMigrations()
-    .then(() => console.log('Migrations completed'))
-    .catch((err) => console.error('Migration warning:', err.message));
+    .then(() => console.log('[migrations] Completed successfully'))
+    .catch((err) => console.error('[migrations] Warning:', err.message));
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
+  console.log('[server] SIGTERM received: closing');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('[server] SIGINT received: closing');
   process.exit(0);
 });

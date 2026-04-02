@@ -1,3 +1,6 @@
+# This file is only relevant if Hostinger serves through Apache/LiteSpeed
+# before proxying to Node.js. It ensures no stale caching.
+
 <IfModule mod_rewrite.c>
 	RewriteEngine On
 	RewriteBase /
@@ -7,13 +10,14 @@
 </IfModule>
 
 <IfModule mod_headers.c>
-	Header set X-Powered-By "Alvo Diario"
+	# NEVER cache HTML responses at CDN level
+	Header set Cache-Control "no-cache, no-store, must-revalidate"
+	Header set Pragma "no-cache"
+	Header set Expires "0"
+	Header set Surrogate-Control "no-store"
 
-	# Cache everything on CDN by default
-	Header set Cache-Control "public, s-maxage=604800, max-age=0"
-
-	# Cache in browser all assets
-	<If "%{REQUEST_URI} =~ m#^/assets/.*$#">
-		Header set Cache-Control "public, max-age=604800"
+	# Only cache hashed assets (they have content hash in filename)
+	<If "%{REQUEST_URI} =~ m#^/assets/.*\.(js|css|woff2?|png|svg|jpg)$#">
+		Header set Cache-Control "public, max-age=31536000, immutable"
 	</If>
 </IfModule>
