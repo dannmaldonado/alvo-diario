@@ -62,16 +62,19 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Run migrations then start server
-runMigrations().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT} (${isProd ? 'production' : 'development'})`);
-  });
-}).catch((err) => {
-  console.error('Migration failed, starting server anyway:', err.message);
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT} (${isProd ? 'production' : 'development'})`);
-  });
+// Prevent unhandled rejections from crashing the process
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection:', reason);
+});
+
+// Start server FIRST, then run migrations
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT} (${isProd ? 'production' : 'development'})`);
+
+  // Run migrations after server is up
+  runMigrations()
+    .then(() => console.log('Migrations completed'))
+    .catch((err) => console.error('Migration warning:', err.message));
 });
 
 // Graceful shutdown
