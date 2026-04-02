@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { pool } from './db/connection.js';
+import { runMigrations } from './migrations/index.js';
 import authRoutes from './routes/auth.js';
 import cronogramasRoutes from './routes/cronogramas.js';
 import sessoesRoutes from './routes/sessoes.js';
@@ -61,9 +62,16 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT} (${isProd ? 'production' : 'development'})`);
+// Run migrations then start server
+runMigrations().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT} (${isProd ? 'production' : 'development'})`);
+  });
+}).catch((err) => {
+  console.error('Migration failed, starting server anyway:', err.message);
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT} (${isProd ? 'production' : 'development'})`);
+  });
 });
 
 // Graceful shutdown
