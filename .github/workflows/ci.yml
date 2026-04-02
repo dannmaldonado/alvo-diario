@@ -30,7 +30,7 @@ jobs:
         continue-on-error: true
 
       - name: Build web app
-        run: npm run build --prefix apps/web
+        run: npm run build
 
   branch-protection:
     needs: [lint-and-test]
