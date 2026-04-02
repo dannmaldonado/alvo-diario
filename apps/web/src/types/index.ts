@@ -57,6 +57,7 @@ export type Cronograma = {
   edital: string;
   materias: Materia[];
   data_alvo: string;
+  data_inicio?: string;
   status?: 'ativo' | 'concluido' | 'pausado';
   created: string;
   updated: string;

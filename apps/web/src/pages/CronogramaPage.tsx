@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Trash2, Plus, Sparkles, Target, BookOpen, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Calendar, Trash2, Plus, Sparkles, Target, BookOpen, ChevronLeft, ChevronRight, AlertTriangle, Pencil, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Cronograma, Materia } from '@/types';
 
@@ -24,8 +24,10 @@ interface PageState {
   cronograma: Cronograma | null;
   edital: string;
   dataAlvo: string;
+  dataInicio: string;
   materias: Materia[];
   viewCycleOffset: number;
+  editingDates: boolean;
   errors: {
     edital?: string;
     dataAlvo?: string;
@@ -62,13 +64,15 @@ const CronogramaPage: React.FC = () => {
     cronograma: null,
     edital: '',
     dataAlvo: '',
+    dataInicio: '',
     materias: [],
     viewCycleOffset: 0,
+    editingDates: false,
     errors: {}
   });
 
   // Destructure for easier access
-  const { loading, saving, deleting, showDeleteConfirm, cronograma, edital, dataAlvo, materias, viewCycleOffset } = pageState;
+  const { loading, saving, deleting, showDeleteConfirm, cronograma, edital, dataAlvo, dataInicio, materias, viewCycleOffset, editingDates } = pageState;
 
   // Helper functions to update individual state fields
   const setLoading = (value: boolean) => setPageState(prev => ({ ...prev, loading: value }));
@@ -78,6 +82,8 @@ const CronogramaPage: React.FC = () => {
   const setCronograma = (value: Cronograma | null) => setPageState(prev => ({ ...prev, cronograma: value }));
   const setEdital = (value: string) => setPageState(prev => ({ ...prev, edital: value }));
   const setDataAlvo = (value: string) => setPageState(prev => ({ ...prev, dataAlvo: value }));
+  const setDataInicio = (value: string) => setPageState(prev => ({ ...prev, dataInicio: value }));
+  const setEditingDates = (value: boolean) => setPageState(prev => ({ ...prev, editingDates: value }));
   const setMaterias = (value: Materia[]) => setPageState(prev => ({ ...prev, materias: value }));
   const setViewCycleOffset = (value: number | ((prev: number) => number)) => {
     setPageState(prev => ({
@@ -97,12 +103,13 @@ const CronogramaPage: React.FC = () => {
         toast.error('Usuário não autenticado');
         return;
       }
-      const c = await CronogramaService.getActive(currentUser.id) as Cronograma;
+      const c = await CronogramaService.getActive() as Cronograma;
 
       if (c) {
         setCronograma(c);
         setEdital(c.edital);
-        setDataAlvo(c.data_alvo);
+        setDataAlvo(c.data_alvo ? c.data_alvo.split('T')[0] : '');
+        setDataInicio(c.data_inicio ? c.data_inicio.split('T')[0] : '');
         setMaterias(c.materias);
       }
     } catch (error) {
@@ -164,6 +171,7 @@ const CronogramaPage: React.FC = () => {
         user_id: currentUser.id,
         edital,
         data_alvo: dataAlvo,
+        data_inicio: dataInicio || undefined,
         materias
       };
 
@@ -206,6 +214,27 @@ const CronogramaPage: React.FC = () => {
     }
   };
 
+  const saveDates = async () => {
+    if (!cronograma || !dataAlvo) {
+      toast.error('A data da prova é obrigatória');
+      return;
+    }
+    try {
+      setSaving(true);
+      await CronogramaService.update(cronograma.id, {
+        data_alvo: dataAlvo,
+        data_inicio: dataInicio || undefined,
+      });
+      setEditingDates(false);
+      await loadCronograma();
+      toast.success('Datas atualizadas com sucesso');
+    } catch {
+      toast.error('Erro ao salvar datas');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Render Helpers for Cycle View
   const renderCycleGrid = () => {
     if (!cronograma || !cronograma.materias || cronograma.materias.length === 0) return null;
@@ -216,7 +245,7 @@ const CronogramaPage: React.FC = () => {
     const { cycleNumber: currentCycleNum, totalDaysInCycle } = getCycleInfo(cronograma, today);
     const targetCycleNum = Math.max(1, currentCycleNum + viewCycleOffset);
     
-    const cycleStartDate = new Date(cronograma.created);
+    const cycleStartDate = new Date(cronograma.data_inicio || cronograma.created);
     cycleStartDate.setHours(0, 0, 0, 0);
     cycleStartDate.setDate(cycleStartDate.getDate() + ((targetCycleNum - 1) * totalDaysInCycle));
 
@@ -326,34 +355,92 @@ const CronogramaPage: React.FC = () => {
               {/* Left Column: Overview & Edit */}
               <div className="space-y-6 lg:col-span-1">
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm animate-slide-up transition-all duration-250 hover:shadow-lg">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="bg-primary/10 p-3 rounded-xl">
-                      <Target className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
+                  <div className="flex items-center justify-between mb-5">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-primary/10 p-3 rounded-xl">
+                        <Target className="h-6 w-6 text-primary" />
+                      </div>
                       <h2 className="text-xl font-bold">{cronograma.edital}</h2>
-                      <p className="text-sm text-muted-foreground">
-                        Prova: {cronograma.data_alvo ? new Date(cronograma.data_alvo).toLocaleDateString('pt-BR') : 'Não definida'}
-                      </p>
                     </div>
+                    {!editingDates && (
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingDates(true)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
-                  
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center p-3 bg-muted rounded-xl">
-                      <span className="text-muted-foreground flex items-center gap-2">
-                        <BookOpen className="h-4 w-4" /> Matérias no Ciclo
-                      </span>
-                      <span className="font-bold text-lg">{materias.length}</span>
+
+                  {editingDates ? (
+                    <div className="space-y-4 mb-5">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5" /> Início dos Estudos
+                        </Label>
+                        <Input
+                          type="date"
+                          value={dataInicio}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDataInicio(e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5" /> Data da Prova <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                          type="date"
+                          value={dataAlvo}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDataAlvo(e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={saveDates} disabled={saving} className="flex-1">
+                          <Check className="h-4 w-4 mr-1" /> {saving ? 'Salvando...' : 'Salvar'}
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setEditingDates(false)} disabled={saving}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      className="w-full border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => setShowDeleteConfirm(true)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Excluir Cronograma
-                    </Button>
-                  </div>
+                  ) : (
+                    <div className="space-y-2 mb-5">
+                      <div className="flex justify-between items-center p-3 bg-muted rounded-xl">
+                        <span className="text-muted-foreground flex items-center gap-2 text-sm">
+                          <Calendar className="h-4 w-4" /> Início dos Estudos
+                        </span>
+                        <span className="font-medium text-sm">
+                          {cronograma.data_inicio
+                            ? new Date(cronograma.data_inicio).toLocaleDateString('pt-BR')
+                            : <span className="text-muted-foreground italic text-xs">Não definido</span>}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-muted rounded-xl">
+                        <span className="text-muted-foreground flex items-center gap-2 text-sm">
+                          <Target className="h-4 w-4" /> Data da Prova
+                        </span>
+                        <span className="font-medium text-sm">
+                          {cronograma.data_alvo
+                            ? new Date(cronograma.data_alvo).toLocaleDateString('pt-BR')
+                            : 'Não definida'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-muted rounded-xl">
+                        <span className="text-muted-foreground flex items-center gap-2 text-sm">
+                          <BookOpen className="h-4 w-4" /> Matérias no Ciclo
+                        </span>
+                        <span className="font-bold">{materias.length}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    variant="outline"
+                    className="w-full border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => setShowDeleteConfirm(true)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Excluir Cronograma
+                  </Button>
                 </div>
 
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm animate-slide-up transition-all duration-250 hover:shadow-lg" style={{ animationDelay: '0.1s' }}>
@@ -418,6 +505,14 @@ const CronogramaPage: React.FC = () => {
                   {pageState.errors.edital && <p className="text-sm text-destructive">{pageState.errors.edital}</p>}
                   <p className="text-xs text-muted-foreground">Selecione o edital para gerar as matérias recomendadas</p>
                 </div>
+
+                <FormInput
+                  label="Data de Início dos Estudos"
+                  type="date"
+                  value={dataInicio}
+                  onChange={(e) => setDataInicio(e.target.value)}
+                  hint="Quando você vai começar a estudar (usado para calcular o progresso)"
+                />
 
                 <FormInput
                   label="Data Prevista da Prova"

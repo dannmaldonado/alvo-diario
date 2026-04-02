@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS cronogramas (
   user_id VARCHAR(36) NOT NULL,
   edital VARCHAR(10),
   data_alvo DATE NOT NULL,
+  data_inicio DATE,
   materias JSON,
   status VARCHAR(20) DEFAULT 'ativo',
   created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

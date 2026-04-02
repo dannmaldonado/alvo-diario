@@ -9,6 +9,7 @@ import { Cronograma, Materia } from '@/types';
 
 type ScheduleData = Cronograma | {
   created: string;
+  data_inicio?: string;
   materias?: string[] | Materia[];
 };
 
@@ -22,9 +23,13 @@ interface CycleInfo {
 export const useScheduleCalculator = () => {
   const getDaysSinceCreation = useCallback(
     (schedule: ScheduleData | null | undefined, targetDate: Date = new Date()): number => {
-      if (!schedule || !schedule.created) return 0;
+      if (!schedule) return 0;
 
-      const created = new Date(schedule.created);
+      // Use data_inicio if set, otherwise fall back to created
+      const startStr = schedule.data_inicio || schedule.created;
+      if (!startStr) return 0;
+
+      const created = new Date(startStr);
       created.setHours(0, 0, 0, 0);
 
       const target = new Date(targetDate);
