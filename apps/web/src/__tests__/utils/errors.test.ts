@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  handlePBError,
+  handleAPIError,
   getUserFriendlyMessage,
   ERROR_MESSAGES,
 } from '@/utils/errors';
@@ -17,14 +17,14 @@ import {
 } from '@/types';
 
 describe('Error Handlers', () => {
-  describe('handlePBError', () => {
+  describe('handleAPIError', () => {
     it('should convert 401 status to AuthenticationError', () => {
       const pbError = {
         status: 401,
         message: 'Unauthorized',
       };
 
-      const result = handlePBError(pbError);
+      const result = handleAPIError(pbError);
 
       expect(result).toBeInstanceOf(AuthenticationError);
       expect(result.status).toBe(401);
@@ -36,7 +36,7 @@ describe('Error Handlers', () => {
         message: 'User not found',
       };
 
-      const result = handlePBError(pbError);
+      const result = handleAPIError(pbError);
 
       expect(result).toBeInstanceOf(NotFoundError);
       expect(result.status).toBe(404);
@@ -50,7 +50,7 @@ describe('Error Handlers', () => {
         },
       };
 
-      const result = handlePBError(pbError);
+      const result = handleAPIError(pbError);
 
       expect(result).toBeInstanceOf(ValidationError);
       expect(result.field).toBe('email');
@@ -62,7 +62,7 @@ describe('Error Handlers', () => {
         message: 'Internal server error',
       };
 
-      const result = handlePBError(pbError);
+      const result = handleAPIError(pbError);
 
       expect(result).toBeInstanceOf(APIError);
       expect(result.status).toBe(500);
@@ -71,7 +71,7 @@ describe('Error Handlers', () => {
     it('should handle errors with no status', () => {
       const pbError = new Error('Network error');
 
-      const result = handlePBError(pbError);
+      const result = handleAPIError(pbError);
 
       expect(result).toBeInstanceOf(APIError);
       expect(result.status).toBe(500);

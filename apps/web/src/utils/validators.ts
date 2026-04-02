@@ -13,7 +13,7 @@ export function isValidEmail(email: string): boolean {
 }
 
 /**
- * Validate password strength (minimum 8 characters — PocketBase requirement)
+ * Validate password strength (minimum 8 characters)
  */
 export function isValidPassword(password: string): boolean {
   if (!password || typeof password !== 'string') return false;

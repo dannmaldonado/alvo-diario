@@ -1,7 +1,6 @@
 /**
  * Authentication Context
  * Manages user authentication state and provides auth methods to the application
- * Integrates with AuthService for all PocketBase operations
  */
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';

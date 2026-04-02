@@ -9,8 +9,7 @@ import { mockAuthResponse } from '@/__tests__/helpers';
 import { AuthenticationError } from '@/types';
 
 /**
- * Note: Full integration testing of AuthService requires mocking PocketBase at the module level.
- * For now, we test the public API surface and error handling paths.
+ * Tests the public API surface and error handling paths.
  */
 
 describe('AuthService', () => {

@@ -63,10 +63,9 @@ export const ERROR_MESSAGES: Record<string, string> = {
 };
 
 /**
- * Map PocketBase error responses to APIError instances
- * Handles various error formats from PocketBase
+ * Map API error responses to APIError instances
  */
-export function handlePBError(error: any): APIError {
+export function handleAPIError(error: any): APIError {
   // Handle network errors
   if (!error) {
     return new NetworkError(ERROR_MESSAGES.UNKNOWN_ERROR);
@@ -77,7 +76,7 @@ export function handlePBError(error: any): APIError {
     return new APIError(500, error);
   }
 
-  // Handle PocketBase API errors (with status and message)
+  // Handle API errors (with status and message)
   const status = error.status || error.code || 500;
   const message = error.message || error.msg || '';
 
