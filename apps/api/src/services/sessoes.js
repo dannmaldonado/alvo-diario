@@ -1,6 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
 import { pool } from '../db/connection.js';
-import { calcularPontosSessionao, adicionarPontos, atualizarStreak } from './pontos.js';
 
 export const getAllSessoes = async (userId) => {
   const connection = await pool.getConnection();
@@ -59,24 +58,11 @@ export const createSessao = async (userId, data) => {
   const connection = await pool.getConnection();
   try {
     const id = uuidv4();
-
-    // Calcular pontos ganhos
-    const pontosGanhos = calcularPontosSessionao(data.duracao_minutos);
-
     await connection.query(
       'INSERT INTO sessoes_estudo (id, user_id, cronograma_id, materia, data_sessao, duracao_minutos, pontos_ganhos) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [id, userId, data.cronograma_id || null, data.materia, data.data_sessao, data.duracao_minutos, pontosGanhos]
+      [id, userId, data.cronograma_id || null, data.materia, data.data_sessao, data.duracao_minutos, data.pontos_ganhos || 0]
     );
-
-    const sessao = await getSessaoById(userId, id);
-
-    // Adicionar pontos ao usuário após a sessão ser criada
-    await adicionarPontos(userId, pontosGanhos, `Sessão de estudo em ${data.materia} (${data.duracao_minutos}min)`);
-
-    // Atualizar streak
-    await atualizarStreak(userId);
-
-    return sessao;
+    return getSessaoById(userId, id);
   } finally {
     connection.release();
   }
