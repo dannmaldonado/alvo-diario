@@ -68,7 +68,7 @@ export const createSessao = async (userId, data) => {
       [id, userId, data.cronograma_id || null, data.materia, data.data_sessao, data.duracao_minutos, pontosGanhos]
     );
 
-    connection.release();
+    const sessao = await getSessaoById(userId, id);
 
     // Adicionar pontos ao usuário após a sessão ser criada
     await adicionarPontos(userId, pontosGanhos, `Sessão de estudo em ${data.materia} (${data.duracao_minutos}min)`);
@@ -76,10 +76,9 @@ export const createSessao = async (userId, data) => {
     // Atualizar streak
     await atualizarStreak(userId);
 
-    return getSessaoById(userId, id);
-  } catch (error) {
+    return sessao;
+  } finally {
     connection.release();
-    throw error;
   }
 };
 
