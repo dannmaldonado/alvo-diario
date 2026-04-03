@@ -9,12 +9,12 @@ import { NotFoundError } from '@/types';
 
 export const SessoesService = {
   /**
-   * Get all sessions for a user
+   * Get all sessions for a user (authenticated user only)
    */
   async getByUser(userId: string): Promise<Sessao[]> {
     return apiCall(
       async () => {
-        const records = await apiClient.get<Sessao[]>(`/api/sessoes?user_id=${userId}`);
+        const records = await apiClient.get<Sessao[]>('/api/sessoes');
         return records;
       },
       'SessoesService.getByUser'
@@ -28,7 +28,7 @@ export const SessoesService = {
     return apiCall(
       async () => {
         const records = await apiClient.get<Sessao[]>(
-          `/api/sessoes?user_id=${userId}&startDate=${startDate}&endDate=${endDate}`
+          `/api/sessoes?startDate=${startDate}&endDate=${endDate}`
         );
         return records;
       },
@@ -42,7 +42,7 @@ export const SessoesService = {
   async getByDate(date: string): Promise<Sessao[]> {
     return apiCall(
       async () => {
-        const records = await apiClient.get<Sessao[]>(`/api/sessoes?data=${date}`);
+        const records = await apiClient.get<Sessao[]>(`/api/sessoes?startDate=${date}&endDate=${date}`);
         return records;
       },
       'SessoesService.getByDate'
