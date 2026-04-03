@@ -17,6 +17,7 @@ import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import SubjectBadge from '@/components/SubjectBadge';
 import { useScheduleCalculator } from '@/hooks';
+import { SessoesService } from '@/services/sessoes.service';
 
 type Phase = 'revisao' | 'estudo' | 'questoes';
 
@@ -186,14 +187,32 @@ const StudySessionPage: React.FC = () => {
     try {
       setSavingExame(true);
       const pontuacao = Object.values(examAnswers).filter(Boolean).length;
+
+      // Salvar exame diário
       await apiClient.post('/api/exames', {
         respostas: examAnswers,
         observacoes: examObservacoes,
         pontuacao,
       });
+
+      // Calcular duração total da sessão (soma de todas as fases)
+      const totalMinutos = Object.values(phaseDurations).reduce((a, b) => a + b, 0);
+
+      // Salvar sessão de estudo
+      if (selectedSubject) {
+        await SessoesService.create({
+          user_id: currentUser?.id || '',
+          cronograma_id: schedule?.id || '',
+          materia: selectedSubject,
+          data_sessao: new Date().toISOString().split('T')[0],
+          duracao_minutos: totalMinutos,
+        });
+      }
+
       setShowExame(false);
       toast.success(`Exame salvo! Você acertou ${pontuacao} de ${EXAM_QUESTIONS.length} critérios. 🎉`);
-    } catch {
+    } catch (error) {
+      console.error('Erro ao salvar sessão ou exame:', error);
       toast.error('Erro ao salvar o exame. Tente novamente.');
     } finally {
       setSavingExame(false);
