@@ -3,13 +3,14 @@ import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext';
 import { CronogramaService } from '@/services/cronograma.service';
 import { apiClient } from '@/services/api';
+import { SessoesService } from '@/services/sessoes.service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Play, Pause, RotateCcw, BookOpen, CalendarDays,
   Brain, PenLine, ClipboardList, ChevronRight, Settings2, Check,
-  Trophy, X, ThumbsUp, ThumbsDown
+  Trophy, X, ThumbsUp, ThumbsDown, Flag
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Cronograma, Materia } from '@/types';
@@ -106,6 +107,7 @@ const StudySessionPage: React.FC = () => {
   const [examAnswers, setExamAnswers] = useState<ExamAnswers>({});
   const [examObservacoes, setExamObservacoes] = useState('');
   const [savingExame, setSavingExame] = useState(false);
+  const [tempoGastoTotal, setTempoGastoTotal] = useState(0);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const currentPhase = DEFAULT_PHASES[currentPhaseIdx];
@@ -191,6 +193,23 @@ const StudySessionPage: React.FC = () => {
         observacoes: examObservacoes,
         pontuacao,
       });
+
+      // Salvar sessão de estudo
+      const duracaoSegundos = tempoGastoTotal > 0
+        ? tempoGastoTotal
+        : Object.values(phaseDurations).reduce((a, b) => a + b, 0) * 60;
+      const duracao = Math.max(1, Math.round(duracaoSegundos / 60));
+
+      if (selectedSubject) {
+        await SessoesService.create({
+          user_id: currentUser?.id || '',
+          cronograma_id: schedule?.id || '',
+          materia: selectedSubject,
+          data_sessao: new Date().toISOString().split('T')[0],
+          duracao_minutos: duracao,
+        });
+      }
+
       setShowExame(false);
       toast.success(`Exame salvo! Você acertou ${pontuacao} de ${EXAM_QUESTIONS.length} critérios. 🎉`);
     } catch {
@@ -225,6 +244,19 @@ const StudySessionPage: React.FC = () => {
   const resetTimer = () => {
     setIsActive(false);
     setTimeLeft(phaseDurations[currentPhase.id] * 60);
+  };
+
+  const finalizarSessao = () => {
+    setIsActive(false);
+    const gastoEstaFase = phaseDurations[currentPhase.id] * 60 - timeLeft;
+    const gastoFasesAnteriores = DEFAULT_PHASES
+      .slice(0, currentPhaseIdx)
+      .reduce((acc, p) => acc + phaseDurations[p.id] * 60, 0);
+    const total = gastoFasesAnteriores + gastoEstaFase;
+    setTempoGastoTotal(total);
+    const min = Math.round(total / 60);
+    toast.info(`Você estudou ${min} minuto${min !== 1 ? 's' : ''} 📚`);
+    setShowExame(true);
   };
 
   const updateDuration = (phase: Phase, minutes: number) => {
@@ -419,6 +451,17 @@ const StudySessionPage: React.FC = () => {
                       <ChevronRight className="h-5 w-5" />
                     </Button>
                   )}
+
+                  <Button
+                    size="lg"
+                    variant="destructive"
+                    className="h-14 px-8 rounded-full text-base shadow-lg"
+                    onClick={finalizarSessao}
+                    title="Finalizar sessão agora"
+                  >
+                    <Flag className="mr-2 h-5 w-5" />
+                    Finalizar
+                  </Button>
                 </div>
 
               </Card>

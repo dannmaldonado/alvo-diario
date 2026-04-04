@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { pool } from '../db/connection.js';
+import { calcularPontos, adicionarPontos, atualizarStreak } from './pontos.js';
 
 export const getAllSessoes = async (userId) => {
   const connection = await pool.getConnection();
@@ -55,17 +56,24 @@ export const getSessoesByDateRange = async (userId, startDate, endDate) => {
 };
 
 export const createSessao = async (userId, data) => {
+  const id = uuidv4();
+  const pontos = calcularPontos(data.duracao_minutos || 0);
+
   const connection = await pool.getConnection();
   try {
-    const id = uuidv4();
     await connection.query(
       'INSERT INTO sessoes_estudo (id, user_id, cronograma_id, materia, data_sessao, duracao_minutos, pontos_ganhos) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [id, userId, data.cronograma_id || null, data.materia, data.data_sessao, data.duracao_minutos, data.pontos_ganhos || 0]
+      [id, userId, data.cronograma_id || null, data.materia, data.data_sessao, data.duracao_minutos, pontos]
     );
-    return getSessaoById(userId, id);
   } finally {
     connection.release();
   }
+
+  // Executado após liberar a conexão da sessão
+  await adicionarPontos(userId, pontos, `Sessão: ${data.materia} (${data.duracao_minutos}min)`);
+  await atualizarStreak(userId);
+
+  return getSessaoById(userId, id);
 };
 
 export const updateSessao = async (userId, id, data) => {
