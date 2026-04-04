@@ -13,9 +13,12 @@ export const comparePassword = async (password, hash) => {
 };
 
 export const generateToken = (userId) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is required. Server cannot sign tokens without it.');
+  }
   return jwt.sign(
     { id: userId },
-    process.env.JWT_SECRET || 'secret',
+    process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
 };

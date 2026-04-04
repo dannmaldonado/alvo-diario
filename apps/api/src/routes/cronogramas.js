@@ -1,5 +1,7 @@
 import express from 'express';
 import authMiddleware from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import { createCronogramaSchema, updateCronogramaSchema } from '../schemas/cronograma.schema.js';
 import { getAllCronogramas, getCronogramaById, createCronograma, updateCronograma, deleteCronograma } from '../services/cronogramas.js';
 
 const router = express.Router();
@@ -22,7 +24,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authMiddleware, validate(createCronogramaSchema), async (req, res) => {
   try {
     const cronograma = await createCronograma(req.user.id, req.body);
     res.status(201).json(cronograma);
@@ -31,7 +33,7 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
-router.patch('/:id', authMiddleware, async (req, res) => {
+router.patch('/:id', authMiddleware, validate(updateCronogramaSchema), async (req, res) => {
   try {
     const cronograma = await updateCronograma(req.user.id, req.params.id, req.body);
     res.json(cronograma);

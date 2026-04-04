@@ -1,5 +1,7 @@
 import express from 'express';
 import authMiddleware from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import { createMetaSchema, updateMetaSchema } from '../schemas/meta.schema.js';
 import { getAllMetas, getMetaById, getMetaByDate, createMeta, updateMeta, deleteMeta } from '../services/metas.js';
 
 const router = express.Router();
@@ -31,7 +33,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authMiddleware, validate(createMetaSchema), async (req, res) => {
   try {
     const meta = await createMeta(req.user.id, req.body);
     res.status(201).json(meta);
@@ -40,7 +42,7 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
-router.patch('/:id', authMiddleware, async (req, res) => {
+router.patch('/:id', authMiddleware, validate(updateMetaSchema), async (req, res) => {
   try {
     const meta = await updateMeta(req.user.id, req.params.id, req.body);
     res.json(meta);

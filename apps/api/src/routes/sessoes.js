@@ -1,5 +1,7 @@
 import express from 'express';
 import authMiddleware from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import { createSessaoSchema, updateSessaoSchema } from '../schemas/sessao.schema.js';
 import { getAllSessoes, getSessaoById, getSessoesByDate, getSessoesByDateRange, createSessao, updateSessao, deleteSessao } from '../services/sessoes.js';
 
 const router = express.Router();
@@ -32,7 +34,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authMiddleware, validate(createSessaoSchema), async (req, res) => {
   try {
     const sessao = await createSessao(req.user.id, req.body);
     res.status(201).json(sessao);
@@ -41,7 +43,7 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
-router.patch('/:id', authMiddleware, async (req, res) => {
+router.patch('/:id', authMiddleware, validate(updateSessaoSchema), async (req, res) => {
   try {
     const sessao = await updateSessao(req.user.id, req.params.id, req.body);
     res.json(sessao);

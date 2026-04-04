@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import rateLimit from 'express-rate-limit';
 import { pool } from './db/connection.js';
 import { runMigrations } from './migrations/index.js';
 import authRoutes from './routes/auth.js';
@@ -59,7 +60,7 @@ if (!process.env.DB_HOST && !process.env.DATABASE_URL) {
   console.error('[WARNING] No DB_HOST or DATABASE_URL set. Database connections will fail.');
 }
 if (!process.env.JWT_SECRET) {
-  console.error('[WARNING] JWT_SECRET not set. Using insecure fallback.');
+  console.error('[FATAL] JWT_SECRET not set. Auth endpoints will fail. Set JWT_SECRET in your .env file.');
 }
 
 // Middleware
@@ -102,7 +103,22 @@ app.get('/health', (req, res) => {
   });
 });
 
+// ============================================================
+// RATE LIMITING: Protect auth endpoints from brute-force attacks
+// ============================================================
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per window
+  message: { error: 'Too many authentication attempts. Please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Skip successful requests (only count failures against the limit)
+  skipSuccessfulRequests: true,
+});
+
 // API Routes
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/signup', authLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/cronogramas', cronogramasRoutes);
 app.use('/api/sessoes', sessoesRoutes);

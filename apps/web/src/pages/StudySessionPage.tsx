@@ -1,9 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { Helmet } from 'react-helmet';
-import { useAuth } from '@/contexts/AuthContext';
-import { CronogramaService } from '@/services/cronograma.service';
-import { apiClient } from '@/services/api';
-import { SessoesService } from '@/services/sessoes.service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,280 +8,43 @@ import {
   Brain, PenLine, ClipboardList, ChevronRight, Settings2, Check,
   Trophy, X, ThumbsUp, ThumbsDown, Flag
 } from 'lucide-react';
-import { toast } from 'sonner';
-import { Cronograma, Materia } from '@/types';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import SubjectBadge from '@/components/SubjectBadge';
-import { useScheduleCalculator } from '@/hooks';
+import {
+  useStudySession,
+  DEFAULT_PHASES,
+  EXAM_QUESTIONS,
+  Phase,
+} from '@/hooks/useStudySession';
 
-type Phase = 'revisao' | 'estudo' | 'questoes';
-
-const EXAM_QUESTIONS = [
-  { id: 'horarios',    categoria: 'Disciplina',   texto: 'Cumpri os horários planejados?' },
-  { id: 'distracao',  categoria: 'Disciplina',   texto: 'Evitei distrações (celular, redes sociais)?' },
-  { id: 'retencao',   categoria: 'Aprendizado',  texto: 'Estou retendo o conteúdo?' },
-  { id: 'explicar',   categoria: 'Aprendizado',  texto: 'Consigo explicar o que estudei com minhas palavras?' },
-  { id: 'questoes',   categoria: 'Prática',      texto: 'Resolvi questões hoje?' },
-  { id: 'erros',      categoria: 'Prática',      texto: 'Revisei os erros das questões?' },
-  { id: 'plano',      categoria: 'Progresso',    texto: 'Cumpri o plano do dia?' },
-  { id: 'evolucao',   categoria: 'Progresso',    texto: 'Me sinto mais preparado do que ontem?' },
-];
-
-type ExamAnswers = Record<string, boolean | null>;
-
-interface PhaseConfig {
-  id: Phase;
-  label: string;
-  description: string;
-  tips: string[];
-  icon: React.ReactNode;
-  defaultMinutes: number;
-  color: string;
-  bgColor: string;
-  borderColor: string;
-}
-
-const DEFAULT_PHASES: PhaseConfig[] = [
-  {
-    id: 'revisao',
-    label: 'Revisão',
-    description: 'Ative sua memória e reforce o conteúdo anterior',
-    tips: ['Releia suas anotações da última sessão', 'Tente lembrar os pontos principais sem olhar', 'Coloque seu cérebro no modo estudo'],
-    icon: <Brain className="w-5 h-5" />,
-    defaultMinutes: 60,
-    color: 'text-blue-500',
-    bgColor: 'bg-blue-500/10',
-    borderColor: 'border-blue-500/30',
-  },
-  {
-    id: 'estudo',
-    label: 'Estudo',
-    description: 'Aprenda o conteúdo novo com marcação ativa',
-    tips: ['Marque os pontos principais enquanto lê', 'Faça pausas de 5 min a cada 50 min', 'Teste sua retenção após cada tópico'],
-    icon: <PenLine className="w-5 h-5" />,
-    defaultMinutes: 150,
-    color: 'text-primary',
-    bgColor: 'bg-primary/10',
-    borderColor: 'border-primary/30',
-  },
-  {
-    id: 'questoes',
-    label: 'Questões',
-    description: 'Aplique o conteúdo e identifique suas falhas',
-    tips: ['Resolva questões sem consultar o material', 'Anote os pontos que errou para revisar', 'Analise o gabarito com atenção'],
-    icon: <ClipboardList className="w-5 h-5" />,
-    defaultMinutes: 30,
-    color: 'text-amber-500',
-    bgColor: 'bg-amber-500/10',
-    borderColor: 'border-amber-500/30',
-  },
-];
+const PHASE_ICONS: Record<Phase, React.ReactNode> = {
+  revisao: <Brain className="w-5 h-5" />,
+  estudo: <PenLine className="w-5 h-5" />,
+  questoes: <ClipboardList className="w-5 h-5" />,
+};
 
 const StudySessionPage: React.FC = () => {
-  const { currentUser } = useAuth();
-  const { getCurrentSubject, getCycleInfo } = useScheduleCalculator();
+  const { state, actions } = useStudySession();
 
-  const [loading, setLoading] = useState(true);
-  const [schedule, setSchedule] = useState<Cronograma | null>(null);
-  const [subjects, setSubjects] = useState<string[]>([]);
-  const [todaySubject, setTodaySubject] = useState<Materia | null>(null);
-  const [cycleInfo, setCycleInfo] = useState<{ cycleNumber: number; dayInCycle: number } | null>(null);
-  const [selectedSubject, setSelectedSubject] = useState('');
+  const {
+    schedule, subjects, todaySubject, cycleInfo, selectedSubject,
+    currentPhaseIdx, currentPhase, phaseDurations, completedPhases,
+    isActive, timeLeft, totalMinutes,
+    showSettings, showExame, examAnswers, examObservacoes, savingExame,
+    isLoading,
+  } = state;
 
-  const [currentPhaseIdx, setCurrentPhaseIdx] = useState(0);
-  const [phaseDurations, setPhaseDurations] = useState<Record<Phase, number>>({
-    revisao: 60,
-    estudo: 150,
-    questoes: 30,
-  });
-  const [completedPhases, setCompletedPhases] = useState<Set<Phase>>(new Set());
-  const [isActive, setIsActive] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(60 * 60);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showExame, setShowExame] = useState(false);
-  const [examAnswers, setExamAnswers] = useState<ExamAnswers>({});
-  const [examObservacoes, setExamObservacoes] = useState('');
-  const [savingExame, setSavingExame] = useState(false);
-  const [tempoGastoTotal, setTempoGastoTotal] = useState(0);
+  const {
+    setSelectedSubject, toggleTimer, resetTimer, goToPhase, goToNextPhase,
+    finalizarSessao, updateDuration, setShowSettings, setShowExame,
+    setExamAnswers, setExamObservacoes, saveExameDiario, formatTime, getProgress,
+  } = actions;
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const currentPhase = DEFAULT_PHASES[currentPhaseIdx];
-
-  useEffect(() => {
-    if (!currentUser) { setLoading(false); return; }
-
-    const fetchSchedule = async () => {
-      try {
-        const cronogramas = await CronogramaService.getAll(currentUser.id) as Cronograma[];
-        if (cronogramas.length > 0) {
-          const active = cronogramas[0];
-          setSchedule(active);
-          if (active.materias) {
-            const names = active.materias.map((m: Materia) => m.nome);
-            setSubjects(names);
-            const today = new Date();
-            const current = getCurrentSubject(active, today) as Materia | null;
-            const info = getCycleInfo(active, today) as { cycleNumber: number; dayInCycle: number } | null;
-            setTodaySubject(current);
-            setCycleInfo(info);
-            if (current?.nome) setSelectedSubject(current.nome);
-            else if (names.length > 0) setSelectedSubject(names[0]);
-          }
-        }
-      } catch {
-        toast.error('Não foi possível carregar seu cronograma.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSchedule();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Reset timer when phase changes
-  useEffect(() => {
-    setIsActive(false);
-    setTimeLeft(phaseDurations[currentPhase.id] * 60);
-  }, [currentPhaseIdx]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Timer tick
-  useEffect(() => {
-    if (isActive) {
-      intervalRef.current = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            clearInterval(intervalRef.current!);
-            setIsActive(false);
-            handlePhaseComplete();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    }
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [isActive]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handlePhaseComplete = () => {
-    const updated = new Set([...completedPhases, currentPhase.id]);
-    setCompletedPhases(updated);
-    if (currentPhaseIdx < DEFAULT_PHASES.length - 1) {
-      toast.success(`${currentPhase.label} concluída! Avance para a próxima fase.`);
-    } else {
-      // Última fase (questões) — abre Exame Diário
-      setTimeout(() => setShowExame(true), 800);
-    }
-  };
-
-  const saveExameDiario = async () => {
-    const totalRespondidas = Object.values(examAnswers).filter(v => v !== null).length;
-    if (totalRespondidas < EXAM_QUESTIONS.length) {
-      toast.error('Responda todas as perguntas antes de concluir.');
-      return;
-    }
-    try {
-      setSavingExame(true);
-      const pontuacao = Object.values(examAnswers).filter(Boolean).length;
-      await apiClient.post('/api/exames', {
-        respostas: examAnswers,
-        observacoes: examObservacoes,
-        pontuacao,
-      });
-
-      // Salvar sessão de estudo
-      const duracaoSegundos = tempoGastoTotal > 0
-        ? tempoGastoTotal
-        : Object.values(phaseDurations).reduce((a, b) => a + b, 0) * 60;
-      const duracao = Math.max(1, Math.round(duracaoSegundos / 60));
-
-      if (selectedSubject) {
-        await SessoesService.create({
-          user_id: currentUser?.id || '',
-          cronograma_id: schedule?.id || '',
-          materia: selectedSubject,
-          data_sessao: new Date().toISOString().split('T')[0],
-          duracao_minutos: duracao,
-        });
-      }
-
-      setShowExame(false);
-      toast.success(`Exame salvo! Você acertou ${pontuacao} de ${EXAM_QUESTIONS.length} critérios. 🎉`);
-    } catch {
-      toast.error('Erro ao salvar o exame. Tente novamente.');
-    } finally {
-      setSavingExame(false);
-    }
-  };
-
-  const goToNextPhase = () => {
-    setCompletedPhases(prev => new Set([...prev, currentPhase.id]));
-    if (currentPhaseIdx < DEFAULT_PHASES.length - 1) {
-      setCurrentPhaseIdx(prev => prev + 1);
-    } else {
-      setShowExame(true);
-    }
-  };
-
-  const goToPhase = (idx: number) => {
-    setIsActive(false);
-    setCurrentPhaseIdx(idx);
-  };
-
-  const toggleTimer = () => {
-    if (!selectedSubject) {
-      toast.error('Selecione uma matéria antes de começar.');
-      return;
-    }
-    setIsActive(prev => !prev);
-  };
-
-  const resetTimer = () => {
-    setIsActive(false);
-    setTimeLeft(phaseDurations[currentPhase.id] * 60);
-  };
-
-  const finalizarSessao = () => {
-    setIsActive(false);
-    const gastoEstaFase = phaseDurations[currentPhase.id] * 60 - timeLeft;
-    const gastoFasesAnteriores = DEFAULT_PHASES
-      .slice(0, currentPhaseIdx)
-      .reduce((acc, p) => acc + phaseDurations[p.id] * 60, 0);
-    const total = gastoFasesAnteriores + gastoEstaFase;
-    setTempoGastoTotal(total);
-    const min = Math.round(total / 60);
-    toast.info(`Você estudou ${min} minuto${min !== 1 ? 's' : ''} 📚`);
-    setShowExame(true);
-  };
-
-  const updateDuration = (phase: Phase, minutes: number) => {
-    setPhaseDurations(prev => ({ ...prev, [phase]: minutes }));
-    if (phase === currentPhase.id && !isActive) {
-      setTimeLeft(minutes * 60);
-    }
-  };
-
-  const formatTime = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
-  const getProgress = () => {
-    const total = phaseDurations[currentPhase.id] * 60;
-    if (total === 0) return 0;
-    return ((total - timeLeft) / total) * 100;
-  };
-
-  const totalMinutes = Object.values(phaseDurations).reduce((a, b) => a + b, 0);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <LoadingSpinner text="Carregando sessão de estudo..." size="lg" />
+        <LoadingSpinner text="Carregando sessao de estudo..." size="lg" />
       </div>
     );
   }
@@ -293,14 +52,14 @@ const StudySessionPage: React.FC = () => {
   return (
     <>
       <Helmet>
-        <title>Sessão de Estudo - Alvo Diário</title>
-        <meta name="description" content="Sessão de estudo estruturada em 3 fases" />
+        <title>Sessao de Estudo - Alvo Diario</title>
+        <meta name="description" content="Sessao de estudo estruturada em 3 fases" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
         <main className="container mx-auto px-4 py-8 max-w-5xl">
 
-          {/* Header: matéria do dia */}
+          {/* Header: materia do dia */}
           {schedule && todaySubject && (
             <Card className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -309,7 +68,7 @@ const StudySessionPage: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground font-medium">
-                    Matéria do Dia · Ciclo {cycleInfo?.cycleNumber}, Dia {cycleInfo?.dayInCycle}
+                    Materia do Dia - Ciclo {cycleInfo?.cycleNumber}, Dia {cycleInfo?.dayInCycle}
                   </p>
                   <div className="mt-1">
                     <SubjectBadge subject={todaySubject} size="md" />
@@ -323,7 +82,7 @@ const StudySessionPage: React.FC = () => {
                   disabled={isActive}
                   className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
                 >
-                  <option value="" disabled>Matéria</option>
+                  <option value="" disabled>Materia</option>
                   {subjects.map((s, i) => <option key={i} value={s}>{s}</option>)}
                 </select>
                 <span className="text-sm text-muted-foreground">
@@ -356,7 +115,7 @@ const StudySessionPage: React.FC = () => {
                     </span>
                   )}
                   <div className={`mb-2 ${isCurrentPhase ? phase.color : 'text-muted-foreground'}`}>
-                    {phase.icon}
+                    {PHASE_ICONS[phase.id]}
                   </div>
                   <p className={`text-sm font-semibold ${isCurrentPhase ? phase.color : ''}`}>
                     {phase.label}
@@ -378,7 +137,7 @@ const StudySessionPage: React.FC = () => {
               <Card className={`flex flex-col items-center border-2 transition-colors ${currentPhase.borderColor}`}>
 
                 <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium mb-6 ${currentPhase.bgColor} ${currentPhase.color}`}>
-                  {currentPhase.icon}
+                  {PHASE_ICONS[currentPhase.id]}
                   {currentPhase.label}
                 </div>
 
@@ -408,7 +167,7 @@ const StudySessionPage: React.FC = () => {
                       {formatTime(timeLeft)}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {Math.round(getProgress())}% concluído
+                      {Math.round(getProgress())}% concluido
                     </div>
                   </div>
                 </div>
@@ -446,7 +205,7 @@ const StudySessionPage: React.FC = () => {
                       variant="outline"
                       className="h-12 w-12 rounded-full p-0"
                       onClick={goToNextPhase}
-                      title="Avançar para próxima fase"
+                      title="Avancar para proxima fase"
                     >
                       <ChevronRight className="h-5 w-5" />
                     </Button>
@@ -457,7 +216,7 @@ const StudySessionPage: React.FC = () => {
                     variant="destructive"
                     className="h-14 px-8 rounded-full text-base shadow-lg"
                     onClick={finalizarSessao}
-                    title="Finalizar sessão agora"
+                    title="Finalizar sessao agora"
                   >
                     <Flag className="mr-2 h-5 w-5" />
                     Finalizar
@@ -473,7 +232,7 @@ const StudySessionPage: React.FC = () => {
               {/* Dicas da fase atual */}
               <Card>
                 <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${currentPhase.color}`}>
-                  {currentPhase.icon}
+                  {PHASE_ICONS[currentPhase.id]}
                   Dicas para {currentPhase.label}
                 </h3>
                 <ul className="space-y-2">
@@ -488,7 +247,7 @@ const StudySessionPage: React.FC = () => {
                 </ul>
               </Card>
 
-              {/* Configurações de duração */}
+              {/* Configuracoes de duracao */}
               <Card>
                 <button
                   className="w-full flex items-center justify-between text-sm font-semibold mb-0"
@@ -496,7 +255,7 @@ const StudySessionPage: React.FC = () => {
                 >
                   <span className="flex items-center gap-2">
                     <Settings2 className="w-4 h-4 text-muted-foreground" />
-                    Personalizar durações
+                    Personalizar duracoes
                   </span>
                   <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${showSettings ? 'rotate-90' : ''}`} />
                 </button>
@@ -506,7 +265,7 @@ const StudySessionPage: React.FC = () => {
                     {DEFAULT_PHASES.map(phase => (
                       <div key={phase.id}>
                         <Label className={`flex justify-between text-xs mb-2 ${phase.color}`}>
-                          <span className="flex items-center gap-1">{phase.icon} {phase.label}</span>
+                          <span className="flex items-center gap-1">{PHASE_ICONS[phase.id]} {phase.label}</span>
                           <span className="text-muted-foreground font-medium">
                             {phaseDurations[phase.id] >= 60
                               ? `${Math.floor(phaseDurations[phase.id] / 60)}h${phaseDurations[phase.id] % 60 > 0 ? `${phaseDurations[phase.id] % 60}min` : ''}`
@@ -529,12 +288,12 @@ const StudySessionPage: React.FC = () => {
                 )}
               </Card>
 
-              {/* Matéria (se não tiver cronograma) */}
+              {/* Materia (se nao tiver cronograma) */}
               {!schedule && (
                 <Card>
                   <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
                     <BookOpen className="w-4 h-4 text-primary" />
-                    Matéria
+                    Materia
                   </h3>
                   <select
                     value={selectedSubject}
@@ -542,7 +301,7 @@ const StudySessionPage: React.FC = () => {
                     disabled={isActive}
                     className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
                   >
-                    <option value="" disabled>Selecione uma matéria</option>
+                    <option value="" disabled>Selecione uma materia</option>
                     {subjects.map((s, i) => <option key={i} value={s}>{s}</option>)}
                   </select>
                 </Card>
@@ -552,113 +311,142 @@ const StudySessionPage: React.FC = () => {
         </main>
       </div>
 
-      {/* Modal Exame Diário */}
+      {/* Modal Exame Diario */}
       {showExame && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <div className="bg-card border border-border shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-
-            {/* Header */}
-            <div className="p-6 border-b border-border flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                  <Trophy className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold">Exame Diário</h2>
-                  <p className="text-xs text-muted-foreground">Avalie sua sessão de hoje</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowExame(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Perguntas */}
-            <div className="p-6 space-y-6">
-              {(['Disciplina', 'Aprendizado', 'Prática', 'Progresso'] as const).map(categoria => {
-                const perguntas = EXAM_QUESTIONS.filter(q => q.categoria === categoria);
-                return (
-                  <div key={categoria}>
-                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">{categoria}</p>
-                    <div className="space-y-3">
-                      {perguntas.map(q => (
-                        <div key={q.id} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-muted/50">
-                          <p className="text-sm flex-1">{q.texto}</p>
-                          <div className="flex gap-2 shrink-0">
-                            <button
-                              onClick={() => setExamAnswers(prev => ({ ...prev, [q.id]: true }))}
-                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                                examAnswers[q.id] === true
-                                  ? 'bg-green-500 text-white shadow-sm'
-                                  : 'bg-background border border-border text-muted-foreground hover:border-green-500 hover:text-green-500'
-                              }`}
-                            >
-                              <ThumbsUp className="w-3.5 h-3.5" /> Sim
-                            </button>
-                            <button
-                              onClick={() => setExamAnswers(prev => ({ ...prev, [q.id]: false }))}
-                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                                examAnswers[q.id] === false
-                                  ? 'bg-destructive text-white shadow-sm'
-                                  : 'bg-background border border-border text-muted-foreground hover:border-destructive hover:text-destructive'
-                              }`}
-                            >
-                              <ThumbsDown className="w-3.5 h-3.5" /> Não
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Pontuação parcial */}
-              {Object.keys(examAnswers).length > 0 && (
-                <div className="flex items-center justify-between p-3 bg-primary/5 border border-primary/20 rounded-xl">
-                  <span className="text-sm font-medium">Critérios cumpridos</span>
-                  <span className="font-bold text-primary text-lg">
-                    {Object.values(examAnswers).filter(Boolean).length}/{EXAM_QUESTIONS.length}
-                  </span>
-                </div>
-              )}
-
-              {/* Observações */}
-              <div>
-                <Label className="text-xs font-medium text-muted-foreground mb-2 block">
-                  Observações (opcional)
-                </Label>
-                <textarea
-                  value={examObservacoes}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setExamObservacoes(e.target.value)}
-                  placeholder="O que foi difícil hoje? O que precisa melhorar amanhã?"
-                  rows={3}
-                  className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-
-              {/* Botão concluir */}
-              <Button
-                onClick={saveExameDiario}
-                disabled={savingExame || Object.keys(examAnswers).length < EXAM_QUESTIONS.length}
-                className="w-full h-12 text-base"
-              >
-                {savingExame ? 'Salvando...' : 'Concluir Sessão'}
-              </Button>
-              <p className="text-xs text-center text-muted-foreground">
-                {EXAM_QUESTIONS.length - Object.keys(examAnswers).length > 0
-                  ? `Responda mais ${EXAM_QUESTIONS.length - Object.keys(examAnswers).length} pergunta(s) para concluir`
-                  : 'Todas as perguntas respondidas ✓'}
-              </p>
-            </div>
-          </div>
-        </div>
+        <ExamModal
+          examAnswers={examAnswers}
+          examObservacoes={examObservacoes}
+          savingExame={savingExame}
+          onSetExamAnswers={setExamAnswers}
+          onSetExamObservacoes={setExamObservacoes}
+          onSave={saveExameDiario}
+          onClose={() => setShowExame(false)}
+        />
       )}
     </>
   );
 };
+
+// ============================================================================
+// EXAM MODAL (extracted sub-component)
+// ============================================================================
+
+interface ExamModalProps {
+  examAnswers: Record<string, boolean | null>;
+  examObservacoes: string;
+  savingExame: boolean;
+  onSetExamAnswers: React.Dispatch<React.SetStateAction<Record<string, boolean | null>>>;
+  onSetExamObservacoes: (value: string) => void;
+  onSave: () => Promise<void>;
+  onClose: () => void;
+}
+
+const ExamModal: React.FC<ExamModalProps> = ({
+  examAnswers, examObservacoes, savingExame,
+  onSetExamAnswers, onSetExamObservacoes, onSave, onClose,
+}) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+    <div className="bg-card border border-border shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+
+      {/* Header */}
+      <div className="p-6 border-b border-border flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+            <Trophy className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold">Exame Diario</h2>
+            <p className="text-xs text-muted-foreground">Avalie sua sessao de hoje</p>
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          className="text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Perguntas */}
+      <div className="p-6 space-y-6">
+        {(['Disciplina', 'Aprendizado', 'Pratica', 'Progresso'] as const).map(categoria => {
+          const perguntas = EXAM_QUESTIONS.filter(q => q.categoria === categoria);
+          return (
+            <div key={categoria}>
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">{categoria}</p>
+              <div className="space-y-3">
+                {perguntas.map(q => (
+                  <div key={q.id} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-muted/50">
+                    <p className="text-sm flex-1">{q.texto}</p>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => onSetExamAnswers(prev => ({ ...prev, [q.id]: true }))}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                          examAnswers[q.id] === true
+                            ? 'bg-green-500 text-white shadow-sm'
+                            : 'bg-background border border-border text-muted-foreground hover:border-green-500 hover:text-green-500'
+                        }`}
+                      >
+                        <ThumbsUp className="w-3.5 h-3.5" /> Sim
+                      </button>
+                      <button
+                        onClick={() => onSetExamAnswers(prev => ({ ...prev, [q.id]: false }))}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                          examAnswers[q.id] === false
+                            ? 'bg-destructive text-white shadow-sm'
+                            : 'bg-background border border-border text-muted-foreground hover:border-destructive hover:text-destructive'
+                        }`}
+                      >
+                        <ThumbsDown className="w-3.5 h-3.5" /> Nao
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Pontuacao parcial */}
+        {Object.keys(examAnswers).length > 0 && (
+          <div className="flex items-center justify-between p-3 bg-primary/5 border border-primary/20 rounded-xl">
+            <span className="text-sm font-medium">Criterios cumpridos</span>
+            <span className="font-bold text-primary text-lg">
+              {Object.values(examAnswers).filter(Boolean).length}/{EXAM_QUESTIONS.length}
+            </span>
+          </div>
+        )}
+
+        {/* Observacoes */}
+        <div>
+          <Label className="text-xs font-medium text-muted-foreground mb-2 block">
+            Observacoes (opcional)
+          </Label>
+          <textarea
+            value={examObservacoes}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onSetExamObservacoes(e.target.value)}
+            placeholder="O que foi dificil hoje? O que precisa melhorar amanha?"
+            rows={3}
+            className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
+        {/* Botao concluir */}
+        <Button
+          onClick={onSave}
+          disabled={savingExame || Object.keys(examAnswers).length < EXAM_QUESTIONS.length}
+          className="w-full h-12 text-base"
+        >
+          {savingExame ? 'Salvando...' : 'Concluir Sessao'}
+        </Button>
+        <p className="text-xs text-center text-muted-foreground">
+          {EXAM_QUESTIONS.length - Object.keys(examAnswers).length > 0
+            ? `Responda mais ${EXAM_QUESTIONS.length - Object.keys(examAnswers).length} pergunta(s) para concluir`
+            : 'Todas as perguntas respondidas'}
+        </p>
+      </div>
+    </div>
+  </div>
+);
 
 export default StudySessionPage;

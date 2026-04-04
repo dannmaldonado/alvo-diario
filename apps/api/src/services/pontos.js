@@ -31,20 +31,37 @@ export const adicionarPontos = async (userId, pontos, motivo) => {
 };
 
 /**
- * Atualiza streak do usuário baseado nas sessões de hoje e ontem
+ * Atualiza streak do usuario baseado nas sessoes de hoje e ontem.
+ * Idempotent: only updates streak once per day by checking historico_pontos
+ * for a "streak" entry. Prevents multiple increments when user creates
+ * multiple sessions in the same day.
  */
 export const atualizarStreak = async (userId) => {
   const connection = await pool.getConnection();
   try {
     const hoje = new Date().toISOString().split('T')[0];
-    const ontem = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+    // Check if streak was already updated today (idempotency guard)
+    const [[{ streakUpdated }]] = await connection.query(
+      'SELECT COUNT(*) as streakUpdated FROM historico_pontos WHERE user_id = ? AND DATE(data) = ? AND motivo = ?',
+      [userId, hoje, 'streak']
+    );
+
+    if (streakUpdated > 0) {
+      // Already processed streak for today, skip
+      return;
+    }
 
     const [[{ countHoje }]] = await connection.query(
       'SELECT COUNT(*) as countHoje FROM sessoes_estudo WHERE user_id = ? AND data_sessao = ?',
       [userId, hoje]
     );
 
-    if (countHoje === 0) return;
+    // Only update on the first session of the day (countHoje === 1 means
+    // the session that triggered this call is the first one inserted today)
+    if (countHoje !== 1) return;
+
+    const ontem = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
     const [[{ countOntem }]] = await connection.query(
       'SELECT COUNT(*) as countOntem FROM sessoes_estudo WHERE user_id = ? AND data_sessao = ?',
@@ -62,6 +79,14 @@ export const atualizarStreak = async (userId) => {
         [userId]
       );
     }
+
+    // Record streak update in historico_pontos to prevent re-processing
+    const { v4: uuidv4 } = await import('uuid');
+    const id = uuidv4();
+    await connection.query(
+      'INSERT INTO historico_pontos (id, user_id, data, pontos, motivo) VALUES (?, ?, ?, ?, ?)',
+      [id, userId, hoje, 0, 'streak']
+    );
   } finally {
     connection.release();
   }

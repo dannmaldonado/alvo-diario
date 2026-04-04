@@ -5,7 +5,9 @@
 
 import React, { useEffect, Suspense } from 'react';
 import { Route, Routes, BrowserRouter as Router } from 'react-router-dom';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
+import { queryClient } from '@/lib/queryClient';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -48,6 +50,7 @@ const App: React.FC = () => {
 
   return (
     <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
       <ThemeProvider>
       <AuthProvider>
         <Router>
@@ -118,6 +121,7 @@ const App: React.FC = () => {
         </Router>
       </AuthProvider>
       </ThemeProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 };
