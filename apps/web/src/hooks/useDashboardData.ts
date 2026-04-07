@@ -159,6 +159,7 @@ export function useDashboardData() {
     cronograma: cronogramaQuery.data ?? null,
     todayProgress,
     monthlyStats,
+    monthlySessions: monthSessionsQuery.data ?? [],
     ...scheduleData,
 
     // State

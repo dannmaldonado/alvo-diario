@@ -49,6 +49,9 @@ export function useCreateCronograma() {
       queryClient.invalidateQueries({ queryKey: cronogramaKeys.all });
       toast.success('Cronograma criado com sucesso!');
     },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao criar cronograma.');
+    },
   });
 }
 
@@ -61,6 +64,9 @@ export function useUpdateCronograma() {
       queryClient.invalidateQueries({ queryKey: cronogramaKeys.all });
       toast.success('Cronograma atualizado!');
     },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao atualizar cronograma.');
+    },
   });
 }
 
@@ -71,6 +77,9 @@ export function useDeleteCronograma() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cronogramaKeys.all });
       toast.success('Cronograma removido.');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao remover cronograma.');
     },
   });
 }

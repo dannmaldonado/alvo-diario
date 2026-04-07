@@ -42,6 +42,10 @@ export interface Stats {
   totalHoursMonth: string;
   totalHoursWeek: string;
   avgHoursPerDay: string;
+  longestSessionMinutes: number;
+  totalSessions: number;
+  streak: number;
+  points: number;
 }
 
 export interface SortConfig {
@@ -169,6 +173,7 @@ export function useProgressAnalytics() {
     let totalMinutesAll = 0;
     let totalMinutesMonth = 0;
     let totalMinutesWeek = 0;
+    let longestSessionMinutes = 0;
     const uniqueDays = new Set<string>();
 
     allSessions.forEach(session => {
@@ -178,6 +183,7 @@ export function useProgressAnalytics() {
 
       totalMinutesAll += mins;
       uniqueDays.add(session.data_sessao);
+      if (mins > longestSessionMinutes) longestSessionMinutes = mins;
 
       if (sessionDate >= startOfMonth) totalMinutesMonth += mins;
       if (sessionDate >= startOfWeek) totalMinutesWeek += mins;
@@ -191,8 +197,12 @@ export function useProgressAnalytics() {
       totalHoursMonth: Number((totalMinutesMonth / 60).toFixed(1)).toString(),
       totalHoursWeek: Number((totalMinutesWeek / 60).toFixed(1)).toString(),
       avgHoursPerDay: Number((avgMinutesPerDay / 60).toFixed(1)).toString(),
+      longestSessionMinutes,
+      totalSessions: allSessions.length,
+      streak: currentUser?.streak_atual ?? 0,
+      points: currentUser?.pontos_totais ?? 0,
     };
-  }, [allSessions]);
+  }, [allSessions, currentUser?.streak_atual, currentUser?.pontos_totais]);
 
   // Subject chart data
   const subjectData = useMemo<SubjectData[]>(() => {

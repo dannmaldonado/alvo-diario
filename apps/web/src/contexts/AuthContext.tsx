@@ -1,12 +1,18 @@
 /**
  * Authentication Context
- * Manages user authentication state and provides auth methods to the application
+ * Manages user authentication state and provides auth methods to the application.
+ *
+ * Key design decisions:
+ * - Session restore reads from localStorage first (no API call on mount)
+ * - TanStack Query wraps user state for cache integration
+ * - 401 auto-logout is handled at the api.ts layer, not here
+ * - Logout redirects to "/" via window.location (AuthProvider sits outside Router)
  */
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuthService } from '@/services/auth.service';
-import { User } from '@/types';
-import { APIError } from '@/types';
+import { User, APIError } from '@/types';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -42,100 +48,127 @@ interface AuthProviderProps {
 }
 
 /**
+ * Restore user from localStorage without an API call.
+ * Returns null if no stored session exists.
+ */
+function restoreUserFromStorage(): User | null {
+  try {
+    const token = localStorage.getItem('auth_token');
+    const userJson = localStorage.getItem('user');
+    if (token && userJson) {
+      return JSON.parse(userJson) as User;
+    }
+  } catch {
+    // Corrupted storage — clear it
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
+  }
+  return null;
+}
+
+const USER_QUERY_KEY = ['user'] as const;
+
+/**
  * Authentication Provider Component
- * Manages auth state and provides auth methods to child components
+ * Manages auth state via TanStack Query and provides auth methods to child components
  */
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [initialLoading, setInitialLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  // Initialize auth on mount
-  useEffect(() => {
-    const initializeAuth = async () => {
+  // TanStack Query manages user state.
+  // initialData reads from localStorage so the first render is synchronous (no loading flash).
+  // The queryFn validates the stored session against the API in the background.
+  const {
+    data: currentUser = null,
+    isLoading: initialLoading,
+  } = useQuery<User | null>({
+    queryKey: USER_QUERY_KEY,
+    queryFn: async () => {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return null;
+
       try {
-        // Always verify with AuthService for current state
         const user = await AuthService.getCurrentUser();
-        setCurrentUser(user);
-      } catch (error) {
-        console.error('Failed to initialize auth:', error);
-        setCurrentUser(null);
-      } finally {
-        setInitialLoading(false);
+        if (user) {
+          localStorage.setItem('user', JSON.stringify(user));
+        }
+        return user;
+      } catch {
+        // Token is invalid or expired — clear storage
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
+        return null;
       }
-    };
-
-    initializeAuth();
-
-    // Subscribe to auth state changes
-    const unsubscribe = AuthService.onAuthStateChange((user) => {
-      setCurrentUser(user);
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
+    },
+    initialData: restoreUserFromStorage,
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
   /**
    * Login with email and password
    */
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     try {
       const response = await AuthService.login({ email, password });
-      setCurrentUser(response.record);
+      // AuthService.login already saves to localStorage
+      queryClient.setQueryData(USER_QUERY_KEY, response.record);
       return { success: true, user: response.record };
     } catch (error) {
       const errorMessage = error instanceof APIError ? error.message : 'Login failed';
-      console.error('Login error:', error);
       return { success: false, error: errorMessage };
     }
-  };
+  }, [queryClient]);
 
   /**
    * Sign up with email, password, and user info
    */
-  const signup = async (email: string, password: string, passwordConfirm: string, nome: string) => {
+  const signup = useCallback(async (
+    email: string,
+    password: string,
+    _passwordConfirm: string,
+    nome: string
+  ) => {
     try {
-      const newUser = await AuthService.signup({
-        email,
-        password,
-        nome,
-      });
-      setCurrentUser(newUser);
+      const newUser = await AuthService.signup({ email, password, nome });
+      // AuthService.signup already saves token + user to localStorage
+      queryClient.setQueryData(USER_QUERY_KEY, newUser);
       return { success: true, user: newUser };
     } catch (error) {
       const errorMessage = error instanceof APIError ? error.message : 'Signup failed';
-      console.error('Signup error:', error);
       return { success: false, error: errorMessage };
     }
-  };
+  }, [queryClient]);
 
   /**
-   * Logout current user
+   * Logout current user — clears state and redirects to home
    */
-  const logout = () => {
+  const logout = useCallback(() => {
     AuthService.logout();
-    setCurrentUser(null);
-  };
+    queryClient.setQueryData(USER_QUERY_KEY, null);
+    queryClient.clear();
+    window.location.href = '/';
+  }, [queryClient]);
 
   /**
    * Update current user profile
    */
-  const updateUser = async (updates: Partial<User>) => {
+  const updateUser = useCallback(async (updates: Partial<User>) => {
     if (!currentUser) {
       return { success: false, error: 'No user logged in' };
     }
 
     try {
       const updated = await AuthService.updateUser(updates as any);
-      setCurrentUser(updated);
+      queryClient.setQueryData(USER_QUERY_KEY, updated);
       return { success: true, user: updated };
     } catch (error) {
       const errorMessage = error instanceof APIError ? error.message : 'Update failed';
-      console.error('Update user error:', error);
       return { success: false, error: errorMessage };
     }
-  };
+  }, [currentUser, queryClient]);
 
   const value: AuthContextType = {
     currentUser,
@@ -147,8 +180,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initialLoading,
   };
 
-  // Show loading screen while initializing
-  if (initialLoading) {
+  // When initialData is provided, isLoading is false on first render,
+  // so no loading screen flash. Only show loader if there is truly no
+  // cached data and the query is fetching for the first time.
+  if (initialLoading && !currentUser) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">

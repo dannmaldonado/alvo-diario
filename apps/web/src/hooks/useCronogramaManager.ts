@@ -1,12 +1,13 @@
 /**
  * useCronogramaManager Hook
- * Extracts CRUD operations, form state, schedule generation, and modal state
- * from CronogramaPage into a composable hook.
+ * Manages cronograma CRUD operations, list state, form modal state,
+ * and selected cronograma for detail/cycle view.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
+  useCronogramaList,
   useActiveCronograma,
   useCreateCronograma,
   useUpdateCronograma,
@@ -15,40 +16,51 @@ import {
 import { useScheduleCalculator } from '@/hooks/useScheduleCalculator';
 import { toast } from 'sonner';
 import { Cronograma, Materia } from '@/types';
+import { CronogramaFormData } from '@/schemas/cronograma';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-export interface CronogramaManagerState {
-  loading: boolean;
-  saving: boolean;
-  deleting: boolean;
-  showDeleteConfirm: boolean;
-  cronograma: Cronograma | null;
-  edital: string;
-  dataAlvo: string;
-  dataInicio: string;
-  materias: Materia[];
-  viewCycleOffset: number;
-  editingDates: boolean;
-  errors: { edital?: string; dataAlvo?: string };
-}
+export interface CronogramaManagerReturn {
+  // List data
+  cronogramas: Cronograma[];
+  activeCronograma: Cronograma | null;
+  activeCronogramaId: string | null;
+  isLoading: boolean;
 
-export interface CronogramaManagerActions {
-  setEdital: (value: string) => void;
-  setDataAlvo: (value: string) => void;
-  setDataInicio: (value: string) => void;
-  setEditingDates: (value: boolean) => void;
-  setShowDeleteConfirm: (value: boolean) => void;
+  // Selected cronograma (for detail/cycle view)
+  selectedCronograma: Cronograma | null;
+  selectCronograma: (cronograma: Cronograma) => void;
+  clearSelection: () => void;
+
+  // Modal state
+  isModalOpen: boolean;
+  editingCronograma: Cronograma | null;
+  openCreate: () => void;
+  openEdit: (cronograma: Cronograma) => void;
+  closeModal: () => void;
+
+  // Delete state
+  showDeleteConfirm: boolean;
+  deletingCronograma: Cronograma | null;
+  openDeleteConfirm: (cronograma: Cronograma) => void;
+  closeDeleteConfirm: () => void;
+
+  // Mutations
+  handleFormSubmit: (data: CronogramaFormData) => Promise<void>;
+  handleDelete: () => Promise<void>;
+  isCreating: boolean;
+  isUpdating: boolean;
+  isDeleting: boolean;
+
+  // Cycle view helpers
+  viewCycleOffset: number;
   setViewCycleOffset: (value: number | ((prev: number) => number)) => void;
-  generateSchedule: () => void;
-  addMateria: () => void;
-  removeMateria: (index: number) => void;
-  updateMateria: (index: number, value: string) => void;
-  saveCronograma: () => Promise<void>;
-  deleteCronograma: () => Promise<void>;
-  saveDates: () => Promise<void>;
+  cycleHelpers: {
+    getCycleInfo: ReturnType<typeof useScheduleCalculator>['getCycleInfo'];
+    getSubjectForDay: ReturnType<typeof useScheduleCalculator>['getSubjectForDay'];
+  };
 }
 
 // ============================================================================
@@ -77,180 +89,162 @@ export const EDITAL_SUBJECTS: Record<string, string[]> = {
 // HOOK
 // ============================================================================
 
-export function useCronogramaManager() {
+export function useCronogramaManager(): CronogramaManagerReturn {
   const { currentUser } = useAuth();
   const { getCycleInfo, getSubjectForDay } = useScheduleCalculator();
 
-  // TanStack Query
-  const cronogramaQuery = useActiveCronograma(currentUser?.id);
+  // TanStack Query - List and Active
+  const listQuery = useCronogramaList(currentUser?.id);
+  const activeQuery = useActiveCronograma(currentUser?.id);
   const createMutation = useCreateCronograma();
   const updateMutation = useUpdateCronograma();
   const deleteMutation = useDeleteCronograma();
 
-  // Local form state
-  const [edital, setEdital] = useState('');
-  const [dataAlvo, setDataAlvo] = useState('');
-  const [dataInicio, setDataInicio] = useState('');
-  const [materias, setMaterias] = useState<Materia[]>([]);
-  const [viewCycleOffset, setViewCycleOffset] = useState(0);
-  const [editingDates, setEditingDates] = useState(false);
+  // Local UI state
+  const [selectedCronograma, setSelectedCronograma] = useState<Cronograma | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCronograma, setEditingCronograma] = useState<Cronograma | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [errors] = useState<{ edital?: string; dataAlvo?: string }>({});
+  const [deletingCronograma, setDeletingCronograma] = useState<Cronograma | null>(null);
+  const [viewCycleOffset, setViewCycleOffset] = useState(0);
 
-  const cronograma = cronogramaQuery.data ?? null;
+  // Derived data
+  const cronogramas = listQuery.data ?? [];
+  const activeCronograma = activeQuery.data ?? null;
+  const activeCronogramaId = activeCronograma?.id ?? null;
 
-  // Sync form state when query data arrives
-  useEffect(() => {
-    if (cronograma) {
-      setEdital(cronograma.edital);
-      setDataAlvo(cronograma.data_alvo ? cronograma.data_alvo.split('T')[0] : '');
-      setDataInicio(cronograma.data_inicio ? cronograma.data_inicio.split('T')[0] : '');
-      setMaterias(cronograma.materias);
-    }
-  }, [cronograma]);
+  // ---- Selection Actions ----
 
-  // ---- Actions ----
-
-  const generateSchedule = useCallback(() => {
-    if (!edital || !dataAlvo) {
-      toast.error('Selecione o edital e a data alvo');
-      return;
-    }
-    const subjects = EDITAL_SUBJECTS[edital];
-    if (!subjects) return;
-
-    const scheduledMaterias: Materia[] = subjects.map((subject) => ({
-      nome: subject,
-      status: 'nao_iniciada' as const,
-    }));
-
-    setMaterias(scheduledMaterias);
-    toast.success(`Ciclo gerado com ${subjects.length} materias`);
-  }, [edital, dataAlvo]);
-
-  const addMateria = useCallback(() => {
-    setMaterias(prev => [...prev, { nome: '', status: 'nao_iniciada' }]);
+  const selectCronograma = useCallback((cronograma: Cronograma) => {
+    setSelectedCronograma(cronograma);
+    setViewCycleOffset(0);
   }, []);
 
-  const removeMateria = useCallback((index: number) => {
-    setMaterias(prev => prev.filter((_, i) => i !== index));
+  const clearSelection = useCallback(() => {
+    setSelectedCronograma(null);
+    setViewCycleOffset(0);
   }, []);
 
-  const updateMateria = useCallback((index: number, value: string) => {
-    setMaterias(prev => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], nome: value };
-      return updated;
-    });
+  // ---- Modal Actions ----
+
+  const openCreate = useCallback(() => {
+    setEditingCronograma(null);
+    setIsModalOpen(true);
   }, []);
 
-  const saveCronograma = useCallback(async () => {
-    if (!edital || !dataAlvo || materias.length === 0) {
-      toast.error('Preencha todos os campos obrigatorios');
-      return;
-    }
-    if (materias.some(m => !m.nome)) {
-      toast.error('Todas as materias devem ter um nome');
-      return;
-    }
+  const openEdit = useCallback((cronograma: Cronograma) => {
+    setEditingCronograma(cronograma);
+    setIsModalOpen(true);
+  }, []);
+
+  const closeModal = useCallback(() => {
+    setIsModalOpen(false);
+    setEditingCronograma(null);
+  }, []);
+
+  // ---- Delete Actions ----
+
+  const openDeleteConfirm = useCallback((cronograma: Cronograma) => {
+    setDeletingCronograma(cronograma);
+    setShowDeleteConfirm(true);
+  }, []);
+
+  const closeDeleteConfirm = useCallback(() => {
+    setShowDeleteConfirm(false);
+    setDeletingCronograma(null);
+  }, []);
+
+  // ---- Mutations ----
+
+  const handleFormSubmit = useCallback(async (data: CronogramaFormData) => {
     if (!currentUser) {
       toast.error('Usuario nao autenticado');
       return;
     }
 
-    const data = {
+    const materias: Materia[] = data.materias.map((nome) => ({
+      nome,
+      status: 'nao_iniciada' as const,
+    }));
+
+    const payload = {
       user_id: currentUser.id,
-      edital,
-      data_alvo: dataAlvo,
-      data_inicio: dataInicio || undefined,
+      edital: data.edital,
+      data_alvo: data.data_alvo,
+      data_inicio: data.data_inicio || undefined,
       materias,
     };
 
     try {
-      if (cronograma) {
-        await updateMutation.mutateAsync({ id: cronograma.id, data });
+      if (editingCronograma) {
+        await updateMutation.mutateAsync({
+          id: editingCronograma.id,
+          data: payload,
+        });
+        // Update selected if this was the selected one
+        if (selectedCronograma?.id === editingCronograma.id) {
+          setSelectedCronograma(null);
+        }
       } else {
-        await createMutation.mutateAsync(data);
+        await createMutation.mutateAsync(payload);
       }
+      closeModal();
     } catch (error) {
       console.error('Error saving cronograma:', error);
       toast.error('Erro ao salvar cronograma');
     }
-  }, [edital, dataAlvo, dataInicio, materias, currentUser, cronograma, updateMutation, createMutation]);
+  }, [currentUser, editingCronograma, selectedCronograma, updateMutation, createMutation, closeModal]);
 
-  const handleDeleteCronograma = useCallback(async () => {
-    if (!cronograma) return;
+  const handleDelete = useCallback(async () => {
+    if (!deletingCronograma) return;
     try {
-      await deleteMutation.mutateAsync(cronograma.id);
-      // Reset local form state
-      setEdital('');
-      setDataAlvo('');
-      setDataInicio('');
-      setMaterias([]);
-      setShowDeleteConfirm(false);
+      await deleteMutation.mutateAsync(deletingCronograma.id);
+      // Clear selection if deleted the selected one
+      if (selectedCronograma?.id === deletingCronograma.id) {
+        setSelectedCronograma(null);
+      }
+      closeDeleteConfirm();
     } catch (error) {
       console.error('Error deleting cronograma:', error);
       toast.error('Erro ao excluir cronograma');
     }
-  }, [cronograma, deleteMutation]);
+  }, [deletingCronograma, selectedCronograma, deleteMutation, closeDeleteConfirm]);
 
-  const saveDates = useCallback(async () => {
-    if (!cronograma || !dataAlvo) {
-      toast.error('A data da prova e obrigatoria');
-      return;
-    }
-    try {
-      await updateMutation.mutateAsync({
-        id: cronograma.id,
-        data: {
-          data_alvo: dataAlvo,
-          data_inicio: dataInicio || undefined,
-        },
-      });
-      setEditingDates(false);
-    } catch {
-      toast.error('Erro ao salvar datas');
-    }
-  }, [cronograma, dataAlvo, dataInicio, updateMutation]);
-
-  // Exposed cycle helpers for rendering
+  // Cycle helpers
   const cycleHelpers = useMemo(() => ({
     getCycleInfo,
     getSubjectForDay,
   }), [getCycleInfo, getSubjectForDay]);
 
   return {
-    state: {
-      loading: cronogramaQuery.isLoading,
-      saving: createMutation.isPending || updateMutation.isPending,
-      deleting: deleteMutation.isPending,
-      showDeleteConfirm,
-      cronograma,
-      edital,
-      dataAlvo,
-      dataInicio,
-      materias,
-      viewCycleOffset,
-      editingDates,
-      errors,
-    } satisfies CronogramaManagerState,
+    cronogramas,
+    activeCronograma,
+    activeCronogramaId,
+    isLoading: listQuery.isLoading,
 
-    actions: {
-      setEdital,
-      setDataAlvo,
-      setDataInicio,
-      setEditingDates,
-      setShowDeleteConfirm,
-      setViewCycleOffset,
-      generateSchedule,
-      addMateria,
-      removeMateria,
-      updateMateria,
-      saveCronograma,
-      deleteCronograma: handleDeleteCronograma,
-      saveDates,
-    } satisfies CronogramaManagerActions,
+    selectedCronograma,
+    selectCronograma,
+    clearSelection,
 
+    isModalOpen,
+    editingCronograma,
+    openCreate,
+    openEdit,
+    closeModal,
+
+    showDeleteConfirm,
+    deletingCronograma,
+    openDeleteConfirm,
+    closeDeleteConfirm,
+
+    handleFormSubmit,
+    handleDelete,
+    isCreating: createMutation.isPending,
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
+
+    viewCycleOffset,
+    setViewCycleOffset,
     cycleHelpers,
   };
 }

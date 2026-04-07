@@ -7,7 +7,6 @@ import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { AuthService } from '@/services';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
 import { z } from 'zod';
@@ -43,7 +42,7 @@ type SignupFormData = z.infer<typeof SignupSchema>;
 
 const SignupPage: React.FC = () => {
   const navigate = useNavigate();
-  const { signup } = useAuth();
+  const { signup: authSignup } = useAuth();
   const [formData, setFormData] = useState<Partial<SignupFormData>>({
     nome: '',
     email: '',
@@ -109,23 +108,26 @@ const SignupPage: React.FC = () => {
       // Validate form data with Zod
       const validatedData = SignupSchema.parse(formData);
 
-      // Use AuthService for signup
-      await AuthService.signup({
-        email: validatedData.email,
-        password: validatedData.password,
-        nome: validatedData.nome,
-      });
+      // Use AuthContext signup (wraps AuthService + updates TanStack Query cache)
+      const result = await authSignup(
+        validatedData.email,
+        validatedData.password,
+        validatedData.password,
+        validatedData.nome
+      );
+
+      if (!result.success) {
+        setGlobalError(result.error || 'Erro ao criar conta');
+        return;
+      }
 
       // Navigate to dashboard on success
       navigate('/dashboard');
     } catch (err) {
-      // Handle validation errors
+      // Handle Zod validation errors
       if (err instanceof z.ZodError) {
         const firstError = err.issues[0];
         setGlobalError(firstError.message);
-      } else if (err instanceof Error) {
-        // Handle API errors (duplicate email, etc)
-        setGlobalError(err.message || 'Erro ao criar conta');
       } else {
         setGlobalError('Erro ao criar conta. Tente novamente.');
       }

@@ -3,13 +3,14 @@ import React from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Trophy, Flame, Play, CalendarDays, ArrowRight, BookOpen, BarChart3, Clock, Target } from 'lucide-react';
+import { Trophy, Flame, Play, CalendarDays, ArrowRight, BookOpen, BarChart3, Clock, Target, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Materia } from '@/types';
 
 import SubjectBadge from '@/components/SubjectBadge';
 import { Card, StatsCard } from '@/components/Card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import MonthlyStatsChart from '@/components/dashboard/MonthlyStatsChart';
 
 const DashboardPage: React.FC = () => {
   const {
@@ -17,6 +18,7 @@ const DashboardPage: React.FC = () => {
     cronograma,
     todayProgress,
     monthlyStats,
+    monthlySessions,
     todaySubject,
     tomorrowSubject,
     cycleInfo,
@@ -29,6 +31,31 @@ const DashboardPage: React.FC = () => {
     const realizado = todayProgress.horas_realizadas || 0;
     return Math.min(Math.round((realizado / meta) * 100), 100);
   };
+
+  if (error) {
+    return (
+      <>
+        <Helmet><title>Dashboard - Alvo Diario</title></Helmet>
+        <div className="min-h-screen bg-background">
+          <div className="container mx-auto px-4 py-8 max-w-7xl">
+            <div className="bg-card border border-destructive/30 rounded-2xl p-12 text-center shadow-sm max-w-2xl mx-auto mt-12">
+              <div className="w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <AlertTriangle className="w-10 h-10 text-destructive" />
+              </div>
+              <h2 className="text-2xl font-bold mb-4">Erro ao carregar dados</h2>
+              <p className="text-muted-foreground mb-8 text-lg">
+                {error instanceof Error ? error.message : 'Ocorreu um erro inesperado ao carregar o dashboard.'}
+              </p>
+              <Button size="lg" onClick={() => window.location.reload()} className="rounded-xl px-8">
+                <RefreshCw className="mr-2 h-5 w-5" />
+                Tentar Novamente
+              </Button>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -258,6 +285,12 @@ const DashboardPage: React.FC = () => {
                       description="Tempo medio de estudo"
                     />
                   </div>
+                </div>
+
+                {/* Monthly Hours Bar Chart */}
+                <div className="mt-6 bg-card border border-border rounded-2xl p-6 shadow-sm animate-fade-in" style={{ animationDelay: '0.4s' }}>
+                  <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">Horas por Dia</h4>
+                  <MonthlyStatsChart sessions={monthlySessions} />
                 </div>
               </div>
 

@@ -28,6 +28,7 @@ const CronogramaPage = React.lazy(() => import('@/pages/CronogramaPage'));
 const StudySessionPage = React.lazy(() => import('@/pages/StudySessionPage'));
 const ProfilePage = React.lazy(() => import('@/pages/ProfilePage'));
 const ProgressAnalysisPage = React.lazy(() => import('@/pages/ProgressAnalysisPage'));
+const NotFound = React.lazy(() => import('@/pages/NotFound'));
 
 // Loading fallback component
 const PageLoader: React.FC = () => (
@@ -114,8 +115,12 @@ const App: React.FC = () => {
               }
             />
 
-            {/* Catch-all Route */}
-            <Route path="*" element={<HomePage />} />
+            {/* 404 Catch-all Route */}
+            <Route path="*" element={
+              <Suspense fallback={<PageLoader />}>
+                <NotFound />
+              </Suspense>
+            } />
           </Routes>
           <Toaster position="top-right" richColors />
         </Router>

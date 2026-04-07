@@ -7,7 +7,6 @@ import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { AuthService } from '@/services';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
 
@@ -82,22 +81,21 @@ const LoginPage: React.FC = () => {
       // Validate form data with Zod
       const validatedData = LoginSchema.parse(formData);
 
-      // Use AuthService for login
-      await AuthService.login({
-        email: validatedData.email,
-        password: validatedData.password,
-      });
+      // Use AuthContext login (wraps AuthService + updates TanStack Query cache)
+      const result = await login(validatedData.email, validatedData.password);
+
+      if (!result.success) {
+        setGlobalError(result.error || 'Email ou senha incorretos');
+        return;
+      }
 
       // Navigate to dashboard on success
       navigate('/dashboard');
     } catch (err) {
-      // Handle validation errors
+      // Handle Zod validation errors
       if (err instanceof z.ZodError) {
         const firstError = err.issues[0];
         setGlobalError(firstError.message);
-      } else if (err instanceof Error) {
-        // Handle API errors
-        setGlobalError(err.message || 'Email ou senha incorretos');
       } else {
         setGlobalError('Erro ao fazer login. Tente novamente.');
       }

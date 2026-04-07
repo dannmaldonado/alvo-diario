@@ -51,6 +51,9 @@ export interface StudySessionState {
   timeLeft: number;
   totalMinutes: number;
 
+  // Session notes
+  sessionNotes: string;
+
   // Settings & exam modal
   showSettings: boolean;
   showExame: boolean;
@@ -64,6 +67,7 @@ export interface StudySessionState {
 
 export interface StudySessionActions {
   setSelectedSubject: (subject: string) => void;
+  setSessionNotes: (notes: string) => void;
   toggleTimer: () => void;
   resetTimer: () => void;
   goToPhase: (idx: number) => void;
@@ -169,6 +173,9 @@ export function useStudySession() {
   const [isActive, setIsActive] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60 * 60);
   const [tempoGastoTotal, setTempoGastoTotal] = useState(0);
+
+  // Session notes
+  const [sessionNotes, setSessionNotes] = useState('');
 
   // UI state
   const [showSettings, setShowSettings] = useState(false);
@@ -323,6 +330,7 @@ export function useStudySession() {
           materia: selectedSubject,
           data_sessao: new Date().toISOString().split('T')[0],
           duracao_minutos: duracao,
+          ...(sessionNotes.trim() ? { notas: sessionNotes.trim().slice(0, 500) } : {}),
         });
       }
 
@@ -333,7 +341,7 @@ export function useStudySession() {
     } finally {
       setSavingExame(false);
     }
-  }, [examAnswers, examObservacoes, tempoGastoTotal, phaseDurations, selectedSubject, currentUser?.id, schedule?.id, createSessaoMutation]);
+  }, [examAnswers, examObservacoes, tempoGastoTotal, phaseDurations, selectedSubject, currentUser?.id, schedule?.id, createSessaoMutation, sessionNotes]);
 
   const formatTime = useCallback((seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -369,6 +377,7 @@ export function useStudySession() {
       isActive,
       timeLeft,
       totalMinutes,
+      sessionNotes,
       showSettings,
       showExame,
       examAnswers,
@@ -380,6 +389,7 @@ export function useStudySession() {
     // Actions
     actions: {
       setSelectedSubject,
+      setSessionNotes,
       toggleTimer,
       resetTimer,
       goToPhase,

@@ -14,6 +14,24 @@ const API_BASE_URL =
     : (import.meta.env.VITE_API_URL as string | undefined) || 'http://localhost:3001';
 
 /**
+ * Map HTTP status codes to user-friendly Portuguese messages.
+ */
+function getErrorMessage(status: number, data: any): string {
+  if (status === 429) return 'Muitas tentativas. Tente novamente em alguns minutos.';
+  if (status === 400) {
+    // Surface validation details when the backend provides them
+    if (Array.isArray(data?.details) && data.details.length > 0) {
+      return data.details.join(', ');
+    }
+    return data?.error || 'Dados inválidos. Verifique os campos.';
+  }
+  if (status === 404) return data?.error || 'Recurso não encontrado.';
+  if (status === 409) return data?.error || 'Conflito ao salvar. Tente novamente.';
+  if (status >= 500) return 'Erro do servidor. Tente novamente mais tarde.';
+  return data?.error || 'Erro desconhecido.';
+}
+
+/**
  * HTTP API Client
  */
 export const apiClient = {
@@ -38,12 +56,37 @@ export const apiClient = {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || `HTTP ${response.status}`);
+        // 401 interceptor: auto-logout on expired/invalid token
+        // Skip for login endpoint (401 there means bad credentials, not expired session)
+        if (response.status === 401 && !path.includes('/auth/login')) {
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+          throw Object.assign(
+            new Error('Sessão expirada. Faça login novamente.'),
+            { status: 401 }
+          );
+        }
+
+        const body = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+        const message = getErrorMessage(response.status, body);
+        throw Object.assign(new Error(message), {
+          status: response.status,
+          details: body.details ?? body.errors ?? undefined,
+        });
       }
 
       return response.json();
     } catch (error) {
+      // Wrap raw network failures (e.g. offline, DNS, CORS) in a user-friendly message
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        const networkError = Object.assign(
+          new Error('Sem conexão com o servidor. Verifique sua internet.'),
+          { status: 0 }
+        );
+        logError(`API Error (${method} ${path})`, networkError);
+        throw networkError;
+      }
       logError(`API Error (${method} ${path})`, error);
       throw error;
     }

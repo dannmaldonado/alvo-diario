@@ -51,6 +51,9 @@ export function useCreateSessao() {
       queryClient.invalidateQueries({ queryKey: cronogramaKeys.all });
       toast.success('Sessao salva com sucesso!');
     },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao salvar sessao.');
+    },
   });
 }
 
@@ -62,6 +65,19 @@ export function useUpdateSessao() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: sessaoKeys.all });
     },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao atualizar sessao.');
+    },
+  });
+}
+
+export function useTodaySessions(userId: string | undefined) {
+  const today = new Date().toISOString().split('T')[0];
+  return useQuery({
+    queryKey: [...sessaoKeys.byDate(today), 'user', userId ?? ''],
+    queryFn: () => SessoesService.getByDate(today),
+    enabled: !!userId,
+    staleTime: 30 * 1000, // short -- reflects saves quickly
   });
 }
 
@@ -74,6 +90,9 @@ export function useDeleteSessao() {
       queryClient.invalidateQueries({ queryKey: metaKeys.all });
       queryClient.invalidateQueries({ queryKey: userKeys.all });
       toast.success('Sessao removida.');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao remover sessao.');
     },
   });
 }

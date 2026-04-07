@@ -4,9 +4,9 @@ import { Helmet } from 'react-helmet';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend, type TooltipProps } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, PieChart as RechartsPieChart, Pie, Cell, Legend, type TooltipProps } from 'recharts';
 import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
-import { Clock, Calendar as CalendarIcon, TrendingUp, ArrowUpDown, BookOpen, Trophy, CheckCircle2, XCircle } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, TrendingUp, ArrowUpDown, BookOpen, Trophy, CheckCircle2, XCircle, PieChart as PieChartIcon, Flame, Star, Timer, Hash, AlertCircle } from 'lucide-react';
 import { Card, StatsCard } from '@/components/Card';
 import {
   useProgressAnalytics,
@@ -54,7 +54,7 @@ const ProgressAnalysisPage: React.FC = () => {
   const {
     stats, subjectData, evolutionData, tableData, examStats, examesCount,
     period, setPeriod, handleSort,
-    isLoading,
+    isLoading, error,
   } = useProgressAnalytics();
 
   if (isLoading) {
@@ -69,6 +69,23 @@ const ProgressAnalysisPage: React.FC = () => {
             <Skeleton className="h-[400px] rounded-2xl" />
             <Skeleton className="h-[400px] rounded-2xl" />
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8 max-w-7xl">
+          <Card className="flex flex-col items-center justify-center py-16 text-center">
+            <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Erro ao carregar dados</h2>
+            <p className="text-muted-foreground mb-4">
+              Nao foi possivel carregar os dados de analise. Tente novamente mais tarde.
+            </p>
+            <Button onClick={() => window.location.reload()}>Tentar novamente</Button>
+          </Card>
         </div>
       </div>
     );
@@ -109,10 +126,18 @@ const ProgressAnalysisPage: React.FC = () => {
 
           {/* Key Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <StatsCard label="Total (Sempre)" value={stats.totalHoursAll} icon={<Clock className="h-5 w-5" />} />
-            <StatsCard label="Este Mes" value={stats.totalHoursMonth} icon={<CalendarIcon className="h-5 w-5" />} />
-            <StatsCard label="Esta Semana" value={stats.totalHoursWeek} icon={<CalendarIcon className="h-5 w-5" />} />
-            <StatsCard label="Media Diaria" value={stats.avgHoursPerDay} icon={<TrendingUp className="h-5 w-5" />} />
+            <StatsCard label="Total (Sempre)" value={`${stats.totalHoursAll}h`} icon={<Clock className="h-5 w-5" />} description={`${stats.totalSessions} sessoes`} />
+            <StatsCard label="Este Mes" value={`${stats.totalHoursMonth}h`} icon={<CalendarIcon className="h-5 w-5" />} />
+            <StatsCard label="Streak Atual" value={`${stats.streak} dias`} icon={<Flame className="h-5 w-5" />} />
+            <StatsCard label="Pontos Totais" value={stats.points} icon={<Star className="h-5 w-5" />} />
+          </div>
+
+          {/* Secondary Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <StatsCard label="Esta Semana" value={`${stats.totalHoursWeek}h`} icon={<CalendarIcon className="h-5 w-5" />} />
+            <StatsCard label="Media Diaria" value={`${stats.avgHoursPerDay}h`} icon={<TrendingUp className="h-5 w-5" />} />
+            <StatsCard label="Maior Sessao" value={`${stats.longestSessionMinutes}min`} icon={<Timer className="h-5 w-5" />} />
+            <StatsCard label="Total de Sessoes" value={stats.totalSessions} icon={<Hash className="h-5 w-5" />} />
           </div>
 
           {/* Charts */}
@@ -178,13 +203,13 @@ const ProgressAnalysisPage: React.FC = () => {
             {/* Pie Chart */}
             <Card className="flex flex-col lg:col-span-2 animate-fade-in" style={{ animationDelay: '0.2s' }}>
               <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                <PieChart className="h-5 w-5 text-muted-foreground" />
+                <PieChartIcon className="h-5 w-5 text-muted-foreground" />
                 Distribuicao de Tempo ({periodLabel})
               </h3>
               <div className="flex-1 min-h-[400px] flex items-center justify-center">
                 {subjectData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
+                    <RechartsPieChart>
                       <Pie
                         data={subjectData}
                         cx="50%"
@@ -206,7 +231,7 @@ const ProgressAnalysisPage: React.FC = () => {
                         iconType="circle"
                         formatter={(value) => <span className="text-foreground font-medium ml-1">{value}</span>}
                       />
-                    </PieChart>
+                    </RechartsPieChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="text-muted-foreground">Nenhum dado no periodo.</div>

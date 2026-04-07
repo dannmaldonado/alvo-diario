@@ -133,24 +133,6 @@ export type HistoricoPontos = {
 };
 
 // ============================================================================
-// API RESPONSE TYPES
-// ============================================================================
-
-export type PBListResponse<T> = {
-  page: number;
-  perPage: number;
-  totalItems: number;
-  totalPages: number;
-  items: T[];
-};
-
-export type PBResponse<T> = T & {
-  created: string;
-  updated: string;
-  id: string;
-};
-
-// ============================================================================
 // ERROR TYPES
 // ============================================================================
 

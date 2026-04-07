@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MetasService } from '@/services/metas.service';
 import { CreateMetaInput, UpdateMetaInput } from '@/types';
 import { toast } from 'sonner';
+import { cronogramaKeys } from './useCronogramas';
 
 export const metaKeys = {
   all: ['metas'] as const,
@@ -41,6 +42,9 @@ export function useCreateMeta() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: metaKeys.all });
     },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao criar meta.');
+    },
   });
 }
 
@@ -51,6 +55,9 @@ export function useUpdateMeta() {
       MetasService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: metaKeys.all });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao atualizar meta.');
     },
   });
 }
@@ -67,7 +74,11 @@ export function useUpsertTodayMeta() {
     }) => MetasService.upsertTodaysGoal(userId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: metaKeys.all });
+      queryClient.invalidateQueries({ queryKey: cronogramaKeys.all });
       toast.success('Meta atualizada!');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao atualizar meta.');
     },
   });
 }

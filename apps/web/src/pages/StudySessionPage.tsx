@@ -4,19 +4,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Play, Pause, RotateCcw, BookOpen, CalendarDays,
+  BookOpen, CalendarDays,
   Brain, PenLine, ClipboardList, ChevronRight, Settings2, Check,
-  Trophy, X, ThumbsUp, ThumbsDown, Flag
+  Trophy, X, ThumbsUp, ThumbsDown,
 } from 'lucide-react';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import SubjectBadge from '@/components/SubjectBadge';
+import PomodoroTimer from '@/components/study/PomodoroTimer';
+import TodaySessionsList from '@/components/study/TodaySessionsList';
 import {
   useStudySession,
   DEFAULT_PHASES,
   EXAM_QUESTIONS,
   Phase,
 } from '@/hooks/useStudySession';
+import { useAuth } from '@/contexts/AuthContext';
+import { useTodaySessions } from '@/hooks/queries/useSessoes';
 
 const PHASE_ICONS: Record<Phase, React.ReactNode> = {
   revisao: <Brain className="w-5 h-5" />,
@@ -26,17 +30,20 @@ const PHASE_ICONS: Record<Phase, React.ReactNode> = {
 
 const StudySessionPage: React.FC = () => {
   const { state, actions } = useStudySession();
+  const { currentUser } = useAuth();
+  const todaySessionsQuery = useTodaySessions(currentUser?.id);
 
   const {
     schedule, subjects, todaySubject, cycleInfo, selectedSubject,
     currentPhaseIdx, currentPhase, phaseDurations, completedPhases,
     isActive, timeLeft, totalMinutes,
+    sessionNotes,
     showSettings, showExame, examAnswers, examObservacoes, savingExame,
     isLoading,
   } = state;
 
   const {
-    setSelectedSubject, toggleTimer, resetTimer, goToPhase, goToNextPhase,
+    setSelectedSubject, setSessionNotes, toggleTimer, resetTimer, goToPhase, goToNextPhase,
     finalizarSessao, updateDuration, setShowSettings, setShowExame,
     setExamAnswers, setExamObservacoes, saveExameDiario, formatTime, getProgress,
   } = actions;
@@ -134,95 +141,21 @@ const StudySessionPage: React.FC = () => {
 
             {/* Timer principal */}
             <div className="lg:col-span-2">
-              <Card className={`flex flex-col items-center border-2 transition-colors ${currentPhase.borderColor}`}>
-
-                <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium mb-6 ${currentPhase.bgColor} ${currentPhase.color}`}>
-                  {PHASE_ICONS[currentPhase.id]}
-                  {currentPhase.label}
-                </div>
-
-                <p className="text-sm text-muted-foreground text-center mb-8 max-w-xs">
-                  {currentPhase.description}
-                </p>
-
-                {/* Circular progress */}
-                <div className="relative flex items-center justify-center mb-10">
-                  <svg className="w-56 h-56 -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="46" className="stroke-muted fill-none" strokeWidth="3" />
-                    <circle
-                      cx="50" cy="50" r="46"
-                      className={`fill-none transition-all duration-1000 ease-linear ${
-                        currentPhase.id === 'revisao' ? 'stroke-blue-500'
-                        : currentPhase.id === 'questoes' ? 'stroke-amber-500'
-                        : 'stroke-primary'
-                      }`}
-                      strokeWidth="3"
-                      strokeDasharray="289.03"
-                      strokeDashoffset={289.03 - (289.03 * getProgress()) / 100}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <div className="absolute text-center">
-                    <div className="text-5xl font-bold tabular-nums tracking-tighter">
-                      {formatTime(timeLeft)}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {Math.round(getProgress())}% concluido
-                    </div>
-                  </div>
-                </div>
-
-                {/* Controles */}
-                <div className="flex items-center gap-4">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="h-12 w-12 rounded-full p-0"
-                    onClick={resetTimer}
-                    disabled={timeLeft === phaseDurations[currentPhase.id] * 60 && !isActive}
-                  >
-                    <RotateCcw className="h-5 w-5" />
-                  </Button>
-
-                  <Button
-                    size="lg"
-                    className={`h-14 px-10 rounded-full text-base shadow-lg active:scale-95 transition-transform ${
-                      currentPhase.id === 'revisao' ? 'bg-blue-500 hover:bg-blue-600'
-                      : currentPhase.id === 'questoes' ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                      : ''
-                    }`}
-                    onClick={toggleTimer}
-                  >
-                    {isActive
-                      ? <><Pause className="mr-2 h-5 w-5 fill-current" /> Pausar</>
-                      : <><Play className="mr-2 h-5 w-5 fill-current" /> {timeLeft === phaseDurations[currentPhase.id] * 60 ? 'Iniciar' : 'Continuar'}</>
-                    }
-                  </Button>
-
-                  {currentPhaseIdx < DEFAULT_PHASES.length - 1 && (
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="h-12 w-12 rounded-full p-0"
-                      onClick={goToNextPhase}
-                      title="Avancar para proxima fase"
-                    >
-                      <ChevronRight className="h-5 w-5" />
-                    </Button>
-                  )}
-
-                  <Button
-                    size="lg"
-                    variant="destructive"
-                    className="h-14 px-8 rounded-full text-base shadow-lg"
-                    onClick={finalizarSessao}
-                    title="Finalizar sessao agora"
-                  >
-                    <Flag className="mr-2 h-5 w-5" />
-                    Finalizar
-                  </Button>
-                </div>
-
+              <Card className={`border-2 transition-colors ${currentPhase.borderColor}`}>
+                <PomodoroTimer
+                  currentPhase={currentPhase}
+                  phaseIcon={PHASE_ICONS[currentPhase.id]}
+                  timeLeft={timeLeft}
+                  isActive={isActive}
+                  isFullDuration={timeLeft === phaseDurations[currentPhase.id] * 60}
+                  progress={getProgress()}
+                  isLastPhase={currentPhaseIdx >= DEFAULT_PHASES.length - 1}
+                  formatTime={formatTime}
+                  onToggle={toggleTimer}
+                  onReset={resetTimer}
+                  onNextPhase={goToNextPhase}
+                  onFinalize={finalizarSessao}
+                />
               </Card>
             </div>
 
@@ -245,6 +178,25 @@ const StudySessionPage: React.FC = () => {
                     </li>
                   ))}
                 </ul>
+              </Card>
+
+              {/* Session notes */}
+              <Card>
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-primary" />
+                  Anotacoes da Sessao
+                </h3>
+                <textarea
+                  value={sessionNotes}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSessionNotes(e.target.value)}
+                  placeholder="Anotacoes sobre esta sessao de estudo (opcional, max 500 caracteres)"
+                  maxLength={500}
+                  rows={3}
+                  className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <p className="text-xs text-muted-foreground mt-1 text-right">
+                  {sessionNotes.length}/500
+                </p>
               </Card>
 
               {/* Configuracoes de duracao */}
@@ -308,6 +260,13 @@ const StudySessionPage: React.FC = () => {
               )}
             </div>
           </div>
+
+          {/* Today's sessions list */}
+          <TodaySessionsList
+            sessions={todaySessionsQuery.data ?? []}
+            isLoading={todaySessionsQuery.isLoading}
+          />
+
         </main>
       </div>
 

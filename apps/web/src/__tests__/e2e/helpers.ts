@@ -2,11 +2,11 @@ import { Page, expect } from '@playwright/test';
 
 /**
  * E2E Test Helpers
- * Utilities for common test scenarios
+ * Shared utilities for common test patterns
  */
 
 /**
- * Wait for page to be fully loaded
+ * Wait for page to be fully loaded (network idle + DOM ready)
  */
 export async function waitForPageLoad(page: Page) {
   await page.waitForLoadState('networkidle');
@@ -14,190 +14,94 @@ export async function waitForPageLoad(page: Page) {
 }
 
 /**
- * Check if user is authenticated by looking for protected elements
- */
-export async function isUserAuthenticated(page: Page): Promise<boolean> {
-  // Protected pages have auth context
-  const authElements = page.locator('[data-testid="user-menu"], [data-user-id]');
-  return await authElements.first().isVisible().catch(() => false);
-}
-
-/**
- * Get current page title
- */
-export async function getPageTitle(page: Page): Promise<string> {
-  return await page.title();
-}
-
-/**
- * Check if an error message is displayed
+ * Check if an error toast/alert is visible on the page
  */
 export async function hasErrorMessage(page: Page): Promise<boolean> {
-  const errorMessages = page.locator('[role="alert"], [class*="error"]');
-  return await errorMessages.first().isVisible().catch(() => false);
-}
+  const errorSelectors = [
+    '[role="alert"]',
+    '.text-destructive',
+    '[class*="error"]',
+  ];
 
-/**
- * Check if a success message is displayed
- */
-export async function hasSuccessMessage(page: Page): Promise<boolean> {
-  const successMessages = page.locator('[class*="success"], [role="status"]');
-  return await successMessages.first().isVisible().catch(() => false);
-}
-
-/**
- * Fill and submit a form
- */
-export async function fillAndSubmitForm(
-  page: Page,
-  formData: Record<string, string>,
-  submitButtonSelector: string = 'button[type="submit"]'
-) {
-  for (const [name, value] of Object.entries(formData)) {
-    const input = page.locator(`input[name="${name}"], textarea[name="${name}"]`);
-    await input.fill(value);
+  for (const selector of errorSelectors) {
+    const visible = await page.locator(selector).first().isVisible().catch(() => false);
+    if (visible) return true;
   }
-
-  const submitButton = page.locator(submitButtonSelector);
-  await submitButton.click();
-}
-
-/**
- * Wait for navigation and check new URL
- */
-export async function waitForNavigation(page: Page, urlPattern: RegExp) {
-  await page.waitForURL(urlPattern, { timeout: 10000 }).catch(() => {});
-  return page.url();
-}
-
-/**
- * Check if element is visible within timeout
- */
-export async function waitForElement(
-  page: Page,
-  selector: string,
-  timeout: number = 5000
-): Promise<boolean> {
-  try {
-    await page.locator(selector).first().waitFor({ timeout });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Click element if visible
- */
-export async function clickIfVisible(page: Page, selector: string): Promise<boolean> {
-  const element = page.locator(selector).first();
-  const visible = await element.isVisible().catch(() => false);
-
-  if (visible) {
-    await element.click();
-    return true;
-  }
-
   return false;
 }
 
 /**
- * Get text content of element
+ * Fill a form by input name-value pairs and submit
  */
-export async function getElementText(page: Page, selector: string): Promise<string | null> {
-  return await page.locator(selector).first().textContent().catch(() => null);
-}
-
-/**
- * Check multiple elements exist
- */
-export async function elementsExist(page: Page, selectors: string[]): Promise<Record<string, boolean>> {
-  const results: Record<string, boolean> = {};
-
-  for (const selector of selectors) {
-    results[selector] = await page.locator(selector).first().isVisible().catch(() => false);
-  }
-
-  return results;
-}
-
-/**
- * Take screenshot for debugging
- */
-export async function takeScreenshot(page: Page, name: string) {
-  const timestamp = new Date().toISOString().replace(/:/g, '-');
-  await page.screenshot({ path: `test-results/${name}-${timestamp}.png` });
-}
-
-/**
- * Mock API response
- */
-export async function mockAPIResponse(
+export async function fillAndSubmitForm(
   page: Page,
-  urlPattern: string | RegExp,
-  responseData: unknown
+  fields: Record<string, string>,
+  submitSelector = 'button[type="submit"]'
 ) {
-  await page.route(urlPattern, route => {
-    route.abort('blockedbyclient');
-  });
-
-  // Alternative: could use interceptor pattern
+  for (const [name, value] of Object.entries(fields)) {
+    await page.locator(`input[name="${name}"], textarea[name="${name}"]`).fill(value);
+  }
+  await page.locator(submitSelector).click();
 }
 
 /**
- * Check localStorage for token (if using JWT)
+ * Assert no horizontal overflow on the page (responsive check)
  */
-export async function hasAuthToken(page: Page): Promise<boolean> {
-  return await page.evaluate(() => {
-    return !!localStorage.getItem('pb_auth') || !!localStorage.getItem('auth_token');
-  });
+export async function assertNoHorizontalOverflow(page: Page, tolerance = 5) {
+  const bodyWidth = await page.locator('body').evaluate((el) => el.scrollWidth);
+  const viewportWidth = await page.evaluate(() => window.innerWidth);
+  expect(bodyWidth).toBeLessThanOrEqual(viewportWidth + tolerance);
 }
 
 /**
- * Clear authentication
+ * Capture console errors during a callback
  */
-export async function clearAuth(page: Page) {
-  await page.evaluate(() => {
-    localStorage.removeItem('pb_auth');
-    localStorage.removeItem('auth_token');
-    sessionStorage.clear();
-  });
-}
+export async function captureConsoleErrors(
+  page: Page,
+  callback: () => Promise<void>
+): Promise<string[]> {
+  const errors: string[] = [];
 
-/**
- * Get all console messages during navigation
- */
-export async function captureConsoleLogs(page: Page): Promise<string[]> {
-  const logs: string[] = [];
-
-  page.on('console', msg => {
-    logs.push(`${msg.type()}: ${msg.text()}`);
-  });
-
-  return logs;
-}
-
-/**
- * Wait and collect all network requests
- */
-export async function captureNetworkRequests(page: Page, callback: () => Promise<void>) {
-  const requests: Array<{ url: string; method: string; status?: number }> = [];
-
-  page.on('request', request => {
-    requests.push({
-      url: request.url(),
-      method: request.method(),
-    });
-  });
-
-  page.on('response', response => {
-    const lastRequest = requests[requests.length - 1];
-    if (lastRequest) {
-      lastRequest.status = response.status();
+  const handler = (msg: { type: () => string; text: () => string }) => {
+    if (msg.type() === 'error') {
+      errors.push(msg.text());
     }
-  });
+  };
 
+  page.on('console', handler);
   await callback();
+  page.off('console', handler);
 
-  return requests;
+  return errors;
+}
+
+/**
+ * Capture uncaught page errors during a callback
+ */
+export async function capturePageErrors(
+  page: Page,
+  callback: () => Promise<void>
+): Promise<string[]> {
+  const errors: string[] = [];
+
+  const handler = (err: Error) => {
+    errors.push(err.message);
+  };
+
+  page.on('pageerror', handler);
+  await callback();
+  page.off('pageerror', handler);
+
+  return errors;
+}
+
+/**
+ * Take a named screenshot for debugging
+ */
+export async function takeDebugScreenshot(page: Page, name: string) {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  await page.screenshot({
+    path: `test-results/debug-${name}-${timestamp}.png`,
+    fullPage: true,
+  });
 }
