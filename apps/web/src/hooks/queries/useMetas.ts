@@ -62,6 +62,42 @@ export function useUpdateMeta() {
   });
 }
 
+const RATING_MULTIPLIERS: Record<1 | 2 | 3 | 4 | 5, number> = {
+  1: 0,
+  2: 0.5,
+  3: 1,
+  4: 1.5,
+  5: 2,
+};
+
+export function useUpdateMetaRating() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, avaliacao_diaria }: { id: string; avaliacao_diaria: 1 | 2 | 3 | 4 | 5 }) =>
+      MetasService.update(id, { avaliacao_diaria }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: metaKeys.all });
+      // Refetch user data to pick up updated streak_atual and pontos_totais from backend
+      queryClient.invalidateQueries({ queryKey: ['user'] });
+      const multiplier = RATING_MULTIPLIERS[variables.avaliacao_diaria];
+      const multiplierText = multiplier > 1 ? ` (${multiplier}x bonus)` : multiplier < 1 ? ` (${multiplier}x)` : '';
+      toast.success(`Avaliacao salva!${multiplierText}`);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao salvar avaliacao.');
+    },
+  });
+}
+
+export function useUserMetas(userId: string | undefined) {
+  return useQuery({
+    queryKey: metaKeys.byUser(userId ?? ''),
+    queryFn: () => MetasService.getByUser(userId!),
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useUpsertTodayMeta() {
   const queryClient = useQueryClient();
   return useMutation({

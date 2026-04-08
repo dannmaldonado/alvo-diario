@@ -3,28 +3,38 @@ import React from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Trophy, Flame, Play, CalendarDays, ArrowRight, BookOpen, BarChart3, Clock, Target, AlertTriangle, RefreshCw } from 'lucide-react';
-import { Materia } from '@/types';
+import { Trophy, Flame, Play, CalendarDays, ArrowRight, BookOpen, BarChart3, Clock, Target, AlertTriangle, RefreshCw, Award } from 'lucide-react';
+import { Materia, DailyRatingValue } from '@/types';
 
 import SubjectBadge from '@/components/SubjectBadge';
 import { Card, StatsCard } from '@/components/Card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import MonthlyStatsChart from '@/components/dashboard/MonthlyStatsChart';
+import { DailyRating } from '@/components/dashboard/DailyRating';
 
 const DashboardPage: React.FC = () => {
   const {
     currentUser,
     cronograma,
+    todayMeta,
     todayProgress,
+    todaySessionMinutes,
     monthlyStats,
     monthlySessions,
     todaySubject,
     tomorrowSubject,
     cycleInfo,
+    updateRating,
     isLoading,
     error,
   } = useDashboardData();
+
+  const handleRatingChange = (rating: DailyRatingValue) => {
+    if (todayMeta?.id) {
+      updateRating.mutate({ id: todayMeta.id, avaliacao_diaria: rating });
+    }
+  };
 
   const getTodayProgressPercentage = () => {
     const meta = todayProgress.horas_meta || 1;
@@ -125,13 +135,17 @@ const DashboardPage: React.FC = () => {
                   <p className="font-bold leading-none">{currentUser?.pontos_totais || 0}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 bg-card border border-border px-4 py-2 rounded-xl shadow-sm">
+              <div className="flex items-center gap-3 bg-card border border-border px-4 py-2 rounded-xl shadow-sm group relative">
                 <div className="bg-secondary/10 p-2 rounded-lg">
                   <Flame className="h-5 w-5 text-secondary" />
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Ofensiva</p>
                   <p className="font-bold leading-none">{currentUser?.streak_atual || 0} dias</p>
+                </div>
+                {/* Tooltip explaining streak logic */}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-popover border border-border rounded-lg shadow-lg text-xs text-muted-foreground whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200 z-10">
+                  Dias consecutivos com avaliacao 3+ estrelas
                 </div>
               </div>
             </div>
@@ -230,6 +244,25 @@ const DashboardPage: React.FC = () => {
                   ) : (
                     <span className="text-sm text-muted-foreground">Continue assim!</span>
                   )}
+
+                  {/* Daily Rating */}
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <p className="text-sm font-medium text-muted-foreground mb-2">Como foi sua dedicacao hoje?</p>
+                    <DailyRating
+                      value={todayMeta?.avaliacao_diaria}
+                      onChange={handleRatingChange}
+                      disabled={!todayMeta?.id || updateRating.isPending}
+                      showPointsMultiplier
+                      todaySessionMinutes={todaySessionMinutes}
+                    />
+                    {/* Perfect Day Badge */}
+                    {todayMeta?.avaliacao_diaria === 5 && getTodayProgressPercentage() >= 100 && (
+                      <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400">
+                        <Award className="h-4 w-4" />
+                        <span className="text-sm font-semibold">Dia Perfeito! +2x pontos</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

@@ -109,3 +109,5 @@ CREATE TABLE IF NOT EXISTS historico_pontos (
 
 -- Migrations for existing tables (safe to re-run)
 ALTER TABLE cronogramas ADD COLUMN IF NOT EXISTS data_inicio DATE;
+ALTER TABLE metas_diarias ADD COLUMN IF NOT EXISTS avaliacao_diaria TINYINT CHECK (avaliacao_diaria BETWEEN 1 AND 5);
+ALTER TABLE historico_pontos ADD COLUMN IF NOT EXISTS rating_multiplier DECIMAL(3,1) NULL;

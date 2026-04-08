@@ -8,8 +8,9 @@ import { useState, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { SessoesService } from '@/services/sessoes.service';
+import { MetasService } from '@/services/metas.service';
 import { apiClient } from '@/services/api';
-import { Sessao } from '@/types';
+import { Sessao, Meta, DailyRatingValue } from '@/types';
 
 // ============================================================================
 // TYPES
@@ -71,6 +72,18 @@ export interface ExamStats {
   byQuestion: Array<ExamQuestionMeta & { pct: number; total: number }>;
   last7: string[];
   examDates: Set<string>;
+}
+
+export interface RatingStats {
+  avgDailyRating: number;
+  ratingDistribution: Record<DailyRatingValue, number>;
+  totalRated: number;
+  activeDays: number;
+  inactiveDays: number;
+  activePercentage: number;
+  pointsByRating: Record<DailyRatingValue, number>;
+  basePointsEarned: number;
+  bonusPointsFromRating: number;
 }
 
 // ============================================================================
@@ -136,6 +149,14 @@ export function useProgressAnalytics() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // TanStack Query for metas (for rating analytics)
+  const metasQuery = useQuery({
+    queryKey: ['metas', 'user', currentUser?.id, 'all'],
+    queryFn: () => MetasService.getByUser(currentUser!.id),
+    enabled: !!currentUser?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+
   // TanStack Query for exams (optional, non-blocking)
   const examsQuery = useQuery({
     queryKey: ['exames', 'all'],
@@ -145,6 +166,7 @@ export function useProgressAnalytics() {
   });
 
   const allSessions = sessionsQuery.data ?? [];
+  const allMetas = useMemo(() => metasQuery.data ?? [], [metasQuery.data]);
   const exames = examsQuery.data ?? [];
 
   // Filter sessions by period
@@ -334,6 +356,85 @@ export function useProgressAnalytics() {
     return { avgScore, totalQuestions, byQuestion, last7, examDates };
   }, [exames]);
 
+  // Rating multiplier table (must match backend)
+  const RATING_MULTIPLIERS: Record<DailyRatingValue, number> = {
+    1: 0,
+    2: 0.5,
+    3: 1,
+    4: 1.5,
+    5: 2,
+  };
+
+  // Rating analytics
+  const ratingStats = useMemo<RatingStats>(() => {
+    const ratedMetas = allMetas.filter(
+      (m: Meta) => m.avaliacao_diaria != null && m.avaliacao_diaria >= 1 && m.avaliacao_diaria <= 5
+    );
+
+    const totalRated = ratedMetas.length;
+    const avgDailyRating =
+      totalRated > 0
+        ? Number(
+            (ratedMetas.reduce((sum: number, m: Meta) => sum + (m.avaliacao_diaria ?? 0), 0) / totalRated).toFixed(1)
+          )
+        : 0;
+
+    const ratingDistribution: Record<DailyRatingValue, number> = {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+    };
+
+    const pointsByRating: Record<DailyRatingValue, number> = {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+    };
+
+    let basePointsEarned = 0;
+    let totalMultipliedPoints = 0;
+
+    ratedMetas.forEach((m: Meta) => {
+      const rating = m.avaliacao_diaria as DailyRatingValue;
+      if (rating) {
+        ratingDistribution[rating]++;
+
+        // Calculate estimated points for this day based on horas_realizadas
+        const minutesStudied = (m.horas_realizadas || 0) * 60;
+        const basePoints = Math.floor(minutesStudied / 15);
+        const multiplier = RATING_MULTIPLIERS[rating];
+        const multipliedPoints = Math.floor(basePoints * multiplier);
+
+        pointsByRating[rating] += multipliedPoints;
+        basePointsEarned += basePoints;
+        totalMultipliedPoints += multipliedPoints;
+      }
+    });
+
+    const bonusPointsFromRating = totalMultipliedPoints - basePointsEarned;
+
+    // Active days: rating >= 3 counts as active for streak
+    const activeDays = ratedMetas.filter((m: Meta) => (m.avaliacao_diaria ?? 0) >= 3).length;
+    const inactiveDays = totalRated - activeDays;
+    const activePercentage = totalRated > 0 ? Number(((activeDays / totalRated) * 100).toFixed(1)) : 0;
+
+    return {
+      avgDailyRating,
+      ratingDistribution,
+      totalRated,
+      activeDays,
+      inactiveDays,
+      activePercentage,
+      pointsByRating,
+      basePointsEarned,
+      bonusPointsFromRating,
+    };
+  }, [allMetas]);
+
   const handleSort = useCallback((key: keyof TableRowData) => {
     setSortConfig(current => ({
       key,
@@ -348,6 +449,8 @@ export function useProgressAnalytics() {
     evolutionData,
     tableData,
     examStats,
+    ratingStats,
+    allMetas,
     examesCount: exames.length,
 
     // Filters

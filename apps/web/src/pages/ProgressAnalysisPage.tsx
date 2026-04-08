@@ -8,6 +8,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
 import { Clock, Calendar as CalendarIcon, TrendingUp, ArrowUpDown, BookOpen, Trophy, CheckCircle2, XCircle, PieChart as PieChartIcon, Flame, Star, Timer, Hash, AlertCircle } from 'lucide-react';
 import { Card, StatsCard } from '@/components/Card';
+import { RatingDistributionChart } from '@/components/analytics/RatingDistributionChart';
+import { ActiveDaysChart } from '@/components/analytics/ActiveDaysChart';
+import { PointsByRatingChart } from '@/components/analytics/PointsByRatingChart';
 import {
   useProgressAnalytics,
   EXAM_QUESTIONS_META,
@@ -52,7 +55,7 @@ const PERIOD_OPTIONS: { id: Period; label: string }[] = [
 
 const ProgressAnalysisPage: React.FC = () => {
   const {
-    stats, subjectData, evolutionData, tableData, examStats, examesCount,
+    stats, subjectData, evolutionData, tableData, examStats, ratingStats, allMetas, examesCount,
     period, setPeriod, handleSort,
     isLoading, error,
   } = useProgressAnalytics();
@@ -128,7 +131,7 @@ const ProgressAnalysisPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <StatsCard label="Total (Sempre)" value={`${stats.totalHoursAll}h`} icon={<Clock className="h-5 w-5" />} description={`${stats.totalSessions} sessoes`} />
             <StatsCard label="Este Mes" value={`${stats.totalHoursMonth}h`} icon={<CalendarIcon className="h-5 w-5" />} />
-            <StatsCard label="Streak Atual" value={`${stats.streak} dias`} icon={<Flame className="h-5 w-5" />} />
+            <StatsCard label="Streak Atual" value={`${stats.streak} dias`} icon={<Flame className="h-5 w-5" />} description="Dias consecutivos com rating 3+" />
             <StatsCard label="Pontos Totais" value={stats.points} icon={<Star className="h-5 w-5" />} />
           </div>
 
@@ -239,6 +242,91 @@ const ProgressAnalysisPage: React.FC = () => {
               </div>
             </Card>
           </div>
+
+          {/* Daily Rating Distribution */}
+          {ratingStats.totalRated > 0 && (
+            <Card className="mb-8 animate-fade-in" style={{ animationDelay: '0.25s' }}>
+              <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                <Star className="h-5 w-5 text-primary" />
+                Avaliacao Diaria de Dedicacao
+              </h3>
+              <RatingDistributionChart
+                distribution={ratingStats.ratingDistribution}
+                avgRating={ratingStats.avgDailyRating}
+                totalRated={ratingStats.totalRated}
+              />
+
+              {/* Active vs Inactive Days Summary */}
+              <div className="mt-6 pt-6 border-t border-border">
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+                  Dias Ativos vs Inativos
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="flex flex-col items-center p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                    <span className="text-2xl font-bold text-emerald-500">{ratingStats.activeDays}</span>
+                    <span className="text-sm text-muted-foreground">Dias Ativos</span>
+                    <span className="text-xs text-muted-foreground mt-1">(rating 3+)</span>
+                  </div>
+                  <div className="flex flex-col items-center p-4 bg-red-500/10 rounded-xl border border-red-500/20">
+                    <span className="text-2xl font-bold text-red-500">{ratingStats.inactiveDays}</span>
+                    <span className="text-sm text-muted-foreground">Dias Inativos</span>
+                    <span className="text-xs text-muted-foreground mt-1">(rating 1-2)</span>
+                  </div>
+                  <div className="flex flex-col items-center p-4 bg-primary/10 rounded-xl border border-primary/20">
+                    <span className="text-2xl font-bold text-primary">{ratingStats.activePercentage}%</span>
+                    <span className="text-sm text-muted-foreground">Taxa de Dedicacao</span>
+                    <span className="text-xs text-muted-foreground mt-1">Dias ativos / total</span>
+                  </div>
+                </div>
+
+                {/* Active days progress bar */}
+                <div className="mt-4">
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                    <span>Inativos ({ratingStats.inactiveDays})</span>
+                    <span>Ativos ({ratingStats.activeDays})</span>
+                  </div>
+                  <div className="h-3 w-full bg-red-500/20 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                      style={{ width: `${ratingStats.activePercentage}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Active Days Weekly Chart */}
+          {ratingStats.totalRated > 0 && (
+            <Card className="mb-8 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+              <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                <Flame className="h-5 w-5 text-secondary" />
+                Dias Ativos por Semana
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Dias com avaliacao 3+ estrelas contam como ativos para a ofensiva.
+              </p>
+              <ActiveDaysChart metas={allMetas} />
+            </Card>
+          )}
+
+          {/* Points by Rating Chart */}
+          {ratingStats.totalRated > 0 && (
+            <Card className="mb-8 animate-fade-in" style={{ animationDelay: '0.35s' }}>
+              <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-primary" />
+                Pontos por Avaliacao
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Correlacao entre sua avaliacao diaria e os pontos ganhos. Avaliacoes mais altas multiplicam seus pontos.
+              </p>
+              <PointsByRatingChart
+                pointsByRating={ratingStats.pointsByRating}
+                basePointsEarned={ratingStats.basePointsEarned}
+                bonusPointsFromRating={ratingStats.bonusPointsFromRating}
+              />
+            </Card>
+          )}
 
           {/* Detailed Table */}
           <DetailedTable tableData={tableData} onSort={handleSort} />

@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveCronograma } from '@/hooks/queries/useCronogramas';
-import { useTodayMeta, useCreateMeta } from '@/hooks/queries/useMetas';
+import { useTodayMeta, useCreateMeta, useUpdateMetaRating } from '@/hooks/queries/useMetas';
 import { useSessoesByDateRange } from '@/hooks/queries/useSessoes';
 import { useScheduleCalculator } from '@/hooks/useScheduleCalculator';
 import { Materia } from '@/types';
@@ -35,6 +35,7 @@ export function useDashboardData() {
   const cronogramaQuery = useActiveCronograma(userId);
   const todayMetaQuery = useTodayMeta(userId);
   const createMetaMutation = useCreateMeta();
+  const updateRatingMutation = useUpdateMetaRating();
 
   // Date range for monthly sessions
   const now = new Date();
@@ -87,6 +88,21 @@ export function useDashboardData() {
       horas_meta: meta.horas_meta || 0,
     };
   }, [todayMetaQuery.data, currentUser?.meta_diaria_horas]);
+
+  // Compute today's total session minutes (for points preview in DailyRating)
+  const todaySessionMinutes = useMemo(() => {
+    const sessions = monthSessionsQuery.data;
+    if (!sessions || sessions.length === 0) return 0;
+    const todayStr = new Date().toISOString().split('T')[0];
+    return sessions
+      .filter((s) => {
+        const sessDate = typeof s.data_sessao === 'string'
+          ? s.data_sessao.split('T')[0]
+          : new Date(s.data_sessao).toISOString().split('T')[0];
+        return sessDate === todayStr;
+      })
+      .reduce((sum, s) => sum + (s.duracao_minutos || 0), 0);
+  }, [monthSessionsQuery.data]);
 
   // Compute monthly stats
   const monthlyStats = useMemo((): MonthlyStats => {
@@ -157,10 +173,15 @@ export function useDashboardData() {
   return {
     // Data
     cronograma: cronogramaQuery.data ?? null,
+    todayMeta: todayMetaQuery.data ?? null,
     todayProgress,
+    todaySessionMinutes,
     monthlyStats,
     monthlySessions: monthSessionsQuery.data ?? [],
     ...scheduleData,
+
+    // Mutations
+    updateRating: updateRatingMutation,
 
     // State
     isLoading,

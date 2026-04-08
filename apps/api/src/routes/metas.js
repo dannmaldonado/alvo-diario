@@ -3,6 +3,7 @@ import authMiddleware from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { createMetaSchema, updateMetaSchema } from '../schemas/meta.schema.js';
 import { getAllMetas, getMetaById, getMetaByDate, createMeta, updateMeta, deleteMeta } from '../services/metas.js';
+import { atualizarStreakByRating, ajustarPontosRating } from '../services/pontos.js';
 
 const router = express.Router();
 
@@ -45,6 +46,26 @@ router.post('/', authMiddleware, validate(createMetaSchema), async (req, res) =>
 router.patch('/:id', authMiddleware, validate(updateMetaSchema), async (req, res) => {
   try {
     const meta = await updateMeta(req.user.id, req.params.id, req.body);
+
+    // Recalculate rating-based streak and adjust points when avaliacao_diaria is updated
+    if (req.body.avaliacao_diaria != null) {
+      try {
+        await atualizarStreakByRating(req.user.id);
+      } catch (streakError) {
+        console.error('Failed to update rating streak:', streakError);
+      }
+
+      try {
+        // Normalize date to YYYY-MM-DD string (meta.data may be a Date object from MySQL)
+        const metaDate = typeof meta.data === 'string'
+          ? meta.data.split('T')[0]
+          : new Date(meta.data).toISOString().split('T')[0];
+        await ajustarPontosRating(req.user.id, req.body.avaliacao_diaria, metaDate);
+      } catch (pointsError) {
+        console.error('Failed to adjust rating points:', pointsError);
+      }
+    }
+
     res.json(meta);
   } catch (error) {
     res.status(400).json({ error: error.message });

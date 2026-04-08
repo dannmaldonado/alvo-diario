@@ -94,6 +94,8 @@ export type UpdateSessaoInput = Partial<CreateSessaoInput>;
 // DAILY GOALS TYPES
 // ============================================================================
 
+export type DailyRatingValue = 1 | 2 | 3 | 4 | 5;
+
 export type Meta = {
   id: string;
   user_id: string;
@@ -101,6 +103,7 @@ export type Meta = {
   horas_meta: number;
   horas_realizadas: number;
   status: 'nao_iniciada' | 'em_progresso' | 'concluida';
+  avaliacao_diaria?: DailyRatingValue;
   created: string;
   updated: string;
 };
@@ -128,6 +131,7 @@ export type HistoricoPontos = {
   pontos: number;
   motivo: string;
   data: string;
+  rating_multiplier?: number;
   created: string;
   updated: string;
 };

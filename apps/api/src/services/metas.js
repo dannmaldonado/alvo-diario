@@ -60,7 +60,7 @@ export const updateMeta = async (userId, id, data) => {
   try {
     const fields = [];
     const values = [];
-    const allowedFields = ['horas_meta', 'horas_realizadas', 'status'];
+    const allowedFields = ['horas_meta', 'horas_realizadas', 'status', 'avaliacao_diaria'];
 
     for (const [key, value] of Object.entries(data)) {
       if (allowedFields.includes(key)) {
