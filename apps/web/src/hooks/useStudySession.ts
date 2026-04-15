@@ -87,6 +87,8 @@ export interface StudySessionActions {
 // CONSTANTS
 // ============================================================================
 
+export const DAILY_STUDY_GOAL_MINUTES = 240; // 4 hours in minutes
+
 export const EXAM_QUESTIONS = [
   { id: 'horarios', categoria: 'Disciplina', texto: 'Cumpri os horarios planejados?' },
   { id: 'distracao', categoria: 'Disciplina', texto: 'Evitei distracoes (celular, redes sociais)?' },
@@ -203,6 +205,7 @@ export function useStudySession() {
   const [isActive, setIsActive] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60 * 60);
   const [tempoGastoTotal, setTempoGastoTotal] = useState(0);
+  const [totalStudyTimeToday, setTotalStudyTimeToday] = useState(0); // cumulative minutes across all cycles
 
   // Session notes
   const [sessionNotes, setSessionNotes] = useState('');
@@ -270,6 +273,25 @@ export function useStudySession() {
     };
   }, [isActive]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ---- Cumulative Time Calculation ----
+
+  const getCumulativeMinutes = useCallback((): number => {
+    // Sum all completed phases + current phase elapsed time
+    let total = 0;
+
+    // Sum completed phases (only the study phases, not intervals that might be counted separately)
+    for (let i = 0; i < currentPhaseIdx; i++) {
+      total += phaseDurations[DEFAULT_PHASES[i].id];
+    }
+
+    // Add current phase elapsed time
+    const currentPhaseTotal = phaseDurations[currentPhase.id] * 60;
+    const currentPhaseElapsed = currentPhaseTotal - timeLeft;
+    total += Math.ceil(currentPhaseElapsed / 60); // convert seconds to minutes, round up
+
+    return total;
+  }, [currentPhaseIdx, currentPhase.id, phaseDurations, timeLeft]);
+
   // ---- Actions ----
 
   const handlePhaseComplete = useCallback(() => {
@@ -277,21 +299,50 @@ export function useStudySession() {
       const updated = new Set([...prev, DEFAULT_PHASES[currentPhaseIdx].id]);
       return updated;
     });
+
+    // Calculate cumulative time after this phase
+    const newCumulativeTime = getCumulativeMinutes();
+    setTotalStudyTimeToday(newCumulativeTime);
+
+    // Check if goal is met (4 hours = 240 minutes)
+    if (newCumulativeTime >= DAILY_STUDY_GOAL_MINUTES) {
+      toast.success(`Meta diaria atingida! 🎉 ${newCumulativeTime} minutos de estudo.`);
+      setTimeout(() => setShowExame(true), 800);
+      return;
+    }
+
     if (currentPhaseIdx < DEFAULT_PHASES.length - 1) {
       toast.success(`${DEFAULT_PHASES[currentPhaseIdx].label} concluida! Avance para a proxima fase.`);
     } else {
-      setTimeout(() => setShowExame(true), 800);
+      // Reached end of phases but goal not met, loop back to start
+      toast.success('Ciclo completo! Continue estudando para atingir sua meta de 4h.');
+      setCurrentPhaseIdx(0);
+      setCompletedPhases(new Set()); // Reset for new cycle tracking
     }
-  }, [currentPhaseIdx]);
+  }, [currentPhaseIdx, getCumulativeMinutes]);
 
   const goToNextPhase = useCallback(() => {
     setCompletedPhases(prev => new Set([...prev, currentPhase.id]));
+
+    // Calculate cumulative time after this phase
+    const newCumulativeTime = getCumulativeMinutes();
+    setTotalStudyTimeToday(newCumulativeTime);
+
+    // Check if goal is met (4 hours = 240 minutes)
+    if (newCumulativeTime >= DAILY_STUDY_GOAL_MINUTES) {
+      setShowExame(true);
+      return;
+    }
+
+    // If not at goal, continue cycling
     if (currentPhaseIdx < DEFAULT_PHASES.length - 1) {
       setCurrentPhaseIdx(prev => prev + 1);
     } else {
-      setShowExame(true);
+      // Reached end of phases but goal not met, loop back to start
+      setCurrentPhaseIdx(0);
+      setCompletedPhases(new Set()); // Reset for new cycle tracking
     }
-  }, [currentPhase.id, currentPhaseIdx]);
+  }, [currentPhase.id, currentPhaseIdx, getCumulativeMinutes]);
 
   const goToPhase = useCallback((idx: number) => {
     setIsActive(false);
@@ -313,16 +364,12 @@ export function useStudySession() {
 
   const finalizarSessao = useCallback(() => {
     setIsActive(false);
-    const gastoEstaFase = phaseDurations[currentPhase.id] * 60 - timeLeft;
-    const gastoFasesAnteriores = DEFAULT_PHASES
-      .slice(0, currentPhaseIdx)
-      .reduce((acc, p) => acc + phaseDurations[p.id] * 60, 0);
-    const total = gastoFasesAnteriores + gastoEstaFase;
-    setTempoGastoTotal(total);
-    const min = Math.round(total / 60);
-    toast.info(`Voce estudou ${min} minuto${min !== 1 ? 's' : ''}`);
+    const cumulativeMinutes = getCumulativeMinutes();
+    setTotalStudyTimeToday(cumulativeMinutes);
+    setTempoGastoTotal(cumulativeMinutes * 60); // convert to seconds for consistency
+    toast.info(`Voce estudou ${cumulativeMinutes} minuto${cumulativeMinutes !== 1 ? 's' : ''}`);
     setShowExame(true);
-  }, [phaseDurations, currentPhase.id, timeLeft, currentPhaseIdx]);
+  }, [getCumulativeMinutes]);
 
   const updateDuration = useCallback((phase: Phase, minutes: number) => {
     setPhaseDurations(prev => ({ ...prev, [phase]: minutes }));
@@ -347,11 +394,8 @@ export function useStudySession() {
         pontuacao,
       });
 
-      // Save study session
-      const duracaoSegundos = tempoGastoTotal > 0
-        ? tempoGastoTotal
-        : Object.values(phaseDurations).reduce((a, b) => a + b, 0) * 60;
-      const duracao = Math.max(1, Math.round(duracaoSegundos / 60));
+      // Save study session with cumulative time
+      const duracao = Math.max(1, totalStudyTimeToday);
 
       if (selectedSubject) {
         await createSessaoMutation.mutateAsync({
@@ -414,6 +458,7 @@ export function useStudySession() {
       examObservacoes,
       savingExame,
       isLoading: cronogramaQuery.isLoading,
+      totalStudyTimeToday,
     },
 
     // Actions
@@ -433,6 +478,7 @@ export function useStudySession() {
       saveExameDiario,
       formatTime,
       getProgress,
+      getCumulativeMinutes,
     },
   };
 }

@@ -41,13 +41,13 @@ const StudySessionPage: React.FC = () => {
     isActive, timeLeft, totalMinutes,
     sessionNotes,
     showSettings, showExame, examAnswers, examObservacoes, savingExame,
-    isLoading,
+    isLoading, totalStudyTimeToday,
   } = state;
 
   const {
     setSelectedSubject, setSessionNotes, toggleTimer, resetTimer, goToPhase, goToNextPhase,
     finalizarSessao, updateDuration, setShowSettings, setShowExame,
-    setExamAnswers, setExamObservacoes, saveExameDiario, formatTime, getProgress,
+    setExamAnswers, setExamObservacoes, saveExameDiario, formatTime, getProgress, getCumulativeMinutes,
   } = actions;
 
   if (isLoading) {
@@ -101,42 +101,44 @@ const StudySessionPage: React.FC = () => {
             </Card>
           )}
 
-          {/* Phase selector */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            {DEFAULT_PHASES.map((phase, idx) => {
-              const isCurrentPhase = idx === currentPhaseIdx;
-              const isDone = completedPhases.has(phase.id);
-              return (
-                <button
-                  key={phase.id}
-                  onClick={() => goToPhase(idx)}
-                  className={`relative rounded-xl p-4 text-left border-2 transition-all ${
-                    isCurrentPhase
-                      ? `${phase.bgColor} ${phase.borderColor}`
-                      : isDone
-                        ? 'bg-muted/40 border-muted opacity-70'
-                        : 'bg-card border-border hover:border-muted-foreground/30'
-                  }`}
-                >
-                  {isDone && (
-                    <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
-                      <Check className="w-3 h-3 text-white" />
-                    </span>
-                  )}
-                  <div className={`mb-2 ${isCurrentPhase ? phase.color : 'text-muted-foreground'}`}>
-                    {PHASE_ICONS[phase.id]}
-                  </div>
-                  <p className={`text-sm font-semibold ${isCurrentPhase ? phase.color : ''}`}>
-                    {phase.label}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {phaseDurations[phase.id] >= 60
-                      ? `${Math.floor(phaseDurations[phase.id] / 60)}h${phaseDurations[phase.id] % 60 > 0 ? `${phaseDurations[phase.id] % 60}min` : ''}`
-                      : `${phaseDurations[phase.id]}min`}
-                  </p>
-                </button>
-              );
-            })}
+          {/* Session Progress Header */}
+          <div className="mb-8">
+            {/* Current Phase Info */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`text-2xl ${currentPhase.color}`}>
+                {PHASE_ICONS[currentPhase.id]}
+              </div>
+              <div>
+                <h2 className={`text-2xl font-bold ${currentPhase.color}`}>
+                  {currentPhase.label}
+                </h2>
+              </div>
+            </div>
+
+            {/* Progress to 4h goal */}
+            <div className="mb-3">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Progresso diário
+                </span>
+                <span className="text-sm font-bold">
+                  {getCumulativeMinutes()}min / 240min
+                </span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden">
+                <div
+                  className="bg-gradient-to-r from-blue-500 via-primary to-amber-500 h-full transition-all duration-300"
+                  style={{
+                    width: `${Math.min((getCumulativeMinutes() / 240) * 100, 100)}%`,
+                  }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {getCumulativeMinutes() >= 240
+                  ? '✨ Meta atingida! Parabéns!'
+                  : `${240 - getCumulativeMinutes()} minutos restantes`}
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -151,7 +153,7 @@ const StudySessionPage: React.FC = () => {
                   isActive={isActive}
                   isFullDuration={timeLeft === phaseDurations[currentPhase.id] * 60}
                   progress={getProgress()}
-                  isLastPhase={currentPhaseIdx >= DEFAULT_PHASES.length - 1}
+                  isLastPhase={false}
                   formatTime={formatTime}
                   onToggle={toggleTimer}
                   onReset={resetTimer}
