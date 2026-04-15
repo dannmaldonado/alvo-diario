@@ -246,16 +246,17 @@ const addTransformIndexHtml = {
 			},
 		];
 
-		if (!isDev && process.env.TEMPLATE_BANNER_SCRIPT_URL && process.env.TEMPLATE_REDIRECT_URL) {
-			tags.push({
-				tag: 'script',
-				attrs: {
-					src: process.env.TEMPLATE_BANNER_SCRIPT_URL,
-					'template-redirect-url': process.env.TEMPLATE_REDIRECT_URL,
-				},
-				injectTo: 'head' as const,
-			});
-		}
+		// Template banner script removed - causing validation errors with analytics endpoint
+		// if (!isDev && process.env.TEMPLATE_BANNER_SCRIPT_URL && process.env.TEMPLATE_REDIRECT_URL) {
+		// 	tags.push({
+		// 		tag: 'script',
+		// 		attrs: {
+		// 			src: process.env.TEMPLATE_BANNER_SCRIPT_URL,
+		// 			'template-redirect-url': process.env.TEMPLATE_REDIRECT_URL,
+		// 		},
+		// 		injectTo: 'head' as const,
+		// 	});
+		// }
 
 		return {
 			html,
