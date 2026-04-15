@@ -17,7 +17,7 @@ import { Cronograma, Materia } from '@/types';
 // TYPES
 // ============================================================================
 
-export type Phase = 'revisao' | 'estudo' | 'questoes';
+export type Phase = 'revisao' | 'revisao_intervalo' | 'estudo' | 'estudo_intervalo' | 'questoes';
 
 export type ExamAnswers = Record<string, boolean | null>;
 
@@ -104,39 +104,67 @@ export const DEFAULT_PHASES: PhaseConfig[] = [
     label: 'Revisao',
     description: 'Ative sua memoria e reforce o conteudo anterior',
     tips: [
-      'Releia suas anotacoes da ultima sessao',
+      'Releia suas anotacoes da ultima sessao (25 minutos focado)',
       'Tente lembrar os pontos principais sem olhar',
-      'Coloque seu cerebro no modo estudo',
+      'Concentre-se totalmente nesta sessao de 25 minutos',
     ],
-    defaultMinutes: 60,
+    defaultMinutes: 25,
     color: 'text-blue-500',
     bgColor: 'bg-blue-500/10',
     borderColor: 'border-blue-500/30',
+  },
+  {
+    id: 'revisao_intervalo',
+    label: 'Intervalo',
+    description: 'Descanse e recupere a energia (5 min)',
+    tips: [
+      'Levante-se e caminhe um pouco',
+      'Beba agua e respire profundamente',
+      'Prepare-se mentalmente para a proxima sessao',
+    ],
+    defaultMinutes: 5,
+    color: 'text-green-500',
+    bgColor: 'bg-green-500/10',
+    borderColor: 'border-green-500/30',
   },
   {
     id: 'estudo',
     label: 'Estudo',
     description: 'Aprenda o conteudo novo com marcacao ativa',
     tips: [
-      'Marque os pontos principais enquanto le',
-      'Faca pausas de 5 min a cada 50 min',
-      'Teste sua retencao apos cada topico',
+      'Marque os pontos principais enquanto le (25 minutos focado)',
+      'Mantenha total concentracao sem distracao neste tempo',
+      'Teste sua retencao apos cada topico importante',
     ],
-    defaultMinutes: 150,
+    defaultMinutes: 25,
     color: 'text-primary',
     bgColor: 'bg-primary/10',
     borderColor: 'border-primary/30',
+  },
+  {
+    id: 'estudo_intervalo',
+    label: 'Intervalo',
+    description: 'Descanse e recupere a energia (5 min)',
+    tips: [
+      'Levante-se e caminhe um pouco',
+      'Deixe o conteudo assentar em sua mente',
+      'Refresque-se antes da proxima sessao',
+    ],
+    defaultMinutes: 5,
+    color: 'text-green-500',
+    bgColor: 'bg-green-500/10',
+    borderColor: 'border-green-500/30',
   },
   {
     id: 'questoes',
     label: 'Questoes',
     description: 'Aplique o conteudo e identifique suas falhas',
     tips: [
-      'Resolva questoes sem consultar o material',
-      'Anote os pontos que errou para revisar',
-      'Analise o gabarito com atencao',
+      'Resolva questoes focado por 25 minutos (sem parar)',
+      'Anote os pontos que errou para revisar depois',
+      'Analise o gabarito e entenda cada erro',
     ],
-    defaultMinutes: 30,
+    defaultMinutes: 25,
     color: 'text-amber-500',
     bgColor: 'bg-amber-500/10',
     borderColor: 'border-amber-500/30',
@@ -163,9 +191,11 @@ export function useStudySession() {
   // Phase state
   const [currentPhaseIdx, setCurrentPhaseIdx] = useState(0);
   const [phaseDurations, setPhaseDurations] = useState<Record<Phase, number>>({
-    revisao: 60,
-    estudo: 150,
-    questoes: 30,
+    revisao: 25,
+    revisao_intervalo: 5,
+    estudo: 25,
+    estudo_intervalo: 5,
+    questoes: 25,
   });
   const [completedPhases, setCompletedPhases] = useState<Set<Phase>>(new Set());
 

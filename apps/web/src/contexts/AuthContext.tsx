@@ -10,7 +10,6 @@
  */
 
 import React, { createContext, useContext, ReactNode, useCallback } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuthService } from '@/services/auth.service';
 import { User, APIError } from '@/types';
 
@@ -66,46 +65,16 @@ function restoreUserFromStorage(): User | null {
   return null;
 }
 
-const USER_QUERY_KEY = ['user'] as const;
-
 /**
  * Authentication Provider Component
- * Manages auth state via TanStack Query and provides auth methods to child components
+ * Manages auth state and provides auth methods to child components
  */
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const queryClient = useQueryClient();
-
-  // TanStack Query manages user state.
-  // initialData reads from localStorage so the first render is synchronous (no loading flash).
-  // The queryFn validates the stored session against the API in the background.
-  const {
-    data: currentUser = null,
-    isLoading: initialLoading,
-  } = useQuery<User | null>({
-    queryKey: USER_QUERY_KEY,
-    queryFn: async () => {
-      const token = localStorage.getItem('auth_token');
-      if (!token) return null;
-
-      try {
-        const user = await AuthService.getCurrentUser();
-        if (user) {
-          localStorage.setItem('user', JSON.stringify(user));
-        }
-        return user;
-      } catch {
-        // Token is invalid or expired — clear storage
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user');
-        return null;
-      }
-    },
-    initialData: restoreUserFromStorage,
-    staleTime: Infinity,
-    gcTime: Infinity,
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
+  // Use localStorage as source-of-truth for user session.
+  // No API call on mount — trust the stored token until explicitly logged out.
+  // This prevents 401 errors when page reloads if token is temporarily unavailable.
+  const [currentUser, setCurrentUser] = React.useState<User | null>(restoreUserFromStorage());
+  const [initialLoading, setInitialLoading] = React.useState(false);
 
   /**
    * Login with email and password
@@ -114,13 +83,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await AuthService.login({ email, password });
       // AuthService.login already saves to localStorage
-      queryClient.setQueryData(USER_QUERY_KEY, response.record);
+      setCurrentUser(response.record);
       return { success: true, user: response.record };
     } catch (error) {
       const errorMessage = error instanceof APIError ? error.message : 'Login failed';
       return { success: false, error: errorMessage };
     }
-  }, [queryClient]);
+  }, []);
 
   /**
    * Sign up with email, password, and user info
@@ -134,23 +103,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const newUser = await AuthService.signup({ email, password, nome });
       // AuthService.signup already saves token + user to localStorage
-      queryClient.setQueryData(USER_QUERY_KEY, newUser);
+      setCurrentUser(newUser);
       return { success: true, user: newUser };
     } catch (error) {
       const errorMessage = error instanceof APIError ? error.message : 'Signup failed';
       return { success: false, error: errorMessage };
     }
-  }, [queryClient]);
+  }, []);
 
   /**
    * Logout current user — clears state and redirects to home
    */
   const logout = useCallback(() => {
     AuthService.logout();
-    queryClient.setQueryData(USER_QUERY_KEY, null);
-    queryClient.clear();
+    setCurrentUser(null);
     window.location.href = '/';
-  }, [queryClient]);
+  }, []);
 
   /**
    * Update current user profile
@@ -162,13 +130,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     try {
       const updated = await AuthService.updateUser(updates as any);
-      queryClient.setQueryData(USER_QUERY_KEY, updated);
+      setCurrentUser(updated);
       return { success: true, user: updated };
     } catch (error) {
       const errorMessage = error instanceof APIError ? error.message : 'Update failed';
       return { success: false, error: errorMessage };
     }
-  }, [currentUser, queryClient]);
+  }, [currentUser]);
 
   const value: AuthContextType = {
     currentUser,

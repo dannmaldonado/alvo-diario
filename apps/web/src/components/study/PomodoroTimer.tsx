@@ -39,14 +39,18 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
   onNextPhase,
   onFinalize,
 }) => {
+  // Map text colors to stroke colors
   const strokeColor =
     currentPhase.id === 'revisao' ? 'stroke-blue-500'
     : currentPhase.id === 'questoes' ? 'stroke-amber-500'
+    : currentPhase.id.includes('intervalo') ? 'stroke-green-500'
     : 'stroke-primary';
 
+  // Map phase IDs to button colors
   const buttonColor =
     currentPhase.id === 'revisao' ? 'bg-blue-500 hover:bg-blue-600'
     : currentPhase.id === 'questoes' ? 'bg-amber-500 hover:bg-amber-600 text-white'
+    : currentPhase.id.includes('intervalo') ? 'bg-green-500 hover:bg-green-600'
     : '';
 
   return (

@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import {
   BookOpen, CalendarDays,
   Brain, PenLine, ClipboardList, ChevronRight, Settings2, Check,
-  Trophy, X, ThumbsUp, ThumbsDown,
+  Trophy, X, ThumbsUp, ThumbsDown, Coffee,
 } from 'lucide-react';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -24,7 +24,9 @@ import { useTodaySessions } from '@/hooks/queries/useSessoes';
 
 const PHASE_ICONS: Record<Phase, React.ReactNode> = {
   revisao: <Brain className="w-5 h-5" />,
+  revisao_intervalo: <Coffee className="w-5 h-5" />,
   estudo: <PenLine className="w-5 h-5" />,
+  estudo_intervalo: <Coffee className="w-5 h-5" />,
   questoes: <ClipboardList className="w-5 h-5" />,
 };
 
@@ -226,9 +228,21 @@ const StudySessionPage: React.FC = () => {
                         </Label>
                         <Input
                           type="range"
-                          min={phase.id === 'questoes' ? 10 : 30}
-                          max={phase.id === 'questoes' ? 90 : 240}
-                          step={phase.id === 'questoes' ? 5 : 10}
+                          min={
+                            phase.id.includes('intervalo') ? 2
+                            : phase.id === 'questoes' ? 10
+                            : 30
+                          }
+                          max={
+                            phase.id.includes('intervalo') ? 15
+                            : phase.id === 'questoes' ? 90
+                            : 240
+                          }
+                          step={
+                            phase.id.includes('intervalo') ? 1
+                            : phase.id === 'questoes' ? 5
+                            : 10
+                          }
                           value={phaseDurations[phase.id]}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateDuration(phase.id, parseInt(e.target.value))}
                           disabled={isActive && phase.id === currentPhase.id}
