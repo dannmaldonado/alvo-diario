@@ -30,7 +30,8 @@ export const pool = mysql.createPool({
   port: parseInt(process.env.DB_PORT || '3306', 10),
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  decimalNumbers: true  // Return DECIMAL/NUMERIC columns as JS numbers, not strings
 });
 
 export default pool;
