@@ -1,7 +1,7 @@
 /**
- * useStudySession Hook
- * Extracts timer logic, phase management, session save, and exam state
- * from StudySessionPage into a composable hook.
+ * useStudySession Hook - SIMPLIFIED
+ * Single 25-minute Pomodoro timer with cumulative day tracking.
+ * User studies 25 min → decide: continue (+25 min) or finish (exam).
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
@@ -14,47 +14,45 @@ import { toast } from 'sonner';
 import { Cronograma, Materia } from '@/types';
 
 // ============================================================================
-// TYPES
+// TYPES & CONSTANTS
 // ============================================================================
-
-export type Phase = 'revisao' | 'revisao_intervalo' | 'estudo' | 'estudo_intervalo' | 'questoes';
 
 export type ExamAnswers = Record<string, boolean | null>;
 
-export interface PhaseConfig {
-  id: Phase;
-  label: string;
-  description: string;
-  tips: string[];
-  defaultMinutes: number;
-  color: string;
-  bgColor: string;
-  borderColor: string;
-}
+export const DAILY_STUDY_GOAL_MINUTES = 240; // 4 hours
+export const SESSION_DURATION_MINUTES = 25; // Pomodoro
+
+export const EXAM_QUESTIONS = [
+  { id: 'horarios', categoria: 'Disciplina', texto: 'Cumpri os horarios planejados?' },
+  { id: 'distracao', categoria: 'Disciplina', texto: 'Evitei distracoes (celular, redes sociais)?' },
+  { id: 'retencao', categoria: 'Aprendizado', texto: 'Estou retendo o conteudo?' },
+  { id: 'explicar', categoria: 'Aprendizado', texto: 'Consigo explicar o que estudei com minhas palavras?' },
+  { id: 'questoes', categoria: 'Pratica', texto: 'Resolvi questoes hoje?' },
+  { id: 'erros', categoria: 'Pratica', texto: 'Revisei os erros das questoes?' },
+  { id: 'plano', categoria: 'Progresso', texto: 'Cumpri o plano do dia?' },
+  { id: 'evolucao', categoria: 'Progresso', texto: 'Me sinto mais preparado do que ontem?' },
+] as const;
 
 export interface StudySessionState {
-  // Schedule data
+  // Schedule
   schedule: Cronograma | null;
   subjects: string[];
   todaySubject: Materia | null;
   cycleInfo: { cycleNumber: number; dayInCycle: number } | null;
   selectedSubject: string;
 
-  // Phase management
-  currentPhaseIdx: number;
-  currentPhase: PhaseConfig;
-  phaseDurations: Record<Phase, number>;
-  completedPhases: Set<Phase>;
-
-  // Timer
+  // Timer & cumulative
+  sessionDuration: number; // minutes (always 25)
   isActive: boolean;
-  timeLeft: number;
-  totalMinutes: number;
+  timeLeft: number; // seconds
+  totalStudyMinutesToday: number; // cumulative minutes
+  sessionEnded: boolean;
+  showBreakReminder: boolean;
 
-  // Session notes
+  // Session
   sessionNotes: string;
 
-  // Settings & exam modal
+  // UI & exam
   showSettings: boolean;
   showExame: boolean;
   examAnswers: ExamAnswers;
@@ -70,10 +68,9 @@ export interface StudySessionActions {
   setSessionNotes: (notes: string) => void;
   toggleTimer: () => void;
   resetTimer: () => void;
-  goToPhase: (idx: number) => void;
-  goToNextPhase: () => void;
+  continueStudying: () => void;
   finalizarSessao: () => void;
-  updateDuration: (phase: Phase, minutes: number) => void;
+  skipBreakReminder: () => void;
   setShowSettings: (show: boolean | ((prev: boolean) => boolean)) => void;
   setShowExame: (show: boolean) => void;
   setExamAnswers: React.Dispatch<React.SetStateAction<ExamAnswers>>;
@@ -81,97 +78,8 @@ export interface StudySessionActions {
   saveExameDiario: () => Promise<void>;
   formatTime: (seconds: number) => string;
   getProgress: () => number;
+  getCumulativeMinutes: () => number;
 }
-
-// ============================================================================
-// CONSTANTS
-// ============================================================================
-
-export const DAILY_STUDY_GOAL_MINUTES = 240; // 4 hours in minutes
-
-export const EXAM_QUESTIONS = [
-  { id: 'horarios', categoria: 'Disciplina', texto: 'Cumpri os horarios planejados?' },
-  { id: 'distracao', categoria: 'Disciplina', texto: 'Evitei distracoes (celular, redes sociais)?' },
-  { id: 'retencao', categoria: 'Aprendizado', texto: 'Estou retendo o conteudo?' },
-  { id: 'explicar', categoria: 'Aprendizado', texto: 'Consigo explicar o que estudei com minhas palavras?' },
-  { id: 'questoes', categoria: 'Pratica', texto: 'Resolvi questoes hoje?' },
-  { id: 'erros', categoria: 'Pratica', texto: 'Revisei os erros das questoes?' },
-  { id: 'plano', categoria: 'Progresso', texto: 'Cumpri o plano do dia?' },
-  { id: 'evolucao', categoria: 'Progresso', texto: 'Me sinto mais preparado do que ontem?' },
-] as const;
-
-export const DEFAULT_PHASES: PhaseConfig[] = [
-  {
-    id: 'revisao',
-    label: 'Revisao',
-    description: 'Ative sua memoria e reforce o conteudo anterior',
-    tips: [
-      'Releia suas anotacoes da ultima sessao (25 minutos focado)',
-      'Tente lembrar os pontos principais sem olhar',
-      'Concentre-se totalmente nesta sessao de 25 minutos',
-    ],
-    defaultMinutes: 25,
-    color: 'text-blue-500',
-    bgColor: 'bg-blue-500/10',
-    borderColor: 'border-blue-500/30',
-  },
-  {
-    id: 'revisao_intervalo',
-    label: 'Intervalo',
-    description: 'Descanse e recupere a energia (5 min)',
-    tips: [
-      'Levante-se e caminhe um pouco',
-      'Beba agua e respire profundamente',
-      'Prepare-se mentalmente para a proxima sessao',
-    ],
-    defaultMinutes: 5,
-    color: 'text-green-500',
-    bgColor: 'bg-green-500/10',
-    borderColor: 'border-green-500/30',
-  },
-  {
-    id: 'estudo',
-    label: 'Estudo',
-    description: 'Aprenda o conteudo novo com marcacao ativa',
-    tips: [
-      'Marque os pontos principais enquanto le (25 minutos focado)',
-      'Mantenha total concentracao sem distracao neste tempo',
-      'Teste sua retencao apos cada topico importante',
-    ],
-    defaultMinutes: 25,
-    color: 'text-primary',
-    bgColor: 'bg-primary/10',
-    borderColor: 'border-primary/30',
-  },
-  {
-    id: 'estudo_intervalo',
-    label: 'Intervalo',
-    description: 'Descanse e recupere a energia (5 min)',
-    tips: [
-      'Levante-se e caminhe um pouco',
-      'Deixe o conteudo assentar em sua mente',
-      'Refresque-se antes da proxima sessao',
-    ],
-    defaultMinutes: 5,
-    color: 'text-green-500',
-    bgColor: 'bg-green-500/10',
-    borderColor: 'border-green-500/30',
-  },
-  {
-    id: 'questoes',
-    label: 'Questoes',
-    description: 'Aplique o conteudo e identifique suas falhas',
-    tips: [
-      'Resolva questoes focado por 25 minutos (sem parar)',
-      'Anote os pontos que errou para revisar depois',
-      'Analise o gabarito e entenda cada erro',
-    ],
-    defaultMinutes: 25,
-    color: 'text-amber-500',
-    bgColor: 'bg-amber-500/10',
-    borderColor: 'border-amber-500/30',
-  },
-];
 
 // ============================================================================
 // HOOK
@@ -181,41 +89,26 @@ export function useStudySession() {
   const { currentUser } = useAuth();
   const { getCurrentSubject, getCycleInfo } = useScheduleCalculator();
 
-  // TanStack Query for schedule data
   const cronogramaQuery = useActiveCronograma(currentUser?.id);
   const createSessaoMutation = useCreateSessao();
 
-  // Schedule-derived state
+  // Schedule
   const [selectedSubject, setSelectedSubject] = useState('');
   const [todaySubject, setTodaySubject] = useState<Materia | null>(null);
   const [cycleInfo, setCycleInfo] = useState<{ cycleNumber: number; dayInCycle: number } | null>(null);
 
-  // Phase state
-  const [currentPhaseIdx, setCurrentPhaseIdx] = useState(0);
-  const [phaseDurations, setPhaseDurations] = useState<Record<Phase, number>>({
-    revisao: 25,
-    revisao_intervalo: 5,
-    estudo: 25,
-    estudo_intervalo: 5,
-    questoes: 25,
-  });
-  const [completedPhases, setCompletedPhases] = useState<Set<Phase>>(new Set());
-
-  // Timer state
+  // Timer & cumulative (SIMPLIFIED)
+  const [sessionDuration] = useState(SESSION_DURATION_MINUTES); // Fixed at 25 min
   const [isActive, setIsActive] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(60 * 60);
-  const [tempoGastoTotal, setTempoGastoTotal] = useState(0);
-  const [totalStudyTimeToday, setTotalStudyTimeToday] = useState(0); // cumulative minutes across all cycles
-  const [phaseCompleted, setPhaseCompleted] = useState(false); // true when intervalo/questoes ends → decision screen
-  // Context for the decision screen: which phase to repeat, which to advance to (null = finish)
-  const [decisionContext, setDecisionContext] = useState<{ repeatIdx: number; advanceIdx: number | null } | null>(null);
-  // Snapshot of cumulative minutes when decision screen appears — used to preserve progress when repeating
-  const [cumulativeSnapshot, setCumulativeSnapshot] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(SESSION_DURATION_MINUTES * 60); // in seconds
+  const [totalStudyMinutesToday, setTotalStudyMinutesToday] = useState(0);
+  const [sessionEnded, setSessionEnded] = useState(false);
+  const [showBreakReminder, setShowBreakReminder] = useState(false);
 
-  // Session notes
+  // Session
   const [sessionNotes, setSessionNotes] = useState('');
 
-  // UI state
+  // UI & exam
   const [showSettings, setShowSettings] = useState(false);
   const [showExame, setShowExame] = useState(false);
   const [examAnswers, setExamAnswers] = useState<ExamAnswers>({});
@@ -223,8 +116,6 @@ export function useStudySession() {
   const [savingExame, setSavingExame] = useState(false);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  const currentPhase = DEFAULT_PHASES[currentPhaseIdx];
   const schedule = cronogramaQuery.data ?? null;
 
   // Derive subjects from schedule
@@ -233,7 +124,7 @@ export function useStudySession() {
     return schedule.materias.map((m: Materia) => m.nome);
   }, [schedule]);
 
-  // Compute schedule info when data arrives
+  // Compute schedule info
   useEffect(() => {
     if (!schedule?.materias) return;
 
@@ -250,12 +141,6 @@ export function useStudySession() {
     }
   }, [schedule, getCurrentSubject, getCycleInfo, subjects, selectedSubject]);
 
-  // Reset timer when phase changes
-  useEffect(() => {
-    setIsActive(false);
-    setTimeLeft(phaseDurations[currentPhase.id] * 60);
-  }, [currentPhaseIdx]); // eslint-disable-line react-hooks/exhaustive-deps
-
   // Timer tick
   useEffect(() => {
     if (isActive) {
@@ -264,7 +149,8 @@ export function useStudySession() {
           if (prev <= 1) {
             clearInterval(intervalRef.current!);
             setIsActive(false);
-            handlePhaseComplete();
+            // Timer completed: show break reminder and decision screen
+            setShowBreakReminder(true);
             return 0;
           }
           return prev - 1;
@@ -276,101 +162,18 @@ export function useStudySession() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isActive]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isActive]);
 
-  // ---- Cumulative Time Calculation ----
+  // ---- Cumulative Time ----
 
   const getCumulativeMinutes = useCallback((): number => {
-    // If we have a snapshot (repeat state), use it + current elapsed
-    if (cumulativeSnapshot > 0) {
-      const currentPhaseTotal = phaseDurations[currentPhase.id] * 60;
-      const currentPhaseElapsed = currentPhaseTotal - timeLeft;
-      return cumulativeSnapshot + Math.ceil(currentPhaseElapsed / 60);
-    }
-
-    // Otherwise, use normal calculation
-    let total = 0;
-
-    // Sum completed phases (only the study phases, not intervals that might be counted separately)
-    for (let i = 0; i < currentPhaseIdx; i++) {
-      total += phaseDurations[DEFAULT_PHASES[i].id];
-    }
-
-    // Add current phase elapsed time
-    const currentPhaseTotal = phaseDurations[currentPhase.id] * 60;
-    const currentPhaseElapsed = currentPhaseTotal - timeLeft;
-    total += Math.ceil(currentPhaseElapsed / 60); // convert seconds to minutes, round up
-
-    return total;
-  }, [currentPhaseIdx, currentPhase.id, phaseDurations, timeLeft, cumulativeSnapshot]);
+    // Total studied today + elapsed time in current session
+    const sessionTotal = sessionDuration * 60; // in seconds
+    const sessionElapsed = sessionTotal - timeLeft;
+    return totalStudyMinutesToday + Math.ceil(sessionElapsed / 60);
+  }, [totalStudyMinutesToday, sessionDuration, timeLeft]);
 
   // ---- Actions ----
-
-  const handlePhaseComplete = useCallback(() => {
-    const newCumulativeTime = getCumulativeMinutes();
-    setTotalStudyTimeToday(newCumulativeTime);
-    setCompletedPhases(prev => new Set([...prev, DEFAULT_PHASES[currentPhaseIdx].id]));
-
-    const id = DEFAULT_PHASES[currentPhaseIdx].id;
-
-    if (id === 'revisao') {
-      // Auto-advance to break, no decision yet
-      setCurrentPhaseIdx(1); // revisao_intervalo
-    } else if (id === 'revisao_intervalo') {
-      // After break: decision — capture snapshot before showing decision screen
-      setCumulativeSnapshot(newCumulativeTime);
-      setDecisionContext({ repeatIdx: 0, advanceIdx: 2 });
-      setPhaseCompleted(true);
-    } else if (id === 'estudo') {
-      // Auto-advance to break
-      setCurrentPhaseIdx(3); // estudo_intervalo
-    } else if (id === 'estudo_intervalo') {
-      // After break: decision — capture snapshot before showing decision screen
-      setCumulativeSnapshot(newCumulativeTime);
-      setDecisionContext({ repeatIdx: 2, advanceIdx: 4 });
-      setPhaseCompleted(true);
-    } else if (id === 'questoes') {
-      // No break — decision: repeat questões (4) or finish (null)
-      if (newCumulativeTime >= DAILY_STUDY_GOAL_MINUTES) {
-        toast.success(`Meta diária atingida! 🎉 ${newCumulativeTime} min estudados.`);
-        setTimeout(() => setShowExame(true), 800);
-      } else {
-        setCumulativeSnapshot(newCumulativeTime);
-        setDecisionContext({ repeatIdx: 4, advanceIdx: null });
-        setPhaseCompleted(true);
-      }
-    }
-  }, [currentPhaseIdx, getCumulativeMinutes]);
-
-  // Called by the skip (→) button during an active timer — just advance to next phase
-  const goToNextPhase = useCallback(() => {
-    setCumulativeSnapshot(0); // Clear snapshot when advancing
-    setPhaseCompleted(false);
-    setDecisionContext(null);
-    if (currentPhaseIdx < DEFAULT_PHASES.length - 1) {
-      setCurrentPhaseIdx(prev => prev + 1);
-    } else {
-      setCurrentPhaseIdx(0);
-      setCompletedPhases(new Set());
-    }
-  }, [currentPhaseIdx]);
-
-  const repeatPhase = useCallback((idx?: number) => {
-    setPhaseCompleted(false);
-    setDecisionContext(null);
-    setIsActive(false);
-    const targetIdx = idx ?? currentPhaseIdx;
-    setCurrentPhaseIdx(targetIdx);
-    setTimeLeft(phaseDurations[DEFAULT_PHASES[targetIdx].id] * 60);
-  }, [currentPhaseIdx, phaseDurations]);
-
-  const goToPhase = useCallback((idx: number) => {
-    setCumulativeSnapshot(0); // Clear snapshot when advancing
-    setPhaseCompleted(false);
-    setDecisionContext(null);
-    setIsActive(false);
-    setCurrentPhaseIdx(idx);
-  }, []);
 
   const toggleTimer = useCallback(() => {
     if (!selectedSubject) {
@@ -382,25 +185,35 @@ export function useStudySession() {
 
   const resetTimer = useCallback(() => {
     setIsActive(false);
-    setTimeLeft(phaseDurations[currentPhase.id] * 60);
-  }, [phaseDurations, currentPhase.id]);
+    setTimeLeft(sessionDuration * 60);
+  }, [sessionDuration]);
+
+  const continueStudying = useCallback(() => {
+    // Add +25 min to cumulative
+    const newTotal = totalStudyMinutesToday + sessionDuration;
+    setTotalStudyMinutesToday(newTotal);
+    setTimeLeft(sessionDuration * 60); // Reset timer
+    setShowBreakReminder(false);
+
+    // Check if reached daily goal
+    if (newTotal >= DAILY_STUDY_GOAL_MINUTES) {
+      toast.success(`Meta diária atingida! 🎉 ${newTotal} min estudados.`);
+      setTimeout(() => setSessionEnded(true), 800);
+    }
+  }, [sessionDuration, totalStudyMinutesToday]);
+
+  const skipBreakReminder = useCallback(() => {
+    setShowBreakReminder(false);
+  }, []);
 
   const finalizarSessao = useCallback(() => {
     setIsActive(false);
+    setShowBreakReminder(false);
     const cumulativeMinutes = getCumulativeMinutes();
-    setTotalStudyTimeToday(cumulativeMinutes);
-    setTempoGastoTotal(cumulativeMinutes * 60); // convert to seconds for consistency
+    setTotalStudyMinutesToday(cumulativeMinutes);
     toast.info(`Voce estudou ${cumulativeMinutes} minuto${cumulativeMinutes !== 1 ? 's' : ''}`);
-    setShowExame(true);
+    setSessionEnded(true);
   }, [getCumulativeMinutes]);
-
-  const updateDuration = useCallback((phase: Phase, minutes: number) => {
-    setPhaseDurations(prev => ({ ...prev, [phase]: minutes }));
-    // If updating current phase and not running, update timeLeft too
-    if (phase === DEFAULT_PHASES[currentPhaseIdx].id && !isActive) {
-      setTimeLeft(minutes * 60);
-    }
-  }, [currentPhaseIdx, isActive]);
 
   const saveExameDiario = useCallback(async () => {
     const totalRespondidas = Object.values(examAnswers).filter(v => v !== null).length;
@@ -417,8 +230,8 @@ export function useStudySession() {
         pontuacao,
       });
 
-      // Save study session with cumulative time
-      const duracao = Math.max(1, totalStudyTimeToday);
+      // Save study session
+      const duracao = Math.max(1, totalStudyMinutesToday);
 
       if (selectedSubject) {
         await createSessaoMutation.mutateAsync({
@@ -438,7 +251,7 @@ export function useStudySession() {
     } finally {
       setSavingExame(false);
     }
-  }, [examAnswers, examObservacoes, tempoGastoTotal, phaseDurations, selectedSubject, currentUser?.id, schedule?.id, createSessaoMutation, sessionNotes]);
+  }, [examAnswers, examObservacoes, totalStudyMinutesToday, selectedSubject, currentUser?.id, schedule?.id, createSessaoMutation, sessionNotes]);
 
   const formatTime = useCallback((seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -449,31 +262,24 @@ export function useStudySession() {
   }, []);
 
   const getProgress = useCallback(() => {
-    const total = phaseDurations[currentPhase.id] * 60;
+    const total = sessionDuration * 60;
     if (total === 0) return 0;
     return ((total - timeLeft) / total) * 100;
-  }, [phaseDurations, currentPhase.id, timeLeft]);
-
-  const totalMinutes = useMemo(
-    () => Object.values(phaseDurations).reduce((a, b) => a + b, 0),
-    [phaseDurations]
-  );
+  }, [sessionDuration, timeLeft]);
 
   return {
-    // State
     state: {
       schedule,
       subjects,
       todaySubject,
       cycleInfo,
       selectedSubject,
-      currentPhaseIdx,
-      currentPhase,
-      phaseDurations,
-      completedPhases,
+      sessionDuration,
       isActive,
       timeLeft,
-      totalMinutes,
+      totalStudyMinutesToday,
+      sessionEnded,
+      showBreakReminder,
       sessionNotes,
       showSettings,
       showExame,
@@ -481,22 +287,16 @@ export function useStudySession() {
       examObservacoes,
       savingExame,
       isLoading: cronogramaQuery.isLoading,
-      totalStudyTimeToday,
-      phaseCompleted,
-      decisionContext,
     },
 
-    // Actions
     actions: {
       setSelectedSubject,
       setSessionNotes,
       toggleTimer,
       resetTimer,
-      goToPhase,
-      goToNextPhase,
-      repeatPhase,
+      continueStudying,
       finalizarSessao,
-      updateDuration,
+      skipBreakReminder,
       setShowSettings,
       setShowExame,
       setExamAnswers,
