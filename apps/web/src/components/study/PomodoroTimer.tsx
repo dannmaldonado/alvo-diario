@@ -1,11 +1,12 @@
 /**
  * PomodoroTimer — display-only component for the circular timer.
- * Receives display props and callbacks only; no hook logic inside.
  *
- * When phaseCompleted is true, shows a decision screen instead of controls:
- *   - Repetir: restart same phase
- *   - Avançar: go to next phase
- *   - Finalizar: end session
+ * Normal state: circular timer + play/pause/reset/skip controls.
+ *
+ * phaseCompleted state (after intervalo or questões ends):
+ *   Shows a decision screen with two choices:
+ *   - Repeat: go back to the study block (e.g. "Mais Revisão")
+ *   - Advance: move to the next study block or finish (e.g. "Ir para Estudo")
  */
 
 import React from 'react';
@@ -24,12 +25,15 @@ interface PomodoroTimerProps {
   progress: number;
   isLastPhase: boolean;
   phaseCompleted: boolean;
+  repeatLabel: string;
+  advanceLabel: string;
   nextPhaseLabel: string;
   formatTime: (seconds: number) => string;
   onToggle: () => void;
   onReset: () => void;
   onNextPhase: () => void;
   onRepeat: () => void;
+  onAdvance: () => void;
   onFinalize: () => void;
 }
 
@@ -41,15 +45,16 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
   isFullDuration,
   progress,
   phaseCompleted,
-  nextPhaseLabel,
+  repeatLabel,
+  advanceLabel,
   formatTime,
   onToggle,
   onReset,
   onNextPhase,
   onRepeat,
+  onAdvance,
   onFinalize,
 }) => {
-  // Map text colors to stroke colors
   const strokeColor =
     phaseCompleted ? 'stroke-green-500'
     : currentPhase.id === 'revisao' ? 'stroke-blue-500'
@@ -57,7 +62,6 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
     : currentPhase.id.includes('intervalo') ? 'stroke-green-500'
     : 'stroke-primary';
 
-  // Map phase IDs to button colors
   const buttonColor =
     currentPhase.id === 'revisao' ? 'bg-blue-500 hover:bg-blue-600'
     : currentPhase.id === 'questoes' ? 'bg-amber-500 hover:bg-amber-600 text-white'
@@ -68,7 +72,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
 
   return (
     <div className="flex flex-col items-center">
-      {/* Phase indicator */}
+      {/* Phase badge */}
       <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium mb-6 ${currentPhase.bgColor} ${currentPhase.color}`}>
         {phaseIcon}
         {currentPhase.label}
@@ -76,7 +80,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
 
       <p className="text-sm text-muted-foreground text-center mb-8 max-w-xs">
         {phaseCompleted
-          ? `${currentPhase.label} concluída! O que deseja fazer?`
+          ? 'Bloco concluído! O que deseja fazer agora?'
           : currentPhase.description}
       </p>
 
@@ -105,15 +109,16 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
                 {formatTime(timeLeft)}
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                {Math.round(progress)}% concluido
+                {Math.round(progress)}% concluído
               </div>
             </>
           )}
         </div>
       </div>
 
-      {/* Controls — decision screen when phase is done, normal controls otherwise */}
+      {/* Controls */}
       {phaseCompleted ? (
+        /* Decision screen: shown after intervalo or questões ends */
         <div className="flex flex-col items-center gap-3 w-full max-w-xs">
           <Button
             size="lg"
@@ -122,27 +127,19 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
             onClick={onRepeat}
           >
             <RefreshCw className="h-4 w-4" />
-            Repetir {currentPhase.label}
+            {repeatLabel}
           </Button>
           <Button
             size="lg"
             className={`w-full h-12 gap-2 ${buttonColor}`}
-            onClick={onNextPhase}
+            onClick={onAdvance}
           >
             <ChevronRight className="h-4 w-4" />
-            Avançar para {nextPhaseLabel}
-          </Button>
-          <Button
-            size="lg"
-            variant="destructive"
-            className="w-full h-12 gap-2"
-            onClick={onFinalize}
-          >
-            <Flag className="h-4 w-4" />
-            Finalizar sessão
+            {advanceLabel}
           </Button>
         </div>
       ) : (
+        /* Normal timer controls */
         <div className="flex items-center gap-4">
           <Button
             size="lg"
@@ -170,7 +167,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
             variant="outline"
             className="h-12 w-12 rounded-full p-0"
             onClick={onNextPhase}
-            title="Pular para proxima fase"
+            title="Pular para próxima fase"
           >
             <ChevronRight className="h-5 w-5" />
           </Button>
@@ -180,7 +177,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
             variant="destructive"
             className="h-14 px-8 rounded-full text-base shadow-lg"
             onClick={onFinalize}
-            title="Finalizar sessao agora"
+            title="Finalizar sessão agora"
           >
             <Flag className="mr-2 h-5 w-5" />
             Finalizar

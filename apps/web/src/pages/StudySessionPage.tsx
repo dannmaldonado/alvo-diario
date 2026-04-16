@@ -41,7 +41,7 @@ const StudySessionPage: React.FC = () => {
     isActive, timeLeft, totalMinutes,
     sessionNotes,
     showSettings, showExame, examAnswers, examObservacoes, savingExame,
-    isLoading, totalStudyTimeToday, phaseCompleted,
+    isLoading, totalStudyTimeToday, phaseCompleted, decisionContext,
   } = state;
 
   const {
@@ -50,6 +50,19 @@ const StudySessionPage: React.FC = () => {
     setExamAnswers, setExamObservacoes, saveExameDiario, formatTime, getProgress, getCumulativeMinutes,
   } = actions;
 
+  // Decision screen labels and handlers
+  const repeatLabel = decisionContext ? `Mais ${DEFAULT_PHASES[decisionContext.repeatIdx].label}` : '';
+  const advanceLabel = decisionContext?.advanceIdx != null
+    ? `Ir para ${DEFAULT_PHASES[decisionContext.advanceIdx].label}`
+    : 'Finalizar sessão';
+  const handleDecisionRepeat = () => repeatPhase(decisionContext?.repeatIdx);
+  const handleDecisionAdvance = () => {
+    if (decisionContext?.advanceIdx != null) {
+      goToPhase(decisionContext.advanceIdx);
+    } else {
+      finalizarSessao();
+    }
+  };
   const nextPhaseLabel = DEFAULT_PHASES[(currentPhaseIdx + 1) % DEFAULT_PHASES.length].label;
 
   if (isLoading) {
@@ -159,12 +172,15 @@ const StudySessionPage: React.FC = () => {
                   progress={getProgress()}
                   isLastPhase={false}
                   phaseCompleted={phaseCompleted}
+                  repeatLabel={repeatLabel}
+                  advanceLabel={advanceLabel}
                   nextPhaseLabel={nextPhaseLabel}
                   formatTime={formatTime}
                   onToggle={toggleTimer}
                   onReset={resetTimer}
                   onNextPhase={goToNextPhase}
-                  onRepeat={repeatPhase}
+                  onRepeat={handleDecisionRepeat}
+                  onAdvance={handleDecisionAdvance}
                   onFinalize={finalizarSessao}
                 />
               </Card>

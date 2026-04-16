@@ -206,7 +206,9 @@ export function useStudySession() {
   const [timeLeft, setTimeLeft] = useState(60 * 60);
   const [tempoGastoTotal, setTempoGastoTotal] = useState(0);
   const [totalStudyTimeToday, setTotalStudyTimeToday] = useState(0); // cumulative minutes across all cycles
-  const [phaseCompleted, setPhaseCompleted] = useState(false); // true when timer hits 0, waiting for user decision
+  const [phaseCompleted, setPhaseCompleted] = useState(false); // true when intervalo/questoes ends → decision screen
+  // Context for the decision screen: which phase to repeat, which to advance to (null = finish)
+  const [decisionContext, setDecisionContext] = useState<{ repeatIdx: number; advanceIdx: number | null } | null>(null);
 
   // Session notes
   const [sessionNotes, setSessionNotes] = useState('');
@@ -296,43 +298,62 @@ export function useStudySession() {
   // ---- Actions ----
 
   const handlePhaseComplete = useCallback(() => {
-    // Update cumulative time
     const newCumulativeTime = getCumulativeMinutes();
     setTotalStudyTimeToday(newCumulativeTime);
-    // Mark phase as done and show decision screen — user chooses to repeat or advance
     setCompletedPhases(prev => new Set([...prev, DEFAULT_PHASES[currentPhaseIdx].id]));
-    setPhaseCompleted(true);
+
+    const id = DEFAULT_PHASES[currentPhaseIdx].id;
+
+    if (id === 'revisao') {
+      // Auto-advance to break, no decision yet
+      setCurrentPhaseIdx(1); // revisao_intervalo
+    } else if (id === 'revisao_intervalo') {
+      // After break: decision — repeat revisão (0) or go to estudo (2)
+      setDecisionContext({ repeatIdx: 0, advanceIdx: 2 });
+      setPhaseCompleted(true);
+    } else if (id === 'estudo') {
+      // Auto-advance to break
+      setCurrentPhaseIdx(3); // estudo_intervalo
+    } else if (id === 'estudo_intervalo') {
+      // After break: decision — repeat estudo (2) or go to questões (4)
+      setDecisionContext({ repeatIdx: 2, advanceIdx: 4 });
+      setPhaseCompleted(true);
+    } else if (id === 'questoes') {
+      // No break — decision: repeat questões (4) or finish (null)
+      if (newCumulativeTime >= DAILY_STUDY_GOAL_MINUTES) {
+        toast.success(`Meta diária atingida! 🎉 ${newCumulativeTime} min estudados.`);
+        setTimeout(() => setShowExame(true), 800);
+      } else {
+        setDecisionContext({ repeatIdx: 4, advanceIdx: null });
+        setPhaseCompleted(true);
+      }
+    }
   }, [currentPhaseIdx, getCumulativeMinutes]);
 
+  // Called by the skip (→) button during an active timer — just advance to next phase
   const goToNextPhase = useCallback(() => {
     setPhaseCompleted(false);
-    setCompletedPhases(prev => new Set([...prev, currentPhase.id]));
-
-    // Check if goal is met (4 hours = 240 minutes)
-    const newCumulativeTime = getCumulativeMinutes();
-    setTotalStudyTimeToday(newCumulativeTime);
-    if (newCumulativeTime >= DAILY_STUDY_GOAL_MINUTES) {
-      setShowExame(true);
-      return;
-    }
-
-    // Advance — loop back to start if on last phase
+    setDecisionContext(null);
     if (currentPhaseIdx < DEFAULT_PHASES.length - 1) {
       setCurrentPhaseIdx(prev => prev + 1);
     } else {
       setCurrentPhaseIdx(0);
       setCompletedPhases(new Set());
     }
-  }, [currentPhase.id, currentPhaseIdx, getCumulativeMinutes]);
+  }, [currentPhaseIdx]);
 
-  const repeatPhase = useCallback(() => {
+  const repeatPhase = useCallback((idx?: number) => {
     setPhaseCompleted(false);
+    setDecisionContext(null);
     setIsActive(false);
-    setTimeLeft(phaseDurations[currentPhase.id] * 60);
-  }, [phaseDurations, currentPhase.id]);
+    const targetIdx = idx ?? currentPhaseIdx;
+    setCurrentPhaseIdx(targetIdx);
+    setTimeLeft(phaseDurations[DEFAULT_PHASES[targetIdx].id] * 60);
+  }, [currentPhaseIdx, phaseDurations]);
 
   const goToPhase = useCallback((idx: number) => {
     setPhaseCompleted(false);
+    setDecisionContext(null);
     setIsActive(false);
     setCurrentPhaseIdx(idx);
   }, []);
@@ -448,6 +469,7 @@ export function useStudySession() {
       isLoading: cronogramaQuery.isLoading,
       totalStudyTimeToday,
       phaseCompleted,
+      decisionContext,
     },
 
     // Actions
