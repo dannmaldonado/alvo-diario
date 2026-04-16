@@ -1,0 +1,31 @@
+{
+  "name": "alvo-diario",
+  "description": "Study platform for Brazilian police exam preparation",
+  "repository": "https://github.com/dannmaldonado/alvo-diario",
+  "keywords": ["study", "pomodoro", "police-exam", "brazil"],
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ],
+  "env": {
+    "NODE_ENV": {
+      "value": "production"
+    },
+    "DB_HOST": {
+      "description": "Database host"
+    },
+    "DB_USER": {
+      "description": "Database username"
+    },
+    "DB_PASSWORD": {
+      "description": "Database password"
+    },
+    "DB_NAME": {
+      "description": "Database name"
+    },
+    "JWT_SECRET": {
+      "description": "JWT secret for authentication"
+    }
+  }
+}
