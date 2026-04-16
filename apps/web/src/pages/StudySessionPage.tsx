@@ -96,9 +96,11 @@ const StudySessionPage: React.FC = () => {
                   <option value="" disabled>Materia</option>
                   {subjects.map((s, i) => <option key={i} value={s}>{s}</option>)}
                 </select>
-                <span className="text-sm text-muted-foreground">
-                  Total: <strong>{Math.floor(totalMinutes / 60)}h{totalMinutes % 60 > 0 ? `${totalMinutes % 60}min` : ''}</strong>
-                </span>
+                {getCumulativeMinutes() > 0 && (
+                  <span className="text-sm text-muted-foreground">
+                    Hoje: <strong>{Math.floor(getCumulativeMinutes() / 60)}h{getCumulativeMinutes() % 60 > 0 ? `${getCumulativeMinutes() % 60}min` : ''}</strong>
+                  </span>
+                )}
               </div>
             </Card>
           )}
