@@ -152,10 +152,15 @@ export function useDashboardData() {
     if (shouldCreate) {
       metaCreatedRef.current = true;
       const todayStr = new Date().toISOString().split('T')[0];
+      // Convert meta_diaria_horas to number (can be string from storage/API)
+      const horasMeta = typeof currentUser?.meta_diaria_horas === 'string'
+        ? parseFloat(currentUser.meta_diaria_horas)
+        : (currentUser?.meta_diaria_horas || 4);
+
       createMetaMutation.mutate({
         user_id: userId!,
         data: todayStr,
-        horas_meta: currentUser?.meta_diaria_horas || 4,
+        horas_meta: horasMeta,
         horas_realizadas: 0,
         status: 'nao_iniciada',
       });
