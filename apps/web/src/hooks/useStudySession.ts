@@ -209,6 +209,8 @@ export function useStudySession() {
   const [phaseCompleted, setPhaseCompleted] = useState(false); // true when intervalo/questoes ends → decision screen
   // Context for the decision screen: which phase to repeat, which to advance to (null = finish)
   const [decisionContext, setDecisionContext] = useState<{ repeatIdx: number; advanceIdx: number | null } | null>(null);
+  // Snapshot of cumulative minutes when decision screen appears — used to preserve progress when repeating
+  const [cumulativeSnapshot, setCumulativeSnapshot] = useState(0);
 
   // Session notes
   const [sessionNotes, setSessionNotes] = useState('');
@@ -279,7 +281,14 @@ export function useStudySession() {
   // ---- Cumulative Time Calculation ----
 
   const getCumulativeMinutes = useCallback((): number => {
-    // Sum all completed phases + current phase elapsed time
+    // If we have a snapshot (repeat state), use it + current elapsed
+    if (cumulativeSnapshot > 0) {
+      const currentPhaseTotal = phaseDurations[currentPhase.id] * 60;
+      const currentPhaseElapsed = currentPhaseTotal - timeLeft;
+      return cumulativeSnapshot + Math.ceil(currentPhaseElapsed / 60);
+    }
+
+    // Otherwise, use normal calculation
     let total = 0;
 
     // Sum completed phases (only the study phases, not intervals that might be counted separately)
@@ -293,7 +302,7 @@ export function useStudySession() {
     total += Math.ceil(currentPhaseElapsed / 60); // convert seconds to minutes, round up
 
     return total;
-  }, [currentPhaseIdx, currentPhase.id, phaseDurations, timeLeft]);
+  }, [currentPhaseIdx, currentPhase.id, phaseDurations, timeLeft, cumulativeSnapshot]);
 
   // ---- Actions ----
 
@@ -308,14 +317,16 @@ export function useStudySession() {
       // Auto-advance to break, no decision yet
       setCurrentPhaseIdx(1); // revisao_intervalo
     } else if (id === 'revisao_intervalo') {
-      // After break: decision — repeat revisão (0) or go to estudo (2)
+      // After break: decision — capture snapshot before showing decision screen
+      setCumulativeSnapshot(newCumulativeTime);
       setDecisionContext({ repeatIdx: 0, advanceIdx: 2 });
       setPhaseCompleted(true);
     } else if (id === 'estudo') {
       // Auto-advance to break
       setCurrentPhaseIdx(3); // estudo_intervalo
     } else if (id === 'estudo_intervalo') {
-      // After break: decision — repeat estudo (2) or go to questões (4)
+      // After break: decision — capture snapshot before showing decision screen
+      setCumulativeSnapshot(newCumulativeTime);
       setDecisionContext({ repeatIdx: 2, advanceIdx: 4 });
       setPhaseCompleted(true);
     } else if (id === 'questoes') {
@@ -324,6 +335,7 @@ export function useStudySession() {
         toast.success(`Meta diária atingida! 🎉 ${newCumulativeTime} min estudados.`);
         setTimeout(() => setShowExame(true), 800);
       } else {
+        setCumulativeSnapshot(newCumulativeTime);
         setDecisionContext({ repeatIdx: 4, advanceIdx: null });
         setPhaseCompleted(true);
       }
@@ -332,6 +344,7 @@ export function useStudySession() {
 
   // Called by the skip (→) button during an active timer — just advance to next phase
   const goToNextPhase = useCallback(() => {
+    setCumulativeSnapshot(0); // Clear snapshot when advancing
     setPhaseCompleted(false);
     setDecisionContext(null);
     if (currentPhaseIdx < DEFAULT_PHASES.length - 1) {
@@ -352,6 +365,7 @@ export function useStudySession() {
   }, [currentPhaseIdx, phaseDurations]);
 
   const goToPhase = useCallback((idx: number) => {
+    setCumulativeSnapshot(0); // Clear snapshot when advancing
     setPhaseCompleted(false);
     setDecisionContext(null);
     setIsActive(false);
