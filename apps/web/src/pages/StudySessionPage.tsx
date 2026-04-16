@@ -41,14 +41,16 @@ const StudySessionPage: React.FC = () => {
     isActive, timeLeft, totalMinutes,
     sessionNotes,
     showSettings, showExame, examAnswers, examObservacoes, savingExame,
-    isLoading, totalStudyTimeToday,
+    isLoading, totalStudyTimeToday, phaseCompleted,
   } = state;
 
   const {
     setSelectedSubject, setSessionNotes, toggleTimer, resetTimer, goToPhase, goToNextPhase,
-    finalizarSessao, updateDuration, setShowSettings, setShowExame,
+    repeatPhase, finalizarSessao, updateDuration, setShowSettings, setShowExame,
     setExamAnswers, setExamObservacoes, saveExameDiario, formatTime, getProgress, getCumulativeMinutes,
   } = actions;
+
+  const nextPhaseLabel = DEFAULT_PHASES[(currentPhaseIdx + 1) % DEFAULT_PHASES.length].label;
 
   if (isLoading) {
     return (
@@ -154,10 +156,13 @@ const StudySessionPage: React.FC = () => {
                   isFullDuration={timeLeft === phaseDurations[currentPhase.id] * 60}
                   progress={getProgress()}
                   isLastPhase={false}
+                  phaseCompleted={phaseCompleted}
+                  nextPhaseLabel={nextPhaseLabel}
                   formatTime={formatTime}
                   onToggle={toggleTimer}
                   onReset={resetTimer}
                   onNextPhase={goToNextPhase}
+                  onRepeat={repeatPhase}
                   onFinalize={finalizarSessao}
                 />
               </Card>

@@ -206,6 +206,7 @@ export function useStudySession() {
   const [timeLeft, setTimeLeft] = useState(60 * 60);
   const [tempoGastoTotal, setTempoGastoTotal] = useState(0);
   const [totalStudyTimeToday, setTotalStudyTimeToday] = useState(0); // cumulative minutes across all cycles
+  const [phaseCompleted, setPhaseCompleted] = useState(false); // true when timer hits 0, waiting for user decision
 
   // Session notes
   const [sessionNotes, setSessionNotes] = useState('');
@@ -295,56 +296,43 @@ export function useStudySession() {
   // ---- Actions ----
 
   const handlePhaseComplete = useCallback(() => {
-    setCompletedPhases(prev => {
-      const updated = new Set([...prev, DEFAULT_PHASES[currentPhaseIdx].id]);
-      return updated;
-    });
-
-    // Calculate cumulative time after this phase
+    // Update cumulative time
     const newCumulativeTime = getCumulativeMinutes();
     setTotalStudyTimeToday(newCumulativeTime);
-
-    // Check if goal is met (4 hours = 240 minutes)
-    if (newCumulativeTime >= DAILY_STUDY_GOAL_MINUTES) {
-      toast.success(`Meta diaria atingida! 🎉 ${newCumulativeTime} minutos de estudo.`);
-      setTimeout(() => setShowExame(true), 800);
-      return;
-    }
-
-    if (currentPhaseIdx < DEFAULT_PHASES.length - 1) {
-      toast.success(`${DEFAULT_PHASES[currentPhaseIdx].label} concluida! Avance para a proxima fase.`);
-    } else {
-      // Reached end of phases but goal not met, loop back to start
-      toast.success('Ciclo completo! Continue estudando para atingir sua meta de 4h.');
-      setCurrentPhaseIdx(0);
-      setCompletedPhases(new Set()); // Reset for new cycle tracking
-    }
+    // Mark phase as done and show decision screen — user chooses to repeat or advance
+    setCompletedPhases(prev => new Set([...prev, DEFAULT_PHASES[currentPhaseIdx].id]));
+    setPhaseCompleted(true);
   }, [currentPhaseIdx, getCumulativeMinutes]);
 
   const goToNextPhase = useCallback(() => {
+    setPhaseCompleted(false);
     setCompletedPhases(prev => new Set([...prev, currentPhase.id]));
 
-    // Calculate cumulative time after this phase
+    // Check if goal is met (4 hours = 240 minutes)
     const newCumulativeTime = getCumulativeMinutes();
     setTotalStudyTimeToday(newCumulativeTime);
-
-    // Check if goal is met (4 hours = 240 minutes)
     if (newCumulativeTime >= DAILY_STUDY_GOAL_MINUTES) {
       setShowExame(true);
       return;
     }
 
-    // If not at goal, continue cycling
+    // Advance — loop back to start if on last phase
     if (currentPhaseIdx < DEFAULT_PHASES.length - 1) {
       setCurrentPhaseIdx(prev => prev + 1);
     } else {
-      // Reached end of phases but goal not met, loop back to start
       setCurrentPhaseIdx(0);
-      setCompletedPhases(new Set()); // Reset for new cycle tracking
+      setCompletedPhases(new Set());
     }
   }, [currentPhase.id, currentPhaseIdx, getCumulativeMinutes]);
 
+  const repeatPhase = useCallback(() => {
+    setPhaseCompleted(false);
+    setIsActive(false);
+    setTimeLeft(phaseDurations[currentPhase.id] * 60);
+  }, [phaseDurations, currentPhase.id]);
+
   const goToPhase = useCallback((idx: number) => {
+    setPhaseCompleted(false);
     setIsActive(false);
     setCurrentPhaseIdx(idx);
   }, []);
@@ -459,6 +447,7 @@ export function useStudySession() {
       savingExame,
       isLoading: cronogramaQuery.isLoading,
       totalStudyTimeToday,
+      phaseCompleted,
     },
 
     // Actions
@@ -469,6 +458,7 @@ export function useStudySession() {
       resetTimer,
       goToPhase,
       goToNextPhase,
+      repeatPhase,
       finalizarSessao,
       updateDuration,
       setShowSettings,
