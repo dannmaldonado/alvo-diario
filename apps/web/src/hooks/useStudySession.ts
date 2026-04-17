@@ -1,37 +1,24 @@
 /**
  * useStudySession Hook - SIMPLIFIED
  * Single 25-minute Pomodoro timer with cumulative day tracking.
- * User studies 25 min → decide: continue (+25 min) or finish (exam).
+ * User studies 25 min → decide: continue (+25 min) or finish (rating modal).
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveCronograma } from '@/hooks/queries/useCronogramas';
 import { useCreateSessao } from '@/hooks/queries/useSessoes';
+import { useTodayMeta, useUpdateMetaRating } from '@/hooks/queries/useMetas';
 import { useScheduleCalculator } from '@/hooks/useScheduleCalculator';
-import { apiClient } from '@/services/api';
 import { toast } from 'sonner';
-import { Cronograma, Materia } from '@/types';
+import { Cronograma, Materia, DailyRatingValue } from '@/types';
 
 // ============================================================================
 // TYPES & CONSTANTS
 // ============================================================================
 
-export type ExamAnswers = Record<string, boolean | null>;
-
 export const DAILY_STUDY_GOAL_MINUTES = 240; // 4 hours
 export const SESSION_DURATION_MINUTES = 25; // Pomodoro
-
-export const EXAM_QUESTIONS = [
-  { id: 'horarios', categoria: 'Disciplina', texto: 'Cumpri os horarios planejados?' },
-  { id: 'distracao', categoria: 'Disciplina', texto: 'Evitei distracoes (celular, redes sociais)?' },
-  { id: 'retencao', categoria: 'Aprendizado', texto: 'Estou retendo o conteudo?' },
-  { id: 'explicar', categoria: 'Aprendizado', texto: 'Consigo explicar o que estudei com minhas palavras?' },
-  { id: 'questoes', categoria: 'Pratica', texto: 'Resolvi questoes hoje?' },
-  { id: 'erros', categoria: 'Pratica', texto: 'Revisei os erros das questoes?' },
-  { id: 'plano', categoria: 'Progresso', texto: 'Cumpri o plano do dia?' },
-  { id: 'evolucao', categoria: 'Progresso', texto: 'Me sinto mais preparado do que ontem?' },
-] as const;
 
 export interface StudySessionState {
   // Schedule
@@ -52,10 +39,10 @@ export interface StudySessionState {
   // Session
   sessionNotes: string;
 
-  // UI & exam
+  // UI & rating modal
   showSettings: boolean;
   showExame: boolean;
-  examAnswers: ExamAnswers;
+  avaliacao: DailyRatingValue | null;
   examObservacoes: string;
   savingExame: boolean;
 
@@ -73,7 +60,7 @@ export interface StudySessionActions {
   skipBreakReminder: () => void;
   setShowSettings: (show: boolean | ((prev: boolean) => boolean)) => void;
   setShowExame: (show: boolean) => void;
-  setExamAnswers: React.Dispatch<React.SetStateAction<ExamAnswers>>;
+  setAvaliacao: (rating: DailyRatingValue) => void;
   setExamObservacoes: (value: string) => void;
   saveExameDiario: () => Promise<void>;
   formatTime: (seconds: number) => string;
@@ -91,6 +78,8 @@ export function useStudySession() {
 
   const cronogramaQuery = useActiveCronograma(currentUser?.id);
   const createSessaoMutation = useCreateSessao();
+  const todayMetaQuery = useTodayMeta(currentUser?.id);
+  const updateMetaRatingMutation = useUpdateMetaRating();
 
   // Schedule
   const [selectedSubject, setSelectedSubject] = useState('');
@@ -108,10 +97,10 @@ export function useStudySession() {
   // Session
   const [sessionNotes, setSessionNotes] = useState('');
 
-  // UI & exam
+  // UI & rating modal
   const [showSettings, setShowSettings] = useState(false);
   const [showExame, setShowExame] = useState(false);
-  const [examAnswers, setExamAnswers] = useState<ExamAnswers>({});
+  const [avaliacao, setAvaliacao] = useState<DailyRatingValue | null>(null);
   const [examObservacoes, setExamObservacoes] = useState('');
   const [savingExame, setSavingExame] = useState(false);
 
@@ -211,28 +200,20 @@ export function useStudySession() {
     setShowBreakReminder(false);
     const cumulativeMinutes = getCumulativeMinutes();
     setTotalStudyMinutesToday(cumulativeMinutes);
-    toast.info(`Voce estudou ${cumulativeMinutes} minuto${cumulativeMinutes !== 1 ? 's' : ''}`);
     setSessionEnded(true);
+    setShowExame(true); // Abre o modal de avaliação
   }, [getCumulativeMinutes]);
 
   const saveExameDiario = useCallback(async () => {
-    const totalRespondidas = Object.values(examAnswers).filter(v => v !== null).length;
-    if (totalRespondidas < EXAM_QUESTIONS.length) {
-      toast.error('Responda todas as perguntas antes de concluir.');
+    if (!avaliacao) {
+      toast.error('Selecione uma avaliação de 1 a 5.');
       return;
     }
     try {
       setSavingExame(true);
-      const pontuacao = Object.values(examAnswers).filter(Boolean).length;
-      await apiClient.post('/api/exames', {
-        respostas: examAnswers,
-        observacoes: examObservacoes,
-        pontuacao,
-      });
 
-      // Save study session
+      // Salva sessão de estudo
       const duracao = Math.max(1, totalStudyMinutesToday);
-
       if (selectedSubject) {
         await createSessaoMutation.mutateAsync({
           user_id: currentUser?.id || '',
@@ -240,18 +221,29 @@ export function useStudySession() {
           materia: selectedSubject,
           data_sessao: new Date().toISOString().split('T')[0],
           duracao_minutos: duracao,
-          ...(sessionNotes.trim() ? { notas: sessionNotes.trim().slice(0, 500) } : {}),
+          ...(examObservacoes.trim() ? { notas: examObservacoes.trim().slice(0, 500) } : {}),
+        });
+      }
+
+      // Atualiza avaliação diária na meta do dia
+      const todayMeta = todayMetaQuery.data;
+      if (todayMeta?.id) {
+        await updateMetaRatingMutation.mutateAsync({
+          id: todayMeta.id,
+          avaliacao_diaria: avaliacao,
         });
       }
 
       setShowExame(false);
-      toast.success(`Exame salvo! Voce acertou ${pontuacao} de ${EXAM_QUESTIONS.length} criterios.`);
+      toast.success('Sessão salva! Ótimo trabalho! 🎉');
     } catch {
-      toast.error('Erro ao salvar o exame. Tente novamente.');
+      toast.error('Erro ao salvar a sessão. Tente novamente.');
     } finally {
       setSavingExame(false);
     }
-  }, [examAnswers, examObservacoes, totalStudyMinutesToday, selectedSubject, currentUser?.id, schedule?.id, createSessaoMutation, sessionNotes]);
+  }, [avaliacao, examObservacoes, totalStudyMinutesToday, selectedSubject,
+      currentUser?.id, schedule?.id, createSessaoMutation,
+      todayMetaQuery.data, updateMetaRatingMutation]);
 
   const formatTime = useCallback((seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -283,7 +275,7 @@ export function useStudySession() {
       sessionNotes,
       showSettings,
       showExame,
-      examAnswers,
+      avaliacao,
       examObservacoes,
       savingExame,
       isLoading: cronogramaQuery.isLoading,
@@ -299,7 +291,7 @@ export function useStudySession() {
       skipBreakReminder,
       setShowSettings,
       setShowExame,
-      setExamAnswers,
+      setAvaliacao,
       setExamObservacoes,
       saveExameDiario,
       formatTime,

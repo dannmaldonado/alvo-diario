@@ -2,20 +2,17 @@ import React from 'react';
 import { Helmet } from 'react-helmet';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import {
-  BookOpen, CalendarDays, Settings2, Check, Trophy, X, ThumbsUp, ThumbsDown,
-} from 'lucide-react';
+import { BookOpen, CalendarDays, Trophy, X } from 'lucide-react';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import SubjectBadge from '@/components/SubjectBadge';
 import PomodoroTimer from '@/components/study/PomodoroTimer';
 import TodaySessionsList from '@/components/study/TodaySessionsList';
-import {
-  useStudySession,
-  EXAM_QUESTIONS,
-} from '@/hooks/useStudySession';
+import { DailyRating } from '@/components/dashboard/DailyRating';
+import { useStudySession } from '@/hooks/useStudySession';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTodaySessions } from '@/hooks/queries/useSessoes';
+import { DailyRatingValue } from '@/types';
 
 const StudySessionPage: React.FC = () => {
   const { state, actions } = useStudySession();
@@ -28,16 +25,14 @@ const StudySessionPage: React.FC = () => {
     todaySubject,
     cycleInfo,
     selectedSubject,
-    sessionDuration,
     isActive,
     timeLeft,
     totalStudyMinutesToday,
     sessionEnded,
     showBreakReminder,
     sessionNotes,
-    showSettings,
     showExame,
-    examAnswers,
+    avaliacao,
     examObservacoes,
     savingExame,
     isLoading,
@@ -51,9 +46,8 @@ const StudySessionPage: React.FC = () => {
     continueStudying,
     skipBreakReminder,
     finalizarSessao,
-    setShowSettings,
     setShowExame,
-    setExamAnswers,
+    setAvaliacao,
     setExamObservacoes,
     saveExameDiario,
     formatTime,
@@ -221,13 +215,14 @@ const StudySessionPage: React.FC = () => {
         </main>
       </div>
 
-      {/* Exam Modal */}
+      {/* Rating Modal */}
       {showExame && (
-        <ExamModal
-          examAnswers={examAnswers}
+        <RatingModal
+          avaliacao={avaliacao}
           examObservacoes={examObservacoes}
           savingExame={savingExame}
-          onSetExamAnswers={setExamAnswers}
+          totalMinutes={totalStudyMinutesToday}
+          onSetAvaliacao={setAvaliacao}
           onSetExamObservacoes={setExamObservacoes}
           onSave={saveExameDiario}
           onClose={() => setShowExame(false)}
@@ -238,30 +233,32 @@ const StudySessionPage: React.FC = () => {
 };
 
 // ============================================================================
-// EXAM MODAL
+// RATING MODAL
 // ============================================================================
 
-interface ExamModalProps {
-  examAnswers: Record<string, boolean | null>;
+interface RatingModalProps {
+  avaliacao: DailyRatingValue | null;
   examObservacoes: string;
   savingExame: boolean;
-  onSetExamAnswers: React.Dispatch<React.SetStateAction<Record<string, boolean | null>>>;
+  totalMinutes: number;
+  onSetAvaliacao: (rating: DailyRatingValue) => void;
   onSetExamObservacoes: (value: string) => void;
   onSave: () => Promise<void>;
   onClose: () => void;
 }
 
-const ExamModal: React.FC<ExamModalProps> = ({
-  examAnswers,
+const RatingModal: React.FC<RatingModalProps> = ({
+  avaliacao,
   examObservacoes,
   savingExame,
-  onSetExamAnswers,
+  totalMinutes,
+  onSetAvaliacao,
   onSetExamObservacoes,
   onSave,
   onClose,
 }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-    <div className="bg-card border border-border shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div className="bg-card border border-border shadow-2xl rounded-2xl w-full max-w-md">
 
       {/* Header */}
       <div className="p-6 border-b border-border flex items-center justify-between">
@@ -270,8 +267,10 @@ const ExamModal: React.FC<ExamModalProps> = ({
             <Trophy className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h2 className="text-lg font-bold">Exame Diario</h2>
-            <p className="text-xs text-muted-foreground">Avalie sua sessao de hoje</p>
+            <h2 className="text-lg font-bold">Avaliacao Diaria</h2>
+            <p className="text-xs text-muted-foreground">
+              Sessao concluida — {totalMinutes} min estudados
+            </p>
           </div>
         </div>
         <button
@@ -282,55 +281,19 @@ const ExamModal: React.FC<ExamModalProps> = ({
         </button>
       </div>
 
-      {/* Questions */}
+      {/* Body */}
       <div className="p-6 space-y-6">
-        {(['Disciplina', 'Aprendizado', 'Pratica', 'Progresso'] as const).map(categoria => {
-          const perguntas = EXAM_QUESTIONS.filter(q => q.categoria === categoria);
-          return (
-            <div key={categoria}>
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">{categoria}</p>
-              <div className="space-y-3">
-                {perguntas.map(q => (
-                  <div key={q.id} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-muted/50">
-                    <p className="text-sm flex-1">{q.texto}</p>
-                    <div className="flex gap-2 shrink-0">
-                      <button
-                        onClick={() => onSetExamAnswers(prev => ({ ...prev, [q.id]: true }))}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                          examAnswers[q.id] === true
-                            ? 'bg-green-500 text-white shadow-sm'
-                            : 'bg-background border border-border text-muted-foreground hover:border-green-500 hover:text-green-500'
-                        }`}
-                      >
-                        <ThumbsUp className="w-3.5 h-3.5" /> Sim
-                      </button>
-                      <button
-                        onClick={() => onSetExamAnswers(prev => ({ ...prev, [q.id]: false }))}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                          examAnswers[q.id] === false
-                            ? 'bg-destructive text-white shadow-sm'
-                            : 'bg-background border border-border text-muted-foreground hover:border-destructive hover:text-destructive'
-                        }`}
-                      >
-                        <X className="w-3.5 h-3.5" /> Nao
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
 
-        {/* Score */}
-        {Object.keys(examAnswers).length > 0 && (
-          <div className="flex items-center justify-between p-3 bg-primary/5 border border-primary/20 rounded-xl">
-            <span className="text-sm font-medium">Criterios cumpridos</span>
-            <span className="font-bold text-primary text-lg">
-              {Object.values(examAnswers).filter(Boolean).length}/{EXAM_QUESTIONS.length}
-            </span>
-          </div>
-        )}
+        {/* 1-5 Star Rating */}
+        <div>
+          <p className="text-sm font-medium mb-4">Como foi sua dedicacao hoje?</p>
+          <DailyRating
+            value={avaliacao ?? undefined}
+            onChange={onSetAvaliacao}
+            showPointsMultiplier
+            todaySessionMinutes={totalMinutes}
+          />
+        </div>
 
         {/* Notes */}
         <div>
@@ -346,19 +309,20 @@ const ExamModal: React.FC<ExamModalProps> = ({
           />
         </div>
 
-        {/* Submit button */}
+        {/* Submit */}
         <Button
           onClick={onSave}
-          disabled={savingExame || Object.keys(examAnswers).length < EXAM_QUESTIONS.length}
+          disabled={savingExame || !avaliacao}
           className="w-full h-12 text-base"
         >
           {savingExame ? 'Salvando...' : 'Concluir Sessao'}
         </Button>
-        <p className="text-xs text-center text-muted-foreground">
-          {EXAM_QUESTIONS.length - Object.keys(examAnswers).length > 0
-            ? `Responda mais ${EXAM_QUESTIONS.length - Object.keys(examAnswers).length} pergunta(s) para concluir`
-            : 'Todas as perguntas respondidas'}
-        </p>
+
+        {!avaliacao && (
+          <p className="text-xs text-center text-muted-foreground">
+            Selecione uma avaliacao (1 a 5 estrelas) para concluir
+          </p>
+        )}
       </div>
     </div>
   </div>
