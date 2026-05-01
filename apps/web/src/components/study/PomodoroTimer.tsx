@@ -1,10 +1,8 @@
 /**
- * PomodoroTimer — Simplified single 25-minute timer
+ * PomodoroTimer — Supports Pomodoro (25-min countdown) and Tempo Livre (stopwatch)
  *
- * Shows countdown timer with play/pause/reset controls.
- * When timer completes (0:00), displays decision screen:
- *   - "Continuar Estudando" → add +25 min, reset timer
- *   - "Finalizar Sessão" → go to exam modal
+ * Pomodoro: countdown from 25 min; at 0 shows "continue / finish" decision screen.
+ * Tempo Livre: counts up from 0; "Finalizar" button always visible.
  */
 
 import React from 'react';
@@ -12,11 +10,13 @@ import { Button } from '@/components/ui/button';
 import {
   Play, Pause, RotateCcw, ChevronRight, Flag, CheckCircle2,
 } from 'lucide-react';
+import type { TimerMode } from '@/hooks/useStudySession';
 
 interface PomodoroTimerProps {
+  timerMode: TimerMode;
   timeLeft: number;
   isActive: boolean;
-  progress: number; // 0-100
+  progress: number; // 0-100 (only used in pomodoro mode)
   totalStudyMinutesToday: number;
   sessionEnded: boolean;
   showBreakReminder: boolean;
@@ -29,6 +29,7 @@ interface PomodoroTimerProps {
 }
 
 const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
+  timerMode,
   timeLeft,
   isActive,
   progress,
@@ -42,20 +43,23 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
   onSkipBreakReminder,
   onFinalize,
 }) => {
-  const isTimerComplete = timeLeft === 0;
+  const isPomodoro = timerMode === 'pomodoro';
+  const isTimerComplete = isPomodoro && timeLeft === 0;
   const displayProgress = isTimerComplete ? 100 : progress;
 
   return (
     <div className="flex flex-col items-center w-full">
-      {/* Header: session info */}
+      {/* Header */}
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-primary mb-2">Pomodoro — 25 min</h2>
+        <h2 className="text-2xl font-bold text-primary mb-2">
+          {isPomodoro ? 'Pomodoro — 25 min' : 'Tempo Livre'}
+        </h2>
         <p className="text-sm text-muted-foreground">
           Hoje: <strong>{totalStudyMinutesToday}</strong> min / <strong>240</strong> min
         </p>
       </div>
 
-      {/* Break Reminder (optional, non-blocking) */}
+      {/* Break Reminder (pomodoro only, non-blocking) */}
       {showBreakReminder && !sessionEnded && (
         <div className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-lg max-w-xs text-center">
           <p className="text-sm font-medium text-green-700 dark:text-green-400 mb-2">
@@ -72,43 +76,58 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
         </div>
       )}
 
-      {/* Circular progress / timer display */}
+      {/* Timer display */}
       <div className="relative flex items-center justify-center mb-12">
-        <svg className="w-56 h-56 -rotate-90" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="46" className="stroke-muted fill-none" strokeWidth="3" />
-          <circle
-            cx="50"
-            cy="50"
-            r="46"
-            className="fill-none transition-all duration-1000 ease-linear stroke-primary"
-            strokeWidth="3"
-            strokeDasharray="289.03"
-            strokeDashoffset={289.03 - (289.03 * displayProgress) / 100}
-            strokeLinecap="round"
-          />
-        </svg>
-        <div className="absolute text-center">
-          {isTimerComplete ? (
-            <div className="flex flex-col items-center gap-2">
-              <CheckCircle2 className="w-14 h-14 text-green-500" />
-              <span className="text-sm font-medium text-muted-foreground">25 min concluído!</span>
+        {isPomodoro ? (
+          /* Circular progress ring — only in pomodoro mode */
+          <>
+            <svg className="w-56 h-56 -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="46" className="stroke-muted fill-none" strokeWidth="3" />
+              <circle
+                cx="50"
+                cy="50"
+                r="46"
+                className="fill-none transition-all duration-1000 ease-linear stroke-primary"
+                strokeWidth="3"
+                strokeDasharray="289.03"
+                strokeDashoffset={289.03 - (289.03 * displayProgress) / 100}
+                strokeLinecap="round"
+              />
+            </svg>
+            <div className="absolute text-center">
+              {isTimerComplete ? (
+                <div className="flex flex-col items-center gap-2">
+                  <CheckCircle2 className="w-14 h-14 text-green-500" />
+                  <span className="text-sm font-medium text-muted-foreground">25 min concluído!</span>
+                </div>
+              ) : (
+                <>
+                  <div className="text-6xl font-bold tabular-nums tracking-tighter">
+                    {formatTime(timeLeft)}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {Math.round(progress)}% concluído
+                  </div>
+                </>
+              )}
             </div>
-          ) : (
-            <>
-              <div className="text-6xl font-bold tabular-nums tracking-tighter">
-                {formatTime(timeLeft)}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                {Math.round(progress)}% concluído
-              </div>
-            </>
-          )}
-        </div>
+          </>
+        ) : (
+          /* Libre mode: simple large stopwatch display, no ring */
+          <div className="text-center py-6">
+            <div className="text-7xl font-bold tabular-nums tracking-tighter text-primary">
+              {formatTime(timeLeft)}
+            </div>
+            <div className="text-sm text-muted-foreground mt-3">
+              {isActive ? 'Cronômetro rodando…' : timeLeft === 0 ? 'Pressione Iniciar' : 'Pausado'}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Controls */}
-      {isTimerComplete && !sessionEnded ? (
-        /* Decision screen after timer completes */
+      {isTimerComplete && !sessionEnded && isPomodoro ? (
+        /* Pomodoro decision screen after countdown reaches 0 */
         <div className="flex flex-col items-center gap-3 w-full max-w-xs">
           <div className="text-center mb-4">
             <p className="text-sm text-muted-foreground">
@@ -136,14 +155,16 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
           </Button>
         </div>
       ) : (
-        /* Normal timer controls */
+        /* Normal controls — same for both modes; in Livre, Finalizar always visible */
         <div className="flex items-center justify-center gap-4 flex-wrap">
           <Button
             size="lg"
             variant="outline"
             className="h-12 w-12 rounded-full p-0"
             onClick={onReset}
-            disabled={timeLeft === 25 * 60 && !isActive}
+            disabled={isPomodoro
+              ? (timeLeft === 25 * 60 && !isActive)
+              : (timeLeft === 0 && !isActive)}
             title="Resetar timer"
           >
             <RotateCcw className="h-5 w-5" />
@@ -162,7 +183,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
             ) : (
               <>
                 <Play className="mr-2 h-5 w-5 fill-current" />
-                {timeLeft === 25 * 60 ? 'Iniciar' : 'Continuar'}
+                {(isPomodoro ? timeLeft === 25 * 60 : timeLeft === 0) ? 'Iniciar' : 'Continuar'}
               </>
             )}
           </Button>

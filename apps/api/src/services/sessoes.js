@@ -62,8 +62,20 @@ export const createSessao = async (userId, data) => {
   const connection = await pool.getConnection();
   try {
     await connection.query(
-      'INSERT INTO sessoes_estudo (id, user_id, cronograma_id, materia, data_sessao, duracao_minutos, pontos_ganhos) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [id, userId, data.cronograma_id || null, data.materia, data.data_sessao, data.duracao_minutos, pontos]
+      `INSERT INTO sessoes_estudo
+        (id, user_id, cronograma_id, materia, data_sessao, duracao_minutos, pontos_ganhos, notas, material_id, material_nome)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id, userId,
+        data.cronograma_id || null,
+        data.materia,
+        data.data_sessao,
+        data.duracao_minutos,
+        pontos,
+        data.notas || null,
+        data.material_id || null,
+        data.material_nome || null,
+      ]
     );
   } finally {
     connection.release();

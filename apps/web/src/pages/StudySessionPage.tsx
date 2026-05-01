@@ -2,7 +2,7 @@ import React from 'react';
 import { Helmet } from 'react-helmet';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { BookOpen, CalendarDays, Trophy, X } from 'lucide-react';
+import { BookOpen, CalendarDays, Trophy, X, Timer, Clock } from 'lucide-react';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import SubjectBadge from '@/components/SubjectBadge';
@@ -25,12 +25,15 @@ const StudySessionPage: React.FC = () => {
     todaySubject,
     cycleInfo,
     selectedSubject,
+    timerMode,
     isActive,
     timeLeft,
     totalStudyMinutesToday,
     sessionEnded,
     showBreakReminder,
     sessionNotes,
+    selectedMaterial,
+    materials,
     showExame,
     avaliacao,
     examObservacoes,
@@ -41,6 +44,8 @@ const StudySessionPage: React.FC = () => {
   const {
     setSelectedSubject,
     setSessionNotes,
+    setSelectedMaterial,
+    setTimerMode,
     toggleTimer,
     resetTimer,
     continueStudying,
@@ -130,12 +135,41 @@ const StudySessionPage: React.FC = () => {
             </p>
           </div>
 
+          {/* Timer mode selector */}
+          <div className="mb-6 flex gap-3">
+            <button
+              onClick={() => setTimerMode('pomodoro')}
+              disabled={isActive}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all
+                ${timerMode === 'pomodoro'
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border bg-background text-muted-foreground hover:border-primary/50'}
+                ${isActive ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+              <Timer className="h-4 w-4" />
+              Pomodoro (25 min)
+            </button>
+            <button
+              onClick={() => setTimerMode('livre')}
+              disabled={isActive}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all
+                ${timerMode === 'livre'
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border bg-background text-muted-foreground hover:border-primary/50'}
+                ${isActive ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+              <Clock className="h-4 w-4" />
+              Tempo Livre
+            </button>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             {/* Main timer */}
             <div className="lg:col-span-2">
               <Card className="border-2 border-primary/30">
                 <PomodoroTimer
+                  timerMode={timerMode}
                   timeLeft={timeLeft}
                   isActive={isActive}
                   progress={getProgress()}
@@ -173,6 +207,26 @@ const StudySessionPage: React.FC = () => {
                   {sessionNotes.length}/500
                 </p>
               </Card>
+
+              {/* Material selector */}
+              {materials.length > 0 && (
+                <Card>
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-primary" />
+                    Material (opcional)
+                  </h3>
+                  <select
+                    value={selectedMaterial}
+                    onChange={(e) => setSelectedMaterial(e.target.value)}
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">Nenhum material</option>
+                    {materials.map(m => (
+                      <option key={m.id} value={m.id}>{m.nome}</option>
+                    ))}
+                  </select>
+                </Card>
+              )}
 
               {/* Materia selector (if no schedule) */}
               {!schedule && (

@@ -14,6 +14,7 @@ import metasRoutes from './routes/metas.js';
 import badgesRoutes from './routes/badges.js';
 import historicoRoutes from './routes/historico.js';
 import examesRoutes from './routes/exames.js';
+import materiaisRoutes from './routes/materiais.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -126,6 +127,7 @@ app.use('/api/metas', metasRoutes);
 app.use('/api/badges', badgesRoutes);
 app.use('/api/historico', historicoRoutes);
 app.use('/api/exames', examesRoutes);
+app.use('/api/materiais', materiaisRoutes);
 
 // ============================================================
 // FRONTEND SERVING

@@ -9,9 +9,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useActiveCronograma } from '@/hooks/queries/useCronogramas';
 import { useCreateSessao } from '@/hooks/queries/useSessoes';
 import { useTodayMeta, useUpdateMetaRating } from '@/hooks/queries/useMetas';
+import { useMateriais } from '@/hooks/queries/useMateriais';
 import { useScheduleCalculator } from '@/hooks/useScheduleCalculator';
 import { toast } from 'sonner';
-import { Cronograma, Materia, DailyRatingValue } from '@/types';
+import { Cronograma, Materia, DailyRatingValue, Material } from '@/types';
 
 // ============================================================================
 // TYPES & CONSTANTS
@@ -19,6 +20,8 @@ import { Cronograma, Materia, DailyRatingValue } from '@/types';
 
 export const DAILY_STUDY_GOAL_MINUTES = 240; // 4 hours
 export const SESSION_DURATION_MINUTES = 25; // Pomodoro
+
+export type TimerMode = 'pomodoro' | 'livre';
 
 export interface StudySessionState {
   // Schedule
@@ -29,15 +32,18 @@ export interface StudySessionState {
   selectedSubject: string;
 
   // Timer & cumulative
+  timerMode: TimerMode;
   sessionDuration: number; // minutes (always 25)
   isActive: boolean;
-  timeLeft: number; // seconds
+  timeLeft: number; // seconds — countdown in pomodoro, elapsed in livre
   totalStudyMinutesToday: number; // cumulative minutes
   sessionEnded: boolean;
   showBreakReminder: boolean;
 
   // Session
   sessionNotes: string;
+  selectedMaterial: string; // material id
+  materials: Material[];
 
   // UI & rating modal
   showSettings: boolean;
@@ -53,6 +59,8 @@ export interface StudySessionState {
 export interface StudySessionActions {
   setSelectedSubject: (subject: string) => void;
   setSessionNotes: (notes: string) => void;
+  setSelectedMaterial: (materialId: string) => void;
+  setTimerMode: (mode: TimerMode) => void;
   toggleTimer: () => void;
   resetTimer: () => void;
   continueStudying: () => void;
@@ -80,6 +88,7 @@ export function useStudySession() {
   const createSessaoMutation = useCreateSessao();
   const todayMetaQuery = useTodayMeta(currentUser?.id);
   const updateMetaRatingMutation = useUpdateMetaRating();
+  const materiaisQuery = useMateriais(currentUser?.id);
 
   // Schedule
   const [selectedSubject, setSelectedSubject] = useState('');
@@ -87,15 +96,18 @@ export function useStudySession() {
   const [cycleInfo, setCycleInfo] = useState<{ cycleNumber: number; dayInCycle: number } | null>(null);
 
   // Timer & cumulative (SIMPLIFIED)
+  const [timerMode, setTimerModeState] = useState<TimerMode>('pomodoro');
   const [sessionDuration] = useState(SESSION_DURATION_MINUTES); // Fixed at 25 min
   const [isActive, setIsActive] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(SESSION_DURATION_MINUTES * 60); // in seconds
+  // pomodoro: starts at 25*60 (counts down); livre: starts at 0 (counts up)
+  const [timeLeft, setTimeLeft] = useState(SESSION_DURATION_MINUTES * 60);
   const [totalStudyMinutesToday, setTotalStudyMinutesToday] = useState(0);
   const [sessionEnded, setSessionEnded] = useState(false);
   const [showBreakReminder, setShowBreakReminder] = useState(false);
 
   // Session
   const [sessionNotes, setSessionNotes] = useState('');
+  const [selectedMaterial, setSelectedMaterial] = useState('');
 
   // UI & rating modal
   const [showSettings, setShowSettings] = useState(false);
@@ -130,20 +142,25 @@ export function useStudySession() {
     }
   }, [schedule, getCurrentSubject, getCycleInfo, subjects, selectedSubject]);
 
-  // Timer tick
+  // Timer tick — pomodoro counts down, livre counts up
   useEffect(() => {
     if (isActive) {
       intervalRef.current = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            clearInterval(intervalRef.current!);
-            setIsActive(false);
-            // Timer completed: show break reminder and decision screen
-            setShowBreakReminder(true);
-            return 0;
-          }
-          return prev - 1;
-        });
+        if (timerMode === 'livre') {
+          // Tempo Livre: count up indefinitely
+          setTimeLeft(prev => prev + 1);
+        } else {
+          // Pomodoro: count down, show decision at 0
+          setTimeLeft(prev => {
+            if (prev <= 1) {
+              clearInterval(intervalRef.current!);
+              setIsActive(false);
+              setShowBreakReminder(true);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }
       }, 1000);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -151,16 +168,18 @@ export function useStudySession() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isActive]);
+  }, [isActive, timerMode]);
 
   // ---- Cumulative Time ----
 
   const getCumulativeMinutes = useCallback((): number => {
-    // Total studied today + elapsed time in current session
-    const sessionTotal = sessionDuration * 60; // in seconds
-    const sessionElapsed = sessionTotal - timeLeft;
+    // In pomodoro: elapsed = sessionTotal - timeLeft (timeLeft counts down from 25*60)
+    // In livre: elapsed = timeLeft (timeLeft IS the elapsed seconds, counts up from 0)
+    const sessionElapsed = timerMode === 'livre'
+      ? timeLeft
+      : (sessionDuration * 60 - timeLeft);
     return totalStudyMinutesToday + Math.ceil(sessionElapsed / 60);
-  }, [totalStudyMinutesToday, sessionDuration, timeLeft]);
+  }, [totalStudyMinutesToday, sessionDuration, timeLeft, timerMode]);
 
   // ---- Actions ----
 
@@ -174,8 +193,9 @@ export function useStudySession() {
 
   const resetTimer = useCallback(() => {
     setIsActive(false);
-    setTimeLeft(sessionDuration * 60);
-  }, [sessionDuration]);
+    // Pomodoro: reset to 25 min countdown; Livre: reset to 0 (stopwatch)
+    setTimeLeft(timerMode === 'pomodoro' ? sessionDuration * 60 : 0);
+  }, [sessionDuration, timerMode]);
 
   const continueStudying = useCallback(() => {
     // Add +25 min to cumulative
@@ -190,6 +210,16 @@ export function useStudySession() {
       setTimeout(() => setSessionEnded(true), 800);
     }
   }, [sessionDuration, totalStudyMinutesToday]);
+
+  // Switch timer mode — only allowed when timer is not active
+  const setTimerMode = useCallback((mode: TimerMode) => {
+    if (isActive) return;
+    setTimerModeState(mode);
+    // Reset timeLeft to the correct starting point for the new mode
+    setTimeLeft(mode === 'pomodoro' ? sessionDuration * 60 : 0);
+    setSessionEnded(false);
+    setShowBreakReminder(false);
+  }, [isActive, sessionDuration]);
 
   const skipBreakReminder = useCallback(() => {
     setShowBreakReminder(false);
@@ -215,6 +245,8 @@ export function useStudySession() {
       // Salva sessão de estudo
       const duracao = Math.max(1, totalStudyMinutesToday);
       if (selectedSubject) {
+        const materials = materiaisQuery.data ?? [];
+        const chosenMaterial = materials.find(m => m.id === selectedMaterial);
         await createSessaoMutation.mutateAsync({
           user_id: currentUser?.id || '',
           cronograma_id: schedule?.id || '',
@@ -222,6 +254,7 @@ export function useStudySession() {
           data_sessao: new Date().toISOString().split('T')[0],
           duracao_minutos: duracao,
           ...(examObservacoes.trim() ? { notas: examObservacoes.trim().slice(0, 500) } : {}),
+          ...(chosenMaterial ? { material_id: chosenMaterial.id, material_nome: chosenMaterial.nome } : {}),
         });
       }
 
@@ -241,8 +274,8 @@ export function useStudySession() {
     } finally {
       setSavingExame(false);
     }
-  }, [avaliacao, examObservacoes, totalStudyMinutesToday, selectedSubject,
-      currentUser?.id, schedule?.id, createSessaoMutation,
+  }, [avaliacao, examObservacoes, totalStudyMinutesToday, selectedSubject, selectedMaterial,
+      currentUser?.id, schedule?.id, createSessaoMutation, materiaisQuery.data,
       todayMetaQuery.data, updateMetaRatingMutation]);
 
   const formatTime = useCallback((seconds: number) => {
@@ -254,10 +287,12 @@ export function useStudySession() {
   }, []);
 
   const getProgress = useCallback(() => {
+    // Livre mode has no fixed target — return 0 (circle hidden in that mode)
+    if (timerMode === 'livre') return 0;
     const total = sessionDuration * 60;
     if (total === 0) return 0;
     return ((total - timeLeft) / total) * 100;
-  }, [sessionDuration, timeLeft]);
+  }, [sessionDuration, timeLeft, timerMode]);
 
   return {
     state: {
@@ -266,6 +301,7 @@ export function useStudySession() {
       todaySubject,
       cycleInfo,
       selectedSubject,
+      timerMode,
       sessionDuration,
       isActive,
       timeLeft,
@@ -273,6 +309,8 @@ export function useStudySession() {
       sessionEnded,
       showBreakReminder,
       sessionNotes,
+      selectedMaterial,
+      materials: materiaisQuery.data ?? [],
       showSettings,
       showExame,
       avaliacao,
@@ -284,6 +322,8 @@ export function useStudySession() {
     actions: {
       setSelectedSubject,
       setSessionNotes,
+      setSelectedMaterial,
+      setTimerMode,
       toggleTimer,
       resetTimer,
       continueStudying,

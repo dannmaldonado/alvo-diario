@@ -40,8 +40,8 @@ export interface TableRowData {
 
 export interface Stats {
   totalHoursAll: string;
-  totalHoursMonth: string;
-  totalHoursWeek: string;
+  totalHoursPeriod: string;
+  periodLabel: string;
   avgHoursPerDay: string;
   longestSessionMinutes: number;
   totalSessions: number;
@@ -111,6 +111,13 @@ export const CHART_COLORS = [
   'hsl(var(--chart-7))',
   'hsl(var(--chart-8))',
 ];
+
+export const PERIOD_LABELS: Record<Period, string> = {
+  all: 'Todo o Período',
+  month: 'Este Mês',
+  week: 'Esta Semana',
+  '7days': 'Últimos 7 Dias',
+};
 
 // ============================================================================
 // HELPERS
@@ -188,43 +195,40 @@ export function useProgressAnalytics() {
     });
   }, [allSessions, period]);
 
-  // Key statistics
+  // Key statistics — period-aware (uses filteredSessions so it updates with period filter)
   const stats = useMemo<Stats>(() => {
-    const { startOfMonth, startOfWeek } = getDateBoundaries();
+    // All-time total stays constant regardless of period filter
+    const totalMinutesAll = allSessions.reduce(
+      (acc, session) => acc + (session.duracao_minutos || 0),
+      0
+    );
 
-    let totalMinutesAll = 0;
-    let totalMinutesMonth = 0;
-    let totalMinutesWeek = 0;
+    // Period-specific stats derived from filteredSessions
+    let totalMinutesPeriod = 0;
     let longestSessionMinutes = 0;
     const uniqueDays = new Set<string>();
 
-    allSessions.forEach(session => {
+    filteredSessions.forEach(session => {
       const mins = session.duracao_minutos || 0;
-      const sessionDate = new Date(session.data_sessao);
-      sessionDate.setHours(0, 0, 0, 0);
-
-      totalMinutesAll += mins;
-      uniqueDays.add(session.data_sessao);
+      totalMinutesPeriod += mins;
       if (mins > longestSessionMinutes) longestSessionMinutes = mins;
-
-      if (sessionDate >= startOfMonth) totalMinutesMonth += mins;
-      if (sessionDate >= startOfWeek) totalMinutesWeek += mins;
+      uniqueDays.add(session.data_sessao.split('T')[0]);
     });
 
     const daysCount = uniqueDays.size || 1;
-    const avgMinutesPerDay = totalMinutesAll / daysCount;
+    const avgMinutesPerDay = filteredSessions.length > 0 ? totalMinutesPeriod / daysCount : 0;
 
     return {
       totalHoursAll: Number((totalMinutesAll / 60).toFixed(1)).toString(),
-      totalHoursMonth: Number((totalMinutesMonth / 60).toFixed(1)).toString(),
-      totalHoursWeek: Number((totalMinutesWeek / 60).toFixed(1)).toString(),
+      totalHoursPeriod: Number((totalMinutesPeriod / 60).toFixed(1)).toString(),
+      periodLabel: PERIOD_LABELS[period],
       avgHoursPerDay: Number((avgMinutesPerDay / 60).toFixed(1)).toString(),
       longestSessionMinutes,
-      totalSessions: allSessions.length,
+      totalSessions: filteredSessions.length,
       streak: currentUser?.streak_atual ?? 0,
       points: currentUser?.pontos_totais ?? 0,
     };
-  }, [allSessions, currentUser?.streak_atual, currentUser?.pontos_totais]);
+  }, [allSessions, filteredSessions, period, currentUser?.streak_atual, currentUser?.pontos_totais]);
 
   // Subject chart data
   const subjectData = useMemo<SubjectData[]>(() => {
@@ -435,6 +439,24 @@ export function useProgressAnalytics() {
     };
   }, [allMetas]);
 
+  // Material usage — aggregated from filteredSessions (period-aware)
+  const materialData = useMemo(() => {
+    const map: Record<string, number> = {};
+    filteredSessions.forEach((session: Sessao) => {
+      if (!session.material_nome) return;
+      if (!map[session.material_nome]) map[session.material_nome] = 0;
+      map[session.material_nome] += session.duracao_minutos;
+    });
+    return Object.entries(map)
+      .map(([name, minutes], index) => ({
+        name,
+        hours: Number((minutes / 60).toFixed(2)),
+        fill: CHART_COLORS[index % CHART_COLORS.length],
+      }))
+      .sort((a, b) => b.hours - a.hours)
+      .slice(0, 10); // top 10
+  }, [filteredSessions]);
+
   const handleSort = useCallback((key: keyof TableRowData) => {
     setSortConfig(current => ({
       key,
@@ -448,10 +470,12 @@ export function useProgressAnalytics() {
     subjectData,
     evolutionData,
     tableData,
+    materialData,
     examStats,
     ratingStats,
     allMetas,
     examesCount: exames.length,
+    allSessionsCount: allSessions.length,
 
     // Filters
     period,

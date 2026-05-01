@@ -83,6 +83,8 @@ export const EDITAL_SUBJECTS: Record<string, string[]> = {
     'Direito Processual Penal', 'Legislacao Especial', 'Contabilidade',
     'Portugues', 'Raciocinio Logico', 'Informatica', 'Atualidades',
   ],
+  /** Edital personalizado: user adds materias manually, no pre-fill */
+  PERSONALIZADO: [],
 };
 
 // ============================================================================

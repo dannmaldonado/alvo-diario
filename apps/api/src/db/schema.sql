@@ -111,3 +111,22 @@ CREATE TABLE IF NOT EXISTS historico_pontos (
 ALTER TABLE cronogramas ADD COLUMN IF NOT EXISTS data_inicio DATE;
 ALTER TABLE metas_diarias ADD COLUMN IF NOT EXISTS avaliacao_diaria TINYINT CHECK (avaliacao_diaria BETWEEN 1 AND 5);
 ALTER TABLE historico_pontos ADD COLUMN IF NOT EXISTS rating_multiplier DECIMAL(3,1) NULL;
+
+-- Study materials table (Feature: material per session)
+CREATE TABLE IF NOT EXISTS materiais (
+  id VARCHAR(36) PRIMARY KEY,
+  user_id VARCHAR(36) NOT NULL,
+  nome VARCHAR(200) NOT NULL,
+  tipo VARCHAR(50) DEFAULT 'outro',
+  descricao VARCHAR(500),
+  ativo TINYINT(1) DEFAULT 1,
+  created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_materiais_user_id (user_id)
+);
+
+-- Add material and notes columns to study sessions
+ALTER TABLE sessoes_estudo ADD COLUMN IF NOT EXISTS notas VARCHAR(500) NULL;
+ALTER TABLE sessoes_estudo ADD COLUMN IF NOT EXISTS material_id VARCHAR(36) NULL;
+ALTER TABLE sessoes_estudo ADD COLUMN IF NOT EXISTS material_nome VARCHAR(200) NULL;

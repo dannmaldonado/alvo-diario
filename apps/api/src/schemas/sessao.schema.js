@@ -9,6 +9,9 @@ export const createSessaoSchema = z.object({
   materia: z.string().min(1, 'Materia is required').max(200),
   data_sessao: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'data_sessao must be YYYY-MM-DD format'),
   duracao_minutos: z.number().int().min(1, 'Duration must be at least 1 minute').max(1440, 'Duration cannot exceed 24 hours'),
+  notas: z.string().max(500).optional().nullable(),
+  material_id: z.string().uuid().optional().nullable(),
+  material_nome: z.string().max(200).optional().nullable(),
 });
 
 export const updateSessaoSchema = z.object({

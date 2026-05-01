@@ -82,11 +82,42 @@ export type Sessao = {
   duracao_minutos: number;
   data_sessao: string;
   notas?: string;
+  material_id?: string;
+  material_nome?: string;
   created: string;
   updated: string;
 };
 
-export type CreateSessaoInput = Omit<Sessao, 'id' | 'created' | 'updated'>;
+// ============================================================================
+// STUDY MATERIAL TYPES
+// ============================================================================
+
+export type MaterialTipo = 'curso_online' | 'livro' | 'apostila' | 'outro';
+
+export type Material = {
+  id: string;
+  user_id: string;
+  nome: string;
+  tipo: MaterialTipo;
+  descricao?: string;
+  ativo: number;
+  created: string;
+  updated: string;
+};
+
+export type CreateMaterialInput = {
+  nome: string;
+  tipo: MaterialTipo;
+  descricao?: string;
+};
+
+export type UpdateMaterialInput = Partial<CreateMaterialInput> & { ativo?: number };
+
+export type CreateSessaoInput = Omit<Sessao, 'id' | 'created' | 'updated'> & {
+  notas?: string;
+  material_id?: string;
+  material_nome?: string;
+};
 
 export type UpdateSessaoInput = Partial<CreateSessaoInput>;
 

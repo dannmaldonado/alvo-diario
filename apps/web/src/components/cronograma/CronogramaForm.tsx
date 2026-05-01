@@ -42,6 +42,7 @@ const EDITAL_LABELS: Record<string, string> = {
   PC: 'Policia Civil (PC)',
   PRF: 'Policia Rodoviaria Federal (PRF)',
   PF: 'Policia Federal (PF)',
+  PERSONALIZADO: 'Personalizado',
 };
 
 const CronogramaForm: React.FC<CronogramaFormProps> = ({
@@ -182,9 +183,10 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
             disabled={isSubmitting}
           />
 
-          {/* Generate from edital button */}
+          {/* Generate from edital button — hidden for PERSONALIZADO (user adds manually) */}
           {watchedEdital &&
-            EDITAL_SUBJECTS[watchedEdital] &&
+            watchedEdital !== 'PERSONALIZADO' &&
+            EDITAL_SUBJECTS[watchedEdital]?.length > 0 &&
             watchedMaterias.length === 0 && (
               <Button
                 type="button"

@@ -55,7 +55,8 @@ const PERIOD_OPTIONS: { id: Period; label: string }[] = [
 
 const ProgressAnalysisPage: React.FC = () => {
   const {
-    stats, subjectData, evolutionData, tableData, examStats, ratingStats, allMetas, examesCount,
+    stats, subjectData, evolutionData, tableData, materialData, examStats, ratingStats, allMetas, examesCount,
+    allSessionsCount,
     period, setPeriod, handleSort,
     isLoading, error,
   } = useProgressAnalytics();
@@ -94,7 +95,7 @@ const ProgressAnalysisPage: React.FC = () => {
     );
   }
 
-  const periodLabel = period === 'all' ? 'Sempre' : 'Periodo';
+  const periodLabel = stats.periodLabel;
 
   return (
     <>
@@ -129,18 +130,18 @@ const ProgressAnalysisPage: React.FC = () => {
 
           {/* Key Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <StatsCard label="Total (Sempre)" value={`${stats.totalHoursAll}h`} icon={<Clock className="h-5 w-5" />} description={`${stats.totalSessions} sessoes`} />
-            <StatsCard label="Este Mes" value={`${stats.totalHoursMonth}h`} icon={<CalendarIcon className="h-5 w-5" />} />
+            <StatsCard label="Total (Sempre)" value={`${stats.totalHoursAll}h`} icon={<Clock className="h-5 w-5" />} />
+            <StatsCard label={stats.periodLabel} value={`${stats.totalHoursPeriod}h`} icon={<CalendarIcon className="h-5 w-5" />} description={`${stats.totalSessions} sessoes`} />
             <StatsCard label="Streak Atual" value={`${stats.streak} dias`} icon={<Flame className="h-5 w-5" />} description="Dias consecutivos com rating 3+" />
             <StatsCard label="Pontos Totais" value={stats.points} icon={<Star className="h-5 w-5" />} />
           </div>
 
           {/* Secondary Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <StatsCard label="Esta Semana" value={`${stats.totalHoursWeek}h`} icon={<CalendarIcon className="h-5 w-5" />} />
-            <StatsCard label="Media Diaria" value={`${stats.avgHoursPerDay}h`} icon={<TrendingUp className="h-5 w-5" />} />
-            <StatsCard label="Maior Sessao" value={`${stats.longestSessionMinutes}min`} icon={<Timer className="h-5 w-5" />} />
-            <StatsCard label="Total de Sessoes" value={stats.totalSessions} icon={<Hash className="h-5 w-5" />} />
+            <StatsCard label="Media Diaria" value={`${stats.avgHoursPerDay}h`} icon={<TrendingUp className="h-5 w-5" />} description={stats.periodLabel} />
+            <StatsCard label="Maior Sessao" value={`${stats.longestSessionMinutes}min`} icon={<Timer className="h-5 w-5" />} description={stats.periodLabel} />
+            <StatsCard label="Sessoes no Periodo" value={stats.totalSessions} icon={<Hash className="h-5 w-5" />} description={stats.periodLabel} />
+            <StatsCard label="Sessoes Totais" value={allSessionsCount} icon={<Hash className="h-5 w-5" />} description="Todo o período" />
           </div>
 
           {/* Charts */}
@@ -330,6 +331,31 @@ const ProgressAnalysisPage: React.FC = () => {
 
           {/* Detailed Table */}
           <DetailedTable tableData={tableData} onSort={handleSort} />
+
+          {/* Material Usage Chart */}
+          {materialData.length > 0 && (
+            <Card className="mt-8 animate-fade-in">
+              <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-primary" />
+                Materiais Mais Usados ({periodLabel})
+              </h3>
+              <div className="min-h-[250px]">
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={materialData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal vertical={false} stroke="hsl(var(--border))" />
+                    <XAxis type="number" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                    <YAxis dataKey="name" type="category" width={140} tick={{ fill: 'hsl(var(--foreground))', fontSize: 11 }} />
+                    <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted)/0.4)' }} />
+                    <Bar dataKey="hours" radius={[0, 4, 4, 0]}>
+                      {materialData.map((entry, index) => (
+                        <Cell key={`mat-${index}`} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          )}
 
           {/* Exam Stats */}
           {examStats && (

@@ -19,6 +19,7 @@ import {
   Timer,
   Home,
   BarChart3,
+  BookOpen,
   Sun,
   Moon,
 } from 'lucide-react';
@@ -52,6 +53,7 @@ const Header: React.FC = () => {
     { path: '/cronograma', label: 'Cronograma', icon: Calendar },
     { path: '/study-session', label: 'Estudar', icon: Timer },
     { path: '/analise', label: 'Análise', icon: BarChart3 },
+    { path: '/materiais', label: 'Materiais', icon: BookOpen },
   ];
 
   return (
