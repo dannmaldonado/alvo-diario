@@ -80,7 +80,7 @@ const ProgressAnalysisPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div>
         <div className="container mx-auto px-4 py-8 max-w-7xl space-y-8">
           <Skeleton className="h-10 w-64" />
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -97,7 +97,7 @@ const ProgressAnalysisPage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background">
+      <div>
         <div className="container mx-auto px-4 py-8 max-w-7xl">
           <Card className="flex flex-col items-center justify-center py-16 text-center">
             <AlertCircle className="h-12 w-12 text-destructive mb-4" />
@@ -121,7 +121,7 @@ const ProgressAnalysisPage: React.FC = () => {
         <meta name="description" content="Estatisticas detalhadas dos seus estudos" />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
+      <div>
         <main className="container mx-auto px-4 py-8 max-w-7xl">
 
           {/* Header with period filter */}

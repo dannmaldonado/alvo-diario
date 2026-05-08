@@ -57,7 +57,7 @@ const CronogramaPage: React.FC = () => {
     return (
       <>
         <Helmet><title>Cronograma - Alvo Diario</title></Helmet>
-        <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex items-center justify-center py-24">
           <LoadingSpinner text="Carregando seus cronogramas..." size="lg" />
         </div>
       </>
@@ -71,7 +71,7 @@ const CronogramaPage: React.FC = () => {
         <meta name="description" content="Gerencie seus cronogramas de estudos em ciclos" />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
+      <div>
         <div className="container mx-auto px-4 py-6 md:py-8 max-w-7xl">
           <div className="mb-6">
             <h1 className="mb-1.5 text-2xl font-bold md:text-3xl tracking-tight">

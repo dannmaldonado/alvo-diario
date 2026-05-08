@@ -75,7 +75,7 @@ const StudySessionPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex items-center justify-center py-24">
         <LoadingSpinner text="Carregando sessao de estudo..." size="lg" />
       </div>
     );
@@ -88,7 +88,7 @@ const StudySessionPage: React.FC = () => {
         <meta name="description" content="Timer Pomodoro para estudo estruturado" />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
+      <div>
         <main className="container mx-auto px-4 py-8 max-w-4xl">
 
           {/* Header: materia do dia */}

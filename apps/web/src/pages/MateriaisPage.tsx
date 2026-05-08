@@ -222,7 +222,7 @@ const MateriaisPage: React.FC = () => {
         <meta name="description" content="Gerencie seus materiais de estudo" />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
+      <div>
         <main className="container mx-auto px-4 py-6 md:py-8 max-w-2xl">
 
           {/* Header */}

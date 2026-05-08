@@ -83,10 +83,8 @@ const ProfilePage: React.FC = () => {
         <meta name="description" content="Gerencie seu perfil e metas de estudo" />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
-
-
-        <div className="container mx-auto px-4 py-8">
+      <div>
+        <div className="container mx-auto px-4 py-6 md:py-8">
           <div className="mx-auto max-w-4xl">
             <div className="mb-8">
               <h1 className="mb-2 text-3xl font-bold md:text-4xl">Meu Perfil</h1>

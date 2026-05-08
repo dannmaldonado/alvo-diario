@@ -51,7 +51,7 @@ const DashboardPage: React.FC = () => {
     return (
       <>
         <Helmet><title>Dashboard - Alvo Diario</title></Helmet>
-        <div className="min-h-screen bg-background">
+        <div>
           <div className="container mx-auto px-4 py-8 max-w-7xl">
             <div className="bg-card border border-destructive/30 rounded-2xl p-12 text-center shadow-sm max-w-2xl mx-auto mt-12">
               <div className="w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -76,7 +76,7 @@ const DashboardPage: React.FC = () => {
     return (
       <>
         <Helmet><title>Dashboard - Alvo Diario</title></Helmet>
-        <div className="min-h-screen bg-background">
+        <div>
           <div className="container mx-auto px-4 py-8 max-w-7xl">
             {/* Header skeleton */}
             <div className="mb-8 animate-pulse">
@@ -115,9 +115,7 @@ const DashboardPage: React.FC = () => {
         <meta name="description" content="Acompanhe seu progresso nos estudos" />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
-
-
+      <div>
         <div className="container mx-auto px-4 py-6 md:py-8 max-w-7xl">
           {/* Welcome Header */}
           <div className="mb-6 flex items-center justify-between gap-4">
