@@ -11,7 +11,8 @@ router.get('/', authMiddleware, async (req, res) => {
     const cronogramas = await getAllCronogramas(req.user.id);
     res.json(cronogramas);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[cronogramas GET /] Erro ao listar cronogramas:', error.message);
+    res.status(500).json({ error: error.message || 'Erro ao carregar cronogramas. Tente novamente.' });
   }
 });
 
@@ -29,7 +30,8 @@ router.post('/', authMiddleware, validate(createCronogramaSchema), async (req, r
     const cronograma = await createCronograma(req.user.id, req.body);
     res.status(201).json(cronograma);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('[cronogramas POST] Erro ao criar cronograma:', error.message);
+    res.status(400).json({ error: error.message || 'Erro ao salvar cronograma. Tente novamente.' });
   }
 });
 
@@ -38,7 +40,8 @@ router.patch('/:id', authMiddleware, validate(updateCronogramaSchema), async (re
     const cronograma = await updateCronograma(req.user.id, req.params.id, req.body);
     res.json(cronograma);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('[cronogramas PATCH /:id] Erro ao atualizar cronograma:', error.message);
+    res.status(400).json({ error: error.message || 'Erro ao atualizar cronograma. Tente novamente.' });
   }
 });
 

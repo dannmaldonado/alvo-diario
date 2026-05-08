@@ -5,6 +5,8 @@
 - [Cronograma - Alvo Diario](/cronograma): No description available
 - [Dashboard - Alvo Diario](/dashboard): No description available
 - [Entrar - Alvo Diário](/login): Faça login na sua conta Alvo Diário
+- [Materiais de Estudo - Alvo Diário](/materiais): Gerencie seus materiais de estudo
 - [Meu Perfil - Alvo Diário](/profile): Gerencie seu perfil e metas de estudo
 - [Pagina nao encontrada - Alvo Diario](/notfound): No description available
 - [Pomodoro - Alvo Diario](/studysession): Timer Pomodoro para estudo estruturado
+- [Revisão - Alvo Diário](/revisao): Fila de revisão por repetição espaçada (SM-2)

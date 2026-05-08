@@ -66,6 +66,9 @@ if (!process.env.DB_HOST && !process.env.DATABASE_URL) {
 if (!process.env.JWT_SECRET) {
   console.error('[FATAL] JWT_SECRET not set. Auth endpoints will fail. Set JWT_SECRET in your .env file.');
 }
+if (!process.env.ANTHROPIC_API_KEY) {
+  console.warn('[WARNING] ANTHROPIC_API_KEY not set. AI question generation will fail. Set ANTHROPIC_API_KEY in your .env file.');
+}
 
 // Middleware
 app.use(express.json());
