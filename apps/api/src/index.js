@@ -17,7 +17,7 @@ import examesRoutes from './routes/exames.js';
 import materiaisRoutes from './routes/materiais.js';
 // import questoesRoutes from './routes/questoes.js'; // TEMPORARILY DISABLED - debugging 503
 import missoesRoutes from './routes/missoes.js';
-import editalRoutes from './routes/edital.js';
+// import editalRoutes from './routes/edital.js'; // TEMPORARILY DISABLED - missing parseEdital export from ai.js
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -140,7 +140,7 @@ app.use('/api/exames', examesRoutes);
 app.use('/api/materiais', materiaisRoutes);
 // app.use('/api/questoes', questoesRoutes); // TEMPORARILY DISABLED - debugging 503
 app.use('/api/missoes', missoesRoutes);
-app.use('/api/edital', editalRoutes);
+// app.use('/api/edital', editalRoutes); // TEMPORARILY DISABLED - missing parseEdital export from ai.js
 
 // ============================================================
 // FRONTEND SERVING
