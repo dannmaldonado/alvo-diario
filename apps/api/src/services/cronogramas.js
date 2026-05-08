@@ -39,8 +39,8 @@ export const createCronograma = async (userId, data) => {
   try {
     const id = uuidv4();
     await connection.query(
-      'INSERT INTO cronogramas (id, user_id, edital, data_alvo, data_inicio, materias, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [id, userId, data.edital, data.data_alvo, data.data_inicio || null, JSON.stringify(data.materias || []), data.status || 'ativo']
+      'INSERT INTO cronogramas (id, user_id, edital, banca, data_alvo, data_inicio, materias, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [id, userId, data.edital, data.banca || null, data.data_alvo, data.data_inicio || null, JSON.stringify(data.materias || []), data.status || 'ativo']
     );
     return getCronogramaById(userId, id);
   } finally {
@@ -55,6 +55,7 @@ export const updateCronograma = async (userId, id, data) => {
 
     const updates = {
       edital: data.edital ?? cronograma.edital,
+      banca: data.banca !== undefined ? data.banca : cronograma.banca,
       data_alvo: data.data_alvo ?? cronograma.data_alvo,
       data_inicio: data.data_inicio !== undefined ? data.data_inicio : cronograma.data_inicio,
       materias: data.materias ?? cronograma.materias,
@@ -62,8 +63,8 @@ export const updateCronograma = async (userId, id, data) => {
     };
 
     await connection.query(
-      'UPDATE cronogramas SET edital = ?, data_alvo = ?, data_inicio = ?, materias = ?, status = ? WHERE id = ? AND user_id = ?',
-      [updates.edital, updates.data_alvo, updates.data_inicio, JSON.stringify(updates.materias), updates.status, id, userId]
+      'UPDATE cronogramas SET edital = ?, banca = ?, data_alvo = ?, data_inicio = ?, materias = ?, status = ? WHERE id = ? AND user_id = ?',
+      [updates.edital, updates.banca, updates.data_alvo, updates.data_inicio, JSON.stringify(updates.materias), updates.status, id, userId]
     );
 
     return getCronogramaById(userId, id);

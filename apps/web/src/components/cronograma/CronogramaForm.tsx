@@ -66,6 +66,7 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
     resolver: zodResolver(cronogramaFormSchema),
     defaultValues: {
       edital: '',
+      banca: '',
       materias: [],
       data_alvo: '',
       data_inicio: '',
@@ -81,6 +82,7 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
       if (initialValues) {
         reset({
           edital: initialValues.edital || '',
+          banca: initialValues.banca || '',
           materias: initialValues.materias?.map((m) => m.nome) || [],
           data_alvo: initialValues.data_alvo
             ? initialValues.data_alvo.split('T')[0]
@@ -92,6 +94,7 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
       } else {
         reset({
           edital: '',
+          banca: '',
           materias: [],
           data_alvo: '',
           data_inicio: '',
@@ -161,6 +164,39 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
                 {errors.edital.message}
               </p>
             )}
+          </div>
+
+          {/* Banca */}
+          <div className="space-y-2">
+            <Label htmlFor="banca">
+              Banca Organizadora <span className="text-xs text-muted-foreground">(opcional — para questoes no estilo certo)</span>
+            </Label>
+            <Controller
+              name="banca"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  value={field.value || ''}
+                  onValueChange={field.onChange}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger id="banca" className="w-full">
+                    <SelectValue placeholder="Selecione a banca (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sem preferência</SelectItem>
+                    <SelectItem value="CESPE/Cebraspe">CESPE/Cebraspe</SelectItem>
+                    <SelectItem value="FGV">FGV</SelectItem>
+                    <SelectItem value="FUNDATEC">FUNDATEC</SelectItem>
+                    <SelectItem value="VUNESP">VUNESP</SelectItem>
+                    <SelectItem value="IBFC">IBFC</SelectItem>
+                    <SelectItem value="AOCP">AOCP</SelectItem>
+                    <SelectItem value="NC-UFPR">NC-UFPR</SelectItem>
+                    <SelectItem value="FEPESE">FEPESE</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
           {/* Data Inicio */}

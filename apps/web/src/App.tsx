@@ -29,6 +29,7 @@ const StudySessionPage = React.lazy(() => import('@/pages/StudySessionPage'));
 const ProfilePage = React.lazy(() => import('@/pages/ProfilePage'));
 const ProgressAnalysisPage = React.lazy(() => import('@/pages/ProgressAnalysisPage'));
 const MateriaisPage = React.lazy(() => import('@/pages/MateriaisPage'));
+const RevisaoPage = React.lazy(() => import('@/pages/RevisaoPage'));
 const NotFound = React.lazy(() => import('@/pages/NotFound'));
 
 // Loading fallback component
@@ -122,6 +123,16 @@ const App: React.FC = () => {
                 <ProtectedRoute>
                   <Suspense fallback={<PageLoader />}>
                     <MateriaisPage />
+                  </Suspense>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/revisao"
+              element={
+                <ProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <RevisaoPage />
                   </Suspense>
                 </ProtectedRoute>
               }

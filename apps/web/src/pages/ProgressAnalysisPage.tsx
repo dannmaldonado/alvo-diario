@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, PieChart as RechartsPieChart, Pie, Cell, Legend, type TooltipProps } from 'recharts';
 import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
-import { Clock, Calendar as CalendarIcon, TrendingUp, ArrowUpDown, BookOpen, Trophy, CheckCircle2, XCircle, PieChart as PieChartIcon, Flame, Star, Timer, Hash, AlertCircle } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, TrendingUp, ArrowUpDown, BookOpen, Trophy, CheckCircle2, XCircle, PieChart as PieChartIcon, Flame, Star, Timer, Hash, AlertCircle, Brain } from 'lucide-react';
 import { Card, StatsCard } from '@/components/Card';
 import { RatingDistributionChart } from '@/components/analytics/RatingDistributionChart';
 import { ActiveDaysChart } from '@/components/analytics/ActiveDaysChart';
@@ -17,6 +17,7 @@ import {
   type Period,
   type TableRowData,
 } from '@/hooks/useProgressAnalytics';
+import { useQuestoesAnalytics } from '@/hooks/queries/useQuestoes';
 
 // ============================================================================
 // CUSTOM TOOLTIP (shared across charts)
@@ -60,6 +61,19 @@ const ProgressAnalysisPage: React.FC = () => {
     period, setPeriod, handleSort,
     isLoading, error,
   } = useProgressAnalytics();
+
+  const analyticsQuery = useQuestoesAnalytics();
+  const accuracyData = (analyticsQuery.data ?? [])
+    .filter(d => d.total >= 3) // only show subjects with meaningful sample
+    .sort((a, b) => b.taxa - a.taxa)
+    .slice(0, 10)
+    .map(d => ({
+      name: d.materia.length > 22 ? d.materia.slice(0, 22) + '…' : d.materia,
+      taxa: Math.round(d.taxa * 100),
+      acertos: d.acertos,
+      total: d.total,
+      fill: d.taxa >= 0.7 ? 'hsl(142 76% 36%)' : d.taxa >= 0.4 ? 'hsl(38 92% 50%)' : 'hsl(0 84% 60%)',
+    }));
 
   if (isLoading) {
     return (
@@ -349,6 +363,47 @@ const ProgressAnalysisPage: React.FC = () => {
                     <Bar dataKey="hours" radius={[0, 4, 4, 0]}>
                       {materialData.map((entry, index) => (
                         <Cell key={`mat-${index}`} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          )}
+
+          {/* Accuracy by Subject Chart */}
+          {accuracyData.length > 0 && (
+            <Card className="mt-8 animate-fade-in">
+              <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                <Brain className="h-5 w-5 text-primary" />
+                Desempenho por Matéria (Questões IA)
+              </h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Taxa de acerto nas questões geradas pós-sessão. Acumulado de todo o período.
+                <span className="ml-2">
+                  <span className="inline-flex items-center gap-1 text-xs">
+                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />≥70% bom
+                    <span className="inline-block w-2 h-2 rounded-full bg-amber-500 ml-2" />40–70% médio
+                    <span className="inline-block w-2 h-2 rounded-full bg-red-500 ml-2" />&lt;40% revisar
+                  </span>
+                </span>
+              </p>
+              <div className="min-h-[250px]">
+                <ResponsiveContainer width="100%" height={Math.max(250, accuracyData.length * 44)}>
+                  <BarChart data={accuracyData} layout="vertical" margin={{ top: 5, right: 50, left: 40, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal vertical={false} stroke="hsl(var(--border))" />
+                    <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                    <YAxis dataKey="name" type="category" width={140} tick={{ fill: 'hsl(var(--foreground))', fontSize: 11 }} />
+                    <RechartsTooltip
+                      formatter={(value, _name, props) => [
+                        `${value}% (${props.payload.acertos}/${props.payload.total} acertos)`,
+                        'Acurácia',
+                      ]}
+                      cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
+                    />
+                    <Bar dataKey="taxa" radius={[0, 4, 4, 0]} label={{ position: 'right', formatter: (v: number) => `${v}%`, fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}>
+                      {accuracyData.map((entry, index) => (
+                        <Cell key={`acc-${index}`} fill={entry.fill} />
                       ))}
                     </Bar>
                   </BarChart>

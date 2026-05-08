@@ -55,6 +55,7 @@ export type Cronograma = {
   id: string;
   user_id: string;
   edital: string;
+  banca?: string | null;
   materias: Materia[];
   data_alvo: string;
   data_inicio?: string;
@@ -276,5 +277,62 @@ export type FormError = {
 };
 
 export type FormErrors = Record<string, string>;
+
+// ============================================================================
+// AI QUESTION TYPES
+// ============================================================================
+
+export type QuestaoQualidade = 'facil' | 'media' | 'dificil';
+
+export type Questao = {
+  id: string;
+  user_id: string;
+  sessao_id: string | null;
+  materia: string;
+  banca: string | null;
+  enunciado: string;
+  opcoes: string[];           // 4 items: ["A) ...", "B) ...", ...]
+  resposta_correta: number;  // index 0-3
+  explicacao: string | null;
+  dificuldade: QuestaoQualidade;
+  ease_factor: number;
+  interval_days: number;
+  next_review: string | null;
+  review_count: number;
+  status: string;
+  created: string;
+};
+
+export type RespostaQuestao = {
+  id: string;
+  questao_id: string;
+  resposta: number;
+  correta: boolean;
+  resposta_correta: number;
+  explicacao: string | null;
+  next_review: string;
+  criada?: string;
+};
+
+export type GerarQuestoesInput = {
+  sessao_id?: string;
+  materia: string;
+  banca?: string | null;
+  quantidade?: number;
+  dificuldade?: QuestaoQualidade;
+};
+
+export type ResponderQuestaoInput = {
+  sessao_id?: string;
+  resposta: number;
+  tempo_resposta_s?: number;
+};
+
+export type AccuracyByMateria = {
+  materia: string;
+  total: number;
+  acertos: number;
+  taxa: number;  // 0.0–1.0
+};
 
 // All types are exported directly from this file

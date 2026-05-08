@@ -7,6 +7,7 @@ import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import SubjectBadge from '@/components/SubjectBadge';
 import PomodoroTimer from '@/components/study/PomodoroTimer';
+import QuizModal from '@/components/study/QuizModal';
 import TodaySessionsList from '@/components/study/TodaySessionsList';
 import { DailyRating } from '@/components/dashboard/DailyRating';
 import { useStudySession } from '@/hooks/useStudySession';
@@ -38,6 +39,10 @@ const StudySessionPage: React.FC = () => {
     avaliacao,
     examObservacoes,
     savingExame,
+    showQuiz,
+    questoesGeradas,
+    quizSessaoId,
+    generatingQuestoes,
     isLoading,
   } = state;
 
@@ -52,6 +57,7 @@ const StudySessionPage: React.FC = () => {
     skipBreakReminder,
     finalizarSessao,
     setShowExame,
+    setShowQuiz,
     setAvaliacao,
     setExamObservacoes,
     saveExameDiario,
@@ -280,6 +286,17 @@ const StudySessionPage: React.FC = () => {
           onSetExamObservacoes={setExamObservacoes}
           onSave={saveExameDiario}
           onClose={() => setShowExame(false)}
+        />
+      )}
+
+      {/* AI Quiz Modal */}
+      {showQuiz && (
+        <QuizModal
+          questoes={questoesGeradas}
+          sessaoId={quizSessaoId}
+          isLoading={generatingQuestoes}
+          onComplete={() => setShowQuiz(false)}
+          onClose={() => setShowQuiz(false)}
         />
       )}
     </>

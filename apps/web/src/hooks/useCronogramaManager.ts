@@ -172,6 +172,7 @@ export function useCronogramaManager(): CronogramaManagerReturn {
     const payload = {
       user_id: currentUser.id,
       edital: data.edital,
+      banca: data.banca || undefined,
       data_alvo: data.data_alvo,
       data_inicio: data.data_inicio || undefined,
       materias,

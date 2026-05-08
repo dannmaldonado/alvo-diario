@@ -10,6 +10,7 @@ export const cronogramaFormSchema = z.object({
     .string()
     .min(1, 'Nome do edital e obrigatorio')
     .max(500, 'Maximo de 500 caracteres'),
+  banca: z.string().max(100).optional().or(z.literal('')),
   materias: z
     .array(z.string().min(1, 'Nome da materia e obrigatorio'))
     .min(1, 'Adicione pelo menos 1 materia'),

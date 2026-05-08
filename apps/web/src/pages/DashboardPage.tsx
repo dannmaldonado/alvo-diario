@@ -3,13 +3,14 @@ import React from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Trophy, Flame, Play, CalendarDays, ArrowRight, BookOpen, BarChart3, Clock, Target, AlertTriangle, RefreshCw, Award } from 'lucide-react';
+import { Trophy, Flame, Play, CalendarDays, ArrowRight, BookOpen, BarChart3, Clock, Target, AlertTriangle, RefreshCw, Award, Brain } from 'lucide-react';
 import { Materia, DailyRatingValue } from '@/types';
 
 import SubjectBadge from '@/components/SubjectBadge';
 import { Card, StatsCard } from '@/components/Card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import { useQuestoesRevisao } from '@/hooks/queries/useQuestoes';
 import MonthlyStatsChart from '@/components/dashboard/MonthlyStatsChart';
 import { DailyRating } from '@/components/dashboard/DailyRating';
 
@@ -29,6 +30,9 @@ const DashboardPage: React.FC = () => {
     isLoading,
     error,
   } = useDashboardData();
+
+  const revisaoQuery = useQuestoesRevisao();
+  const revisaoPendente = revisaoQuery.data?.length ?? 0;
 
   const handleRatingChange = (rating: DailyRatingValue) => {
     if (todayMeta?.id) {
@@ -279,6 +283,28 @@ const DashboardPage: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Revision Queue Widget — only shown when there are pending reviews */}
+              {revisaoPendente > 0 && (
+                <div className="md:col-span-3 bg-primary/5 border border-primary/20 rounded-2xl p-5 flex items-center gap-5 animate-slide-up" style={{ animationDelay: '0.35s' }}>
+                  <div className="shrink-0 p-3 rounded-xl bg-primary/10">
+                    <Brain className="h-7 w-7 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-base">
+                      {revisaoPendente} {revisaoPendente === 1 ? 'questão' : 'questões'} para revisar hoje
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      Repetição espaçada — revise para não esquecer o que aprendeu.
+                    </p>
+                  </div>
+                  <Button asChild size="sm" className="shrink-0">
+                    <Link to="/revisao">
+                      Revisar Agora <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              )}
 
               {/* Monthly Stats Section */}
               <div className="md:col-span-3 mt-4 animate-slide-up">

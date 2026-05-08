@@ -130,3 +130,48 @@ CREATE TABLE IF NOT EXISTS materiais (
 ALTER TABLE sessoes_estudo ADD COLUMN IF NOT EXISTS notas VARCHAR(500) NULL;
 ALTER TABLE sessoes_estudo ADD COLUMN IF NOT EXISTS material_id VARCHAR(36) NULL;
 ALTER TABLE sessoes_estudo ADD COLUMN IF NOT EXISTS material_nome VARCHAR(200) NULL;
+
+-- Add banca (exam board) to cronogramas for AI-style question generation
+ALTER TABLE cronogramas ADD COLUMN IF NOT EXISTS banca VARCHAR(100) NULL;
+
+-- AI-generated questions per study session
+CREATE TABLE IF NOT EXISTS questoes (
+  id VARCHAR(36) PRIMARY KEY,
+  user_id VARCHAR(36) NOT NULL,
+  sessao_id VARCHAR(36) NULL,
+  materia VARCHAR(200) NOT NULL,
+  banca VARCHAR(100) NULL,
+  enunciado TEXT NOT NULL,
+  opcoes JSON NOT NULL,
+  resposta_correta TINYINT NOT NULL,
+  explicacao TEXT NULL,
+  dificuldade VARCHAR(20) DEFAULT 'media',
+  ease_factor FLOAT DEFAULT 2.5,
+  interval_days INT DEFAULT 0,
+  next_review DATE NULL,
+  review_count INT DEFAULT 0,
+  status VARCHAR(20) DEFAULT 'active',
+  created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (sessao_id) REFERENCES sessoes_estudo(id) ON DELETE SET NULL,
+  INDEX idx_questoes_user_id (user_id),
+  INDEX idx_questoes_materia (user_id, materia),
+  INDEX idx_questoes_next_review (user_id, next_review)
+);
+
+-- User responses to AI-generated questions (tracks accuracy + SM-2 inputs)
+CREATE TABLE IF NOT EXISTS respostas_questoes (
+  id VARCHAR(36) PRIMARY KEY,
+  user_id VARCHAR(36) NOT NULL,
+  questao_id VARCHAR(36) NOT NULL,
+  sessao_id VARCHAR(36) NULL,
+  resposta INT NOT NULL,
+  correta TINYINT(1) NOT NULL,
+  tempo_resposta_s INT NULL,
+  criada TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (questao_id) REFERENCES questoes(id) ON DELETE CASCADE,
+  INDEX idx_respostas_user_id (user_id),
+  INDEX idx_respostas_questao_id (questao_id)
+);

@@ -10,9 +10,10 @@ import { useActiveCronograma } from '@/hooks/queries/useCronogramas';
 import { useCreateSessao } from '@/hooks/queries/useSessoes';
 import { useTodayMeta, useUpdateMetaRating } from '@/hooks/queries/useMetas';
 import { useMateriais } from '@/hooks/queries/useMateriais';
+import { useGerarQuestoes } from '@/hooks/queries/useQuestoes';
 import { useScheduleCalculator } from '@/hooks/useScheduleCalculator';
 import { toast } from 'sonner';
-import { Cronograma, Materia, DailyRatingValue, Material } from '@/types';
+import { Cronograma, Materia, DailyRatingValue, Material, Questao } from '@/types';
 
 // ============================================================================
 // TYPES & CONSTANTS
@@ -52,6 +53,12 @@ export interface StudySessionState {
   examObservacoes: string;
   savingExame: boolean;
 
+  // AI Quiz
+  showQuiz: boolean;
+  questoesGeradas: Questao[];
+  quizSessaoId: string | undefined;
+  generatingQuestoes: boolean;
+
   // Loading
   isLoading: boolean;
 }
@@ -68,6 +75,7 @@ export interface StudySessionActions {
   skipBreakReminder: () => void;
   setShowSettings: (show: boolean | ((prev: boolean) => boolean)) => void;
   setShowExame: (show: boolean) => void;
+  setShowQuiz: (show: boolean) => void;
   setAvaliacao: (rating: DailyRatingValue) => void;
   setExamObservacoes: (value: string) => void;
   saveExameDiario: () => Promise<void>;
@@ -89,6 +97,7 @@ export function useStudySession() {
   const todayMetaQuery = useTodayMeta(currentUser?.id);
   const updateMetaRatingMutation = useUpdateMetaRating();
   const materiaisQuery = useMateriais(currentUser?.id);
+  const gerarQuestoesMutation = useGerarQuestoes();
 
   // Schedule
   const [selectedSubject, setSelectedSubject] = useState('');
@@ -115,6 +124,11 @@ export function useStudySession() {
   const [avaliacao, setAvaliacao] = useState<DailyRatingValue | null>(null);
   const [examObservacoes, setExamObservacoes] = useState('');
   const [savingExame, setSavingExame] = useState(false);
+
+  // AI Quiz
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [questoesGeradas, setQuestoesGeradas] = useState<Questao[]>([]);
+  const [quizSessaoId, setQuizSessaoId] = useState<string | undefined>(undefined);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const schedule = cronogramaQuery.data ?? null;
@@ -244,10 +258,12 @@ export function useStudySession() {
 
       // Salva sessão de estudo
       const duracao = Math.max(1, totalStudyMinutesToday);
+      let savedSessaoId: string | undefined;
+
       if (selectedSubject) {
         const materials = materiaisQuery.data ?? [];
         const chosenMaterial = materials.find(m => m.id === selectedMaterial);
-        await createSessaoMutation.mutateAsync({
+        const newSessao = await createSessaoMutation.mutateAsync({
           user_id: currentUser?.id || '',
           cronograma_id: schedule?.id || '',
           materia: selectedSubject,
@@ -256,6 +272,7 @@ export function useStudySession() {
           ...(examObservacoes.trim() ? { notas: examObservacoes.trim().slice(0, 500) } : {}),
           ...(chosenMaterial ? { material_id: chosenMaterial.id, material_nome: chosenMaterial.nome } : {}),
         });
+        savedSessaoId = (newSessao as { id?: string })?.id;
       }
 
       // Atualiza avaliação diária na meta do dia
@@ -268,15 +285,37 @@ export function useStudySession() {
       }
 
       setShowExame(false);
-      toast.success('Sessão salva! Ótimo trabalho! 🎉');
+      toast.success('Sessão salva! Gerando questões... 🎉');
+
+      // Trigger AI quiz generation in the background
+      if (selectedSubject) {
+        setQuizSessaoId(savedSessaoId);
+        setQuestoesGeradas([]);
+        setShowQuiz(true); // Show modal in loading state immediately
+
+        try {
+          const questoes = await gerarQuestoesMutation.mutateAsync({
+            sessao_id: savedSessaoId,
+            materia: selectedSubject,
+            banca: schedule?.banca ?? undefined,
+            quantidade: 5,
+            dificuldade: 'media',
+          });
+          setQuestoesGeradas(questoes);
+        } catch {
+          // Generation failed — close quiz modal silently, session was already saved
+          setShowQuiz(false);
+          toast.error('Não foi possível gerar questões agora. Tente novamente mais tarde.');
+        }
+      }
     } catch {
       toast.error('Erro ao salvar a sessão. Tente novamente.');
     } finally {
       setSavingExame(false);
     }
   }, [avaliacao, examObservacoes, totalStudyMinutesToday, selectedSubject, selectedMaterial,
-      currentUser?.id, schedule?.id, createSessaoMutation, materiaisQuery.data,
-      todayMetaQuery.data, updateMetaRatingMutation]);
+      currentUser?.id, schedule?.id, schedule?.banca, createSessaoMutation, materiaisQuery.data,
+      todayMetaQuery.data, updateMetaRatingMutation, gerarQuestoesMutation]);
 
   const formatTime = useCallback((seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -316,6 +355,10 @@ export function useStudySession() {
       avaliacao,
       examObservacoes,
       savingExame,
+      showQuiz,
+      questoesGeradas,
+      quizSessaoId,
+      generatingQuestoes: gerarQuestoesMutation.isPending,
       isLoading: cronogramaQuery.isLoading,
     },
 
@@ -331,6 +374,7 @@ export function useStudySession() {
       skipBreakReminder,
       setShowSettings,
       setShowExame,
+      setShowQuiz,
       setAvaliacao,
       setExamObservacoes,
       saveExameDiario,

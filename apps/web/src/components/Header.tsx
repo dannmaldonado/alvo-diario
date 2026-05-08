@@ -8,6 +8,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useQuestoesRevisao } from '@/hooks/queries/useQuestoes';
 import { Button } from '@/components/ui/button';
 import {
   Menu,
@@ -20,6 +21,7 @@ import {
   Home,
   BarChart3,
   BookOpen,
+  Brain,
   Sun,
   Moon,
 } from 'lucide-react';
@@ -34,6 +36,8 @@ interface NavLink {
 const Header: React.FC = () => {
   const { isAuthenticated, currentUser, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const revisaoQuery = useQuestoesRevisao();
+  const revisaoPendente = revisaoQuery.data?.length ?? 0;
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -54,6 +58,7 @@ const Header: React.FC = () => {
     { path: '/study-session', label: 'Estudar', icon: Timer },
     { path: '/analise', label: 'Análise', icon: BarChart3 },
     { path: '/materiais', label: 'Materiais', icon: BookOpen },
+    { path: '/revisao', label: 'Revisão', icon: Brain },
   ];
 
   return (
@@ -96,6 +101,11 @@ const Header: React.FC = () => {
                 >
                   <Icon className="h-4 w-4" />
                   {link.label}
+                  {link.path === '/revisao' && revisaoPendente > 0 && (
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white leading-none">
+                      {revisaoPendente > 9 ? '9+' : revisaoPendente}
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -195,6 +205,11 @@ const Header: React.FC = () => {
                   >
                     <Icon className="h-4 w-4" />
                     {link.label}
+                    {link.path === '/revisao' && revisaoPendente > 0 && (
+                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white leading-none">
+                        {revisaoPendente > 9 ? '9+' : revisaoPendente}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
