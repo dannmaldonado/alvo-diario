@@ -8,7 +8,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useQuestoesRevisao } from '@/hooks/queries/useQuestoes';
+// import { useQuestoesRevisao } from '@/hooks/queries/useQuestoes'; // TEMPORARILY DISABLED
 import { Button } from '@/components/ui/button';
 import {
   Menu,
@@ -36,8 +36,8 @@ interface NavLink {
 const Header: React.FC = () => {
   const { isAuthenticated, currentUser, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const revisaoQuery = useQuestoesRevisao();
-  const revisaoPendente = revisaoQuery.data?.length ?? 0;
+  // const revisaoQuery = useQuestoesRevisao(); // TEMPORARILY DISABLED
+  const revisaoPendente = 0; // = revisaoQuery.data?.length ?? 0;
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -58,7 +58,7 @@ const Header: React.FC = () => {
     { path: '/study-session', label: 'Estudar', icon: Timer },
     { path: '/analise', label: 'Análise', icon: BarChart3 },
     { path: '/materiais', label: 'Materiais', icon: BookOpen },
-    { path: '/revisao', label: 'Revisão', icon: Brain },
+    // { path: '/revisao', label: 'Revisão', icon: Brain }, // TEMPORARILY DISABLED - backend questoes routes disabled
   ];
 
   return (

@@ -29,7 +29,7 @@ const StudySessionPage = React.lazy(() => import('@/pages/StudySessionPage'));
 const ProfilePage = React.lazy(() => import('@/pages/ProfilePage'));
 const ProgressAnalysisPage = React.lazy(() => import('@/pages/ProgressAnalysisPage'));
 const MateriaisPage = React.lazy(() => import('@/pages/MateriaisPage'));
-const RevisaoPage = React.lazy(() => import('@/pages/RevisaoPage'));
+// const RevisaoPage = React.lazy(() => import('@/pages/RevisaoPage')); // TEMPORARILY DISABLED
 const NotFound = React.lazy(() => import('@/pages/NotFound'));
 
 // Loading fallback component
@@ -127,7 +127,7 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
-            <Route
+            {/* <Route
               path="/revisao"
               element={
                 <ProtectedRoute>
@@ -136,7 +136,7 @@ const App: React.FC = () => {
                   </Suspense>
                 </ProtectedRoute>
               }
-            />
+            /> */} {/* TEMPORARILY DISABLED */}
 
             {/* 404 Catch-all Route */}
             <Route path="*" element={
