@@ -4,7 +4,7 @@
  * and provides CRUD via modal form + AlertDialog delete confirmation.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,11 +17,12 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Map } from 'lucide-react';
 
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import CronogramaList from '@/components/cronograma/CronogramaList';
 import CronogramaForm from '@/components/cronograma/CronogramaForm';
+import { MapaBancaModal } from '@/components/cronograma/MapaBancaModal';
 import SubjectBadge from '@/components/SubjectBadge';
 import { useCronogramaManager } from '@/hooks/useCronogramaManager';
 
@@ -171,6 +172,7 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
   onDelete,
   isActive,
 }) => {
+  const [showMapaBanca, setShowMapaBanca] = useState(false);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -237,6 +239,33 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
             {cronograma.materias.map((m, i) => (
               <SubjectBadge key={i} subject={m} size="md" />
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Mapa da Banca card — only when banca is defined */}
+      {cronograma.banca && cronograma.banca !== 'Sem preferência' && (
+        <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 shrink-0 mt-0.5">
+                <Map className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold leading-tight">Mapa da Banca — {cronograma.banca}</h3>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Distribuição de matérias, pontos críticos e dicas estratégicas gerados por IA.
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={() => setShowMapaBanca(true)}
+            >
+              Ver perfil
+            </Button>
           </div>
         </div>
       )}
@@ -310,6 +339,14 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
             ))}
           </div>
         </div>
+      )}
+
+      {/* Mapa da Banca Modal — outside any Dialog, no z-index conflicts */}
+      {showMapaBanca && cronograma.banca && (
+        <MapaBancaModal
+          banca={cronograma.banca}
+          onClose={() => setShowMapaBanca(false)}
+        />
       )}
     </div>
   );
