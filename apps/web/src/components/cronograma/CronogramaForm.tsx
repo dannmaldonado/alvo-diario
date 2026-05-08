@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Sparkles, Map, FileUp } from 'lucide-react';
+import { Sparkles, Map } from 'lucide-react';
 import { EditalUpload } from '@/components/cronograma/EditalUpload';
 import { MapaBancaModal } from '@/components/cronograma/MapaBancaModal';
 
@@ -56,7 +56,6 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
 }) => {
   const isEdit = !!initialValues;
   const [showMapaBanca, setShowMapaBanca] = useState(false);
-  const [showEditalUpload, setShowEditalUpload] = useState(false);
 
   const {
     control,
@@ -123,7 +122,6 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
     if (banca && !watchedBanca) {
       setValue('banca', banca, { shouldValidate: true });
     }
-    setShowEditalUpload(false);
   };
 
   const handleFormSubmit = (data: CronogramaFormData) => {
@@ -233,22 +231,8 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
 
           {/* Edital Upload — PDF parsing via Claude AI */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm">Importar do Edital (PDF)</Label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-auto py-0 text-xs text-primary"
-                onClick={() => setShowEditalUpload(v => !v)}
-              >
-                <FileUp className="h-3.5 w-3.5 mr-1" />
-                {showEditalUpload ? 'Fechar' : 'Extrair matérias do PDF'}
-              </Button>
-            </div>
-            {showEditalUpload && (
-              <EditalUpload onImport={handleEditalImport} />
-            )}
+            <Label className="text-sm">Importar Matérias do Edital (PDF)</Label>
+            <EditalUpload onImport={handleEditalImport} />
           </div>
 
           {/* Data Inicio */}

@@ -193,8 +193,8 @@ export function useCronogramaManager(): CronogramaManagerReturn {
       }
       closeModal();
     } catch (error) {
+      // Toast is handled by mutation onError — just log here
       console.error('Error saving cronograma:', error);
-      toast.error('Erro ao salvar cronograma');
     }
   }, [currentUser, editingCronograma, selectedCronograma, updateMutation, createMutation, closeModal]);
 
