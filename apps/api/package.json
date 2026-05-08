@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
+    "build": "echo 'API is plain Node.js ESM — no compilation required'",
     "migrate": "node src/migrations/run.js"
   },
   "keywords": [],
