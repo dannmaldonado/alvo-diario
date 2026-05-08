@@ -175,3 +175,30 @@ CREATE TABLE IF NOT EXISTS respostas_questoes (
   INDEX idx_respostas_user_id (user_id),
   INDEX idx_respostas_questao_id (questao_id)
 );
+
+-- Daily missions — auto-generated based on study gaps, accuracy and schedule
+CREATE TABLE IF NOT EXISTS missoes (
+  id VARCHAR(36) PRIMARY KEY,
+  user_id VARCHAR(36) NOT NULL,
+  tipo VARCHAR(30) NOT NULL,           -- 'study' | 'review' | 'accuracy' | 'streak'
+  titulo VARCHAR(200) NOT NULL,
+  descricao VARCHAR(500) NOT NULL,
+  materia VARCHAR(200) NULL,
+  meta_minutos INT NULL,
+  meta_questoes INT NULL,
+  status VARCHAR(20) DEFAULT 'pendente', -- 'pendente' | 'concluida' | 'ignorada'
+  expires_at DATE NOT NULL,              -- valid for the day they were created
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_missoes_user_date (user_id, expires_at),
+  INDEX idx_missoes_status (user_id, status)
+);
+
+-- Cache for AI-generated banca profiles (per exam board)
+CREATE TABLE IF NOT EXISTS mapa_banca_cache (
+  id VARCHAR(36) PRIMARY KEY,
+  banca VARCHAR(100) NOT NULL UNIQUE,
+  conteudo JSON NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);

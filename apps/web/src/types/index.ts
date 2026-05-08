@@ -335,4 +335,60 @@ export type AccuracyByMateria = {
   taxa: number;  // 0.0–1.0
 };
 
+// ============================================================================
+// MISSIONS TYPES
+// ============================================================================
+
+export type MissaoTipo = 'study' | 'review' | 'accuracy' | 'streak';
+export type MissaoStatus = 'pendente' | 'concluida' | 'ignorada';
+
+export type Missao = {
+  id: string;
+  user_id: string;
+  tipo: MissaoTipo;
+  titulo: string;
+  descricao: string;
+  materia: string | null;
+  meta_minutos: number | null;
+  meta_questoes: number | null;
+  status: MissaoStatus;
+  expires_at: string;
+  created_at: string;
+};
+
+// ============================================================================
+// MAPA DA BANCA TYPES
+// ============================================================================
+
+export type MapaBancaArea = {
+  area: string;
+  peso: number;       // 0–100
+  dica: string;
+};
+
+export type MapaBanca = {
+  banca: string;
+  perfil: string;
+  estilo_questoes: string;
+  distribuicao: MapaBancaArea[];
+  pontos_criticos: string[];
+  dicas_estrategicas: string[];
+  cached?: boolean;
+};
+
+// ============================================================================
+// EDITAL TYPES
+// ============================================================================
+
+export type EditalMateria = {
+  nome: string;
+  topicos: string[];
+};
+
+export type EditalParseResult = {
+  concurso: string;
+  banca: string | null;
+  materias: EditalMateria[];
+};
+
 // All types are exported directly from this file

@@ -16,6 +16,8 @@ import historicoRoutes from './routes/historico.js';
 import examesRoutes from './routes/exames.js';
 import materiaisRoutes from './routes/materiais.js';
 import questoesRoutes from './routes/questoes.js';
+import missoesRoutes from './routes/missoes.js';
+import editalRoutes from './routes/edital.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -130,6 +132,8 @@ app.use('/api/historico', historicoRoutes);
 app.use('/api/exames', examesRoutes);
 app.use('/api/materiais', materiaisRoutes);
 app.use('/api/questoes', questoesRoutes);
+app.use('/api/missoes', missoesRoutes);
+app.use('/api/edital', editalRoutes);
 
 // ============================================================
 // FRONTEND SERVING

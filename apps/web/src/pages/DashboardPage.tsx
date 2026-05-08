@@ -13,6 +13,7 @@ import { useDashboardData } from '@/hooks/useDashboardData';
 import { useQuestoesRevisao } from '@/hooks/queries/useQuestoes';
 import MonthlyStatsChart from '@/components/dashboard/MonthlyStatsChart';
 import { DailyRating } from '@/components/dashboard/DailyRating';
+import { MissoesWidget } from '@/components/dashboard/MissoesWidget';
 
 const DashboardPage: React.FC = () => {
   const {
@@ -305,6 +306,11 @@ const DashboardPage: React.FC = () => {
                   </Button>
                 </div>
               )}
+
+              {/* Daily Missions Widget */}
+              <div className="md:col-span-3 animate-slide-up" style={{ animationDelay: '0.4s' }}>
+                <MissoesWidget />
+              </div>
 
               {/* Monthly Stats Section */}
               <div className="md:col-span-3 mt-4 animate-slide-up">

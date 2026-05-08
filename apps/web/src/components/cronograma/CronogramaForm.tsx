@@ -4,7 +4,7 @@
  * Uses React Hook Form + Zod for validation with inline error display.
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -28,7 +28,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Map, FileUp } from 'lucide-react';
+import { EditalUpload } from '@/components/cronograma/EditalUpload';
+import { MapaBancaModal } from '@/components/cronograma/MapaBancaModal';
 
 interface CronogramaFormProps {
   open: boolean;
@@ -53,6 +55,8 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
   isSubmitting = false,
 }) => {
   const isEdit = !!initialValues;
+  const [showMapaBanca, setShowMapaBanca] = useState(false);
+  const [showEditalUpload, setShowEditalUpload] = useState(false);
 
   const {
     control,
@@ -74,6 +78,7 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
   });
 
   const watchedEdital = watch('edital');
+  const watchedBanca = watch('banca');
   const watchedMaterias = watch('materias');
 
   // Reset form when modal opens/closes or initialValues change
@@ -110,11 +115,23 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
     }
   };
 
+  const handleEditalImport = (materias: string[], banca?: string | null) => {
+    // Merge with existing materias (deduplicate)
+    const existing = watchedMaterias ?? [];
+    const merged = Array.from(new Set([...existing, ...materias]));
+    setValue('materias', merged, { shouldValidate: true });
+    if (banca && !watchedBanca) {
+      setValue('banca', banca, { shouldValidate: true });
+    }
+    setShowEditalUpload(false);
+  };
+
   const handleFormSubmit = (data: CronogramaFormData) => {
     onSubmit(data);
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader className="">
@@ -171,32 +188,67 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
             <Label htmlFor="banca">
               Banca Organizadora <span className="text-xs text-muted-foreground">(opcional — para questoes no estilo certo)</span>
             </Label>
-            <Controller
-              name="banca"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  value={field.value || ''}
-                  onValueChange={field.onChange}
-                  disabled={isSubmitting}
+            <div className="flex gap-2">
+              <Controller
+                name="banca"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value || ''}
+                    onValueChange={field.onChange}
+                    disabled={isSubmitting}
+                  >
+                    <SelectTrigger id="banca" className="flex-1">
+                      <SelectValue placeholder="Selecione a banca (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Sem preferência</SelectItem>
+                      <SelectItem value="CESPE/Cebraspe">CESPE/Cebraspe</SelectItem>
+                      <SelectItem value="FGV">FGV</SelectItem>
+                      <SelectItem value="FUNDATEC">FUNDATEC</SelectItem>
+                      <SelectItem value="VUNESP">VUNESP</SelectItem>
+                      <SelectItem value="IBFC">IBFC</SelectItem>
+                      <SelectItem value="AOCP">AOCP</SelectItem>
+                      <SelectItem value="NC-UFPR">NC-UFPR</SelectItem>
+                      <SelectItem value="FEPESE">FEPESE</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {/* Mapa da Banca button — only shown when a banca is selected */}
+              {watchedBanca && watchedBanca !== '' && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  title="Ver Mapa da Banca"
+                  onClick={() => setShowMapaBanca(true)}
+                  className="flex-shrink-0"
                 >
-                  <SelectTrigger id="banca" className="w-full">
-                    <SelectValue placeholder="Selecione a banca (opcional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Sem preferência</SelectItem>
-                    <SelectItem value="CESPE/Cebraspe">CESPE/Cebraspe</SelectItem>
-                    <SelectItem value="FGV">FGV</SelectItem>
-                    <SelectItem value="FUNDATEC">FUNDATEC</SelectItem>
-                    <SelectItem value="VUNESP">VUNESP</SelectItem>
-                    <SelectItem value="IBFC">IBFC</SelectItem>
-                    <SelectItem value="AOCP">AOCP</SelectItem>
-                    <SelectItem value="NC-UFPR">NC-UFPR</SelectItem>
-                    <SelectItem value="FEPESE">FEPESE</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <Map className="h-4 w-4" />
+                </Button>
               )}
-            />
+            </div>
+          </div>
+
+          {/* Edital Upload — PDF parsing via Claude AI */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Importar do Edital (PDF)</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-auto py-0 text-xs text-primary"
+                onClick={() => setShowEditalUpload(v => !v)}
+              >
+                <FileUp className="h-3.5 w-3.5 mr-1" />
+                {showEditalUpload ? 'Fechar' : 'Extrair matérias do PDF'}
+              </Button>
+            </div>
+            {showEditalUpload && (
+              <EditalUpload onImport={handleEditalImport} />
+            )}
           </div>
 
           {/* Data Inicio */}
@@ -277,6 +329,15 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
         </form>
       </DialogContent>
     </Dialog>
+
+    {/* Mapa da Banca Modal — rendered outside Dialog to avoid stacking context issues */}
+    {showMapaBanca && watchedBanca && (
+      <MapaBancaModal
+        banca={watchedBanca}
+        onClose={() => setShowMapaBanca(false)}
+      />
+    )}
+    </>
   );
 };
 

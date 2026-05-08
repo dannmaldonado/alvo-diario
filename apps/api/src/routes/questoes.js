@@ -13,6 +13,9 @@ import {
   getAccuracyByMateria,
   submitResposta,
 } from '../services/questoes.js';
+import { gerarMapaBanca } from '../services/ai.js';
+import { pool } from '../db/connection.js';
+import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
 
@@ -76,6 +79,63 @@ router.post('/:id/resposta', authMiddleware, validate(responderQuestaoSchema), a
     if (error.message.includes('não encontrada')) {
       return res.status(404).json({ error: error.message });
     }
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/questoes/mapa-banca?banca=X — AI banca profile (cached per banca)
+router.get('/mapa-banca', authMiddleware, async (req, res) => {
+  const { banca } = req.query;
+  if (!banca || banca === 'Sem preferência') {
+    return res.status(400).json({ error: 'Parâmetro "banca" obrigatório.' });
+  }
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(503).json({ error: 'Serviço de IA não configurado.' });
+  }
+
+  try {
+    const connection = await pool.getConnection();
+    try {
+      // Check cache first
+      const [[cached]] = await connection.execute(
+        'SELECT conteudo FROM mapa_banca_cache WHERE banca = ?',
+        [banca]
+      );
+      if (cached) {
+        const data = typeof cached.conteudo === 'string'
+          ? JSON.parse(cached.conteudo)
+          : cached.conteudo;
+        return res.json({ ...data, cached: true });
+      }
+
+      // Get user's materias for context
+      const [[cronograma]] = await connection.execute(
+        `SELECT materias FROM cronogramas WHERE user_id = ? AND status = 'ativo' ORDER BY created DESC LIMIT 1`,
+        [req.user.id]
+      );
+      let materias = [];
+      if (cronograma?.materias) {
+        const parsed = typeof cronograma.materias === 'string'
+          ? JSON.parse(cronograma.materias)
+          : cronograma.materias;
+        materias = Array.isArray(parsed) ? parsed.map(m => m.nome) : [];
+      }
+
+      const mapa = await gerarMapaBanca(banca, materias);
+
+      // Cache result
+      await connection.execute(
+        `INSERT INTO mapa_banca_cache (id, banca, conteudo) VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE conteudo = VALUES(conteudo), updated_at = CURRENT_TIMESTAMP`,
+        [uuidv4(), banca, JSON.stringify(mapa)]
+      );
+
+      res.json({ ...mapa, cached: false });
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('[mapa-banca] Erro:', error.message);
     res.status(500).json({ error: error.message });
   }
 });

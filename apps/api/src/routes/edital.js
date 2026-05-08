@@ -1,0 +1,68 @@
+/**
+ * Edital Routes — PDF upload + subject extraction via Claude AI
+ */
+
+import express from 'express';
+import multer from 'multer';
+import authMiddleware from '../middleware/auth.js';
+import { parseEdital } from '../services/ai.js';
+
+const router = express.Router();
+
+// Multer: memory storage (no disk writes), max 10MB, PDF only
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Apenas arquivos PDF são aceitos.'));
+    }
+  },
+});
+
+// POST /api/edital/parse — Upload PDF edital, extract subjects via Claude
+router.post('/parse', authMiddleware, upload.single('edital'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+  }
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(503).json({ error: 'Serviço de IA não configurado.' });
+  }
+
+  try {
+    const resultado = await parseEdital(req.file.buffer);
+
+    if (!resultado.materias || resultado.materias.length === 0) {
+      return res.status(422).json({
+        error: 'Não foi possível extrair matérias do edital. Verifique se o PDF contém o conteúdo programático.',
+        resultado,
+      });
+    }
+
+    res.json(resultado);
+  } catch (error) {
+    console.error('[edital] Erro ao processar PDF:', error.message);
+    if (error.message.includes('JSON') || error.message.includes('invalid format')) {
+      return res.status(502).json({ error: 'Falha ao processar resposta da IA. Tente novamente.' });
+    }
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Multer error handler
+router.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'Arquivo muito grande. Máximo 10MB.' });
+    }
+    return res.status(400).json({ error: err.message });
+  }
+  if (err?.message?.includes('PDF')) {
+    return res.status(400).json({ error: err.message });
+  }
+  next(err);
+});
+
+export default router;
