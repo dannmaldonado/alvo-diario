@@ -2,9 +2,14 @@
  * Edital Service — PDF upload + subject extraction
  */
 
+import { apiClient } from '@/services/api';
 import type { EditalParseResult, MapaBanca } from '@/types';
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? '';
+// Used only for multipart/form-data (PDF upload) — apiClient sets Content-Type: application/json
+// which is incompatible with file uploads, so we use raw fetch for the parse endpoint.
+const API_BASE_URL = import.meta.env.PROD
+  ? ''
+  : (import.meta.env.VITE_API_URL as string | undefined) || 'http://localhost:3001';
 
 function getToken(): string | null {
   return localStorage.getItem('auth_token');
@@ -16,7 +21,7 @@ export const EditalService = {
     const formData = new FormData();
     formData.append('edital', file);
 
-    const res = await fetch(`${BASE_URL}/api/edital/parse`, {
+    const res = await fetch(`${API_BASE_URL}/api/edital/parse`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${getToken()}`,
@@ -34,22 +39,6 @@ export const EditalService = {
   },
 
   /** Get AI-generated banca profile (cached per banca) */
-  getMapaBanca: async (banca: string): Promise<MapaBanca> => {
-    const res = await fetch(
-      `${BASE_URL}/api/questoes/mapa-banca?banca=${encodeURIComponent(banca)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: 'Erro ao buscar mapa da banca.' }));
-      throw new Error(err.error || `Erro ${res.status}`);
-    }
-
-    return res.json();
-  },
+  getMapaBanca: async (banca: string): Promise<MapaBanca> =>
+    apiClient.get<MapaBanca>(`/api/questoes/mapa-banca?banca=${encodeURIComponent(banca)}`),
 };
