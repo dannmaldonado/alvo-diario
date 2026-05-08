@@ -98,33 +98,31 @@ export async function gerarMapaBanca(banca, materias = []) {
     ? `Matérias do edital: ${materias.join(', ')}`
     : 'Matérias comuns em concursos policiais';
 
-  const prompt = `Você é um especialista em padrões de questões de concursos policiais.
+  const prompt = `Você é um especialista em padrões de questões de concursos policiais brasileiros.
 
-Faça um perfil detalhado da banca "${banca}" para candidatos estudarem de forma eficiente.
+Gere um perfil estratégico da banca "${banca}" para candidatos. ${materiasList}
 
-${materiasList}
-
-Estruture a resposta como JSON com:
+Retorne APENAS JSON válido, sem markdown, neste formato exato:
 {
-  "banca": "${banca}",
-  "descricao": "Breve descrição da banca e seu estilo",
-  "padroes": [
-    {
-      "materia": "Direito Constitucional",
-      "topicos_frequentes": ["Direitos fundamentais", "Separação de poderes"],
-      "dicas": ["Dica 1", "Dica 2"],
-      "dificuldade_media": "media",
-      "frequencia_anual": "Aproximadamente X questões por ano"
-    }
+  "perfil": "2-3 frases descrevendo o estilo e características da banca",
+  "estilo_questoes": "1 frase sobre o formato das questões (objetiva, certo/errado, etc.)",
+  "distribuicao": [
+    { "area": "Nome da área", "peso": 25, "dica": "Dica breve sobre essa área" }
   ],
-  "dicas_gerais": ["Dica geral 1", "Dica geral 2"],
-  "ultimas_mudancas": "Informações sobre mudanças recentes"
-}`;
+  "pontos_criticos": ["Ponto 1", "Ponto 2", "Ponto 3"],
+  "dicas_estrategicas": ["Dica 1", "Dica 2", "Dica 3"]
+}
+
+Regras:
+- distribuicao: máximo 8 áreas, pesos somam 100
+- pontos_criticos: máximo 4 itens, máximo 15 palavras cada
+- dicas_estrategicas: máximo 4 itens, máximo 15 palavras cada
+- Seja conciso — respostas longas serão cortadas`;
 
   try {
     const msg = await anthropic.messages.create({
       model: 'claude-opus-4-5',
-      max_tokens: 2048,
+      max_tokens: 4096,
       messages: [{ role: 'user', content: prompt }],
     });
 
