@@ -119,7 +119,8 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
     const existing = watchedMaterias ?? [];
     const merged = Array.from(new Set([...existing, ...materias]));
     setValue('materias', merged, { shouldValidate: true });
-    if (banca && !watchedBanca) {
+    // Set banca from edital if none is currently selected ('none' = sem preferência)
+    if (banca && (!watchedBanca || watchedBanca === 'none' || watchedBanca === '')) {
       setValue('banca', banca, { shouldValidate: true });
     }
   };
@@ -192,15 +193,15 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
                 control={control}
                 render={({ field }) => (
                   <Select
-                    value={field.value || ''}
-                    onValueChange={field.onChange}
+                    value={field.value || 'none'}
+                    onValueChange={(v) => field.onChange(v === 'none' ? '' : v)}
                     disabled={isSubmitting}
                   >
                     <SelectTrigger id="banca" className="flex-1">
                       <SelectValue placeholder="Selecione a banca (opcional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Sem preferência</SelectItem>
+                      <SelectItem value="none">Sem preferência</SelectItem>
                       <SelectItem value="CESPE/Cebraspe">CESPE/Cebraspe</SelectItem>
                       <SelectItem value="FGV">FGV</SelectItem>
                       <SelectItem value="FUNDATEC">FUNDATEC</SelectItem>
@@ -213,8 +214,8 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
                   </Select>
                 )}
               />
-              {/* Mapa da Banca button — only shown when a banca is selected */}
-              {watchedBanca && watchedBanca !== '' && (
+              {/* Mapa da Banca button — only shown when a real banca is selected */}
+              {watchedBanca && watchedBanca !== '' && watchedBanca !== 'none' && (
                 <Button
                   type="button"
                   variant="outline"
