@@ -8,6 +8,7 @@ export const gerarQuestoesSchema = z.object({
   sessao_id: z.string().uuid().optional(),
   materia: z.string().min(1, 'Matéria é obrigatória').max(200),
   banca: z.string().max(100).optional(),
+  material_nome: z.string().max(200).optional(),
   quantidade: z.number().int().min(3).max(10).default(5),
   dificuldade: z.enum(['facil', 'media', 'dificil']).default('media'),
 });

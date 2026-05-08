@@ -9,10 +9,10 @@ import { gerarQuestoes } from './ai.js';
 /**
  * Generate questions via AI and store them in database
  */
-export async function gerarEArmazenar(userId, { sessao_id, materia, banca, quantidade = 5, dificuldade = 'media' }) {
+export async function gerarEArmazenar(userId, { sessao_id, materia, banca, material_nome, quantidade = 5, dificuldade = 'media' }) {
   try {
     // Generate questions via Claude API
-    const questoes = await gerarQuestoes({ materia, banca, quantidade, dificuldade });
+    const questoes = await gerarQuestoes({ materia, banca, material_nome, quantidade, dificuldade });
 
     // Insert into database
     const connection = await pool.getConnection();

@@ -318,6 +318,7 @@ export type GerarQuestoesInput = {
   sessao_id?: string;
   materia: string;
   banca?: string | null;
+  material_nome?: string;
   quantidade?: number;
   dificuldade?: QuestaoQualidade;
 };

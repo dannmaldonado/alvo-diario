@@ -71,7 +71,17 @@ export function MapaBancaModal({ banca, onClose }: MapaBancaModalProps) {
             <div className="flex flex-col items-center justify-center py-16 gap-2 text-center">
               <AlertTriangle className="h-8 w-8 text-destructive" />
               <p className="text-sm font-medium">Não foi possível gerar o mapa da banca.</p>
-              <p className="text-xs text-muted-foreground">Verifique sua chave de API e tente novamente.</p>
+              {(error as Error).message?.includes('não configurado') || (error as Error).message?.includes('503') ? (
+                <p className="text-xs text-muted-foreground max-w-sm">
+                  O serviço de IA não está configurado no servidor. Configure a variável{' '}
+                  <code className="font-mono bg-muted px-1 rounded">ANTHROPIC_API_KEY</code>{' '}
+                  no painel do servidor e reinicie a aplicação.
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground max-w-sm">
+                  {(error as Error).message || 'Erro interno. Tente novamente em alguns instantes.'}
+                </p>
+              )}
             </div>
           )}
 

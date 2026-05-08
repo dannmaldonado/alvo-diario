@@ -16,7 +16,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
  * @param {string} [params.dificuldade=media] - Difficulty level (facil, media, dificil)
  * @returns {Promise<Array>} Array of question objects
  */
-export async function gerarQuestoes({ materia, banca, quantidade = 5, dificuldade = 'media' }) {
+export async function gerarQuestoes({ materia, banca, material_nome, quantidade = 5, dificuldade = 'media' }) {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error('ANTHROPIC_API_KEY not configured');
   }
@@ -25,9 +25,13 @@ export async function gerarQuestoes({ materia, banca, quantidade = 5, dificuldad
     ? `no estilo da banca ${banca} (questões de concurso real)`
     : 'para concursos policiais brasileiros';
 
+  const materialCtx = material_nome
+    ? `\nO candidato estudou com o material/livro: "${material_nome}". Priorize tópicos frequentemente abordados neste tipo de referência.`
+    : '';
+
   const prompt = `Você é um especialista em elaboração de questões de concursos policiais brasileiros com décadas de experiência.
 
-Gere exatamente ${quantidade} questões de múltipla escolha sobre "${materia}" ${bancaCtx}.
+Gere exatamente ${quantidade} questões de múltipla escolha sobre "${materia}" ${bancaCtx}.${materialCtx}
 
 Regras obrigatórias:
 - Nível de dificuldade: ${dificuldade}

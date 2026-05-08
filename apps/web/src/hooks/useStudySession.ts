@@ -294,10 +294,13 @@ export function useStudySession() {
         setShowQuiz(true); // Show modal in loading state immediately
 
         try {
+          const materials = materiaisQuery.data ?? [];
+          const chosenMaterialNome = materials.find(m => m.id === selectedMaterial)?.nome;
           const questoes = await gerarQuestoesMutation.mutateAsync({
             sessao_id: savedSessaoId,
             materia: selectedSubject,
             banca: schedule?.banca ?? undefined,
+            material_nome: chosenMaterialNome ?? undefined,
             quantidade: 5,
             dificuldade: 'media',
           });
