@@ -19,6 +19,8 @@ import questoesRoutes from './routes/questoes.js';
 import missoesRoutes from './routes/missoes.js';
 import editalRoutes from './routes/edital.js';
 
+console.log('[routes] Loading questoes routes...');
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 

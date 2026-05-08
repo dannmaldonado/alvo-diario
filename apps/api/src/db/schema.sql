@@ -199,6 +199,48 @@ CREATE TABLE IF NOT EXISTS missoes (
   INDEX idx_missoes_status (user_id, status)
 );
 
+-- AI-generated questions per study session
+CREATE TABLE IF NOT EXISTS questoes (
+  id VARCHAR(36) PRIMARY KEY,
+  user_id VARCHAR(36) NOT NULL,
+  sessao_id VARCHAR(36) NULL,
+  materia VARCHAR(200) NOT NULL,
+  banca VARCHAR(100) NULL,
+  enunciado TEXT NOT NULL,
+  opcoes JSON NOT NULL,            -- ["A) ...", "B) ...", "C) ...", "D) ..."]
+  resposta_correta TINYINT NOT NULL, -- índice 0-3
+  explicacao TEXT NULL,
+  dificuldade VARCHAR(20) DEFAULT 'media',
+  ease_factor FLOAT DEFAULT 2.5,   -- SM-2
+  interval_days INT DEFAULT 0,     -- SM-2
+  next_review DATE NULL,           -- SM-2
+  review_count INT DEFAULT 0,      -- SM-2
+  status VARCHAR(20) DEFAULT 'active',
+  created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (sessao_id) REFERENCES sessoes_estudo(id) ON DELETE SET NULL,
+  INDEX idx_questoes_user_id (user_id),
+  INDEX idx_questoes_materia (user_id, materia),
+  INDEX idx_questoes_next_review (user_id, next_review)
+);
+
+-- User responses to AI-generated questions (tracks accuracy + SM-2 inputs)
+CREATE TABLE IF NOT EXISTS respostas_questoes (
+  id VARCHAR(36) PRIMARY KEY,
+  user_id VARCHAR(36) NOT NULL,
+  questao_id VARCHAR(36) NOT NULL,
+  sessao_id VARCHAR(36) NULL,
+  resposta INT NOT NULL,           -- índice 0-3 escolhido
+  correta TINYINT(1) NOT NULL,
+  tempo_resposta_s INT NULL,
+  criada TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (questao_id) REFERENCES questoes(id) ON DELETE CASCADE,
+  INDEX idx_respostas_user_id (user_id),
+  INDEX idx_respostas_questao_id (questao_id)
+);
+
 -- Cache for AI-generated banca profiles (per exam board)
 CREATE TABLE IF NOT EXISTS mapa_banca_cache (
   id VARCHAR(36) PRIMARY KEY,

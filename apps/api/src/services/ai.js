@@ -1,6 +1,6 @@
 /**
  * AI Service — Claude API integration for question generation
- * Generates multiple-choice questions in the style of Brazilian exam boards (bancas)
+ * Generates realistic exam questions based on subject + exam board (banca)
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -8,167 +8,132 @@ import Anthropic from '@anthropic-ai/sdk';
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 /**
- * Generate multiple-choice questions for a given subject and exam board style.
+ * Generate multiple choice questions for a specific subject
  * @param {Object} params
  * @param {string} params.materia - Subject name (e.g., "Direito Constitucional")
- * @param {string} [params.banca] - Exam board (e.g., "CESPE/Cebraspe", "FGV")
+ * @param {string} [params.banca] - Exam board style (e.g., "CESPE/Cebraspe")
  * @param {number} [params.quantidade=5] - Number of questions to generate
- * @param {string} [params.dificuldade='media'] - Difficulty: 'facil' | 'media' | 'dificil'
+ * @param {string} [params.dificuldade=media] - Difficulty level (facil, media, dificil)
  * @returns {Promise<Array>} Array of question objects
  */
 export async function gerarQuestoes({ materia, banca, quantidade = 5, dificuldade = 'media' }) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error('ANTHROPIC_API_KEY not configured');
+  }
+
   const bancaCtx = banca && banca !== 'Sem preferência'
-    ? `no estilo da banca ${banca} (questões de concurso público real)`
+    ? `no estilo da banca ${banca} (questões de concurso real)`
     : 'para concursos policiais brasileiros';
 
-  const dificuldadeMap = {
-    facil: 'básico — conceitos fundamentais e definições',
-    media: 'intermediário — aplicação de normas e situações práticas',
-    dificil: 'avançado — casos complexos, jurisprudência e pegadinhas comuns',
-  };
-  const dificuldadeDesc = dificuldadeMap[dificuldade] || dificuldadeMap.media;
-
-  const prompt = `Você é um especialista em elaboração de questões de concursos policiais brasileiros.
+  const prompt = `Você é um especialista em elaboração de questões de concursos policiais brasileiros com décadas de experiência.
 
 Gere exatamente ${quantidade} questões de múltipla escolha sobre "${materia}" ${bancaCtx}.
 
 Regras obrigatórias:
-- Nível: ${dificuldadeDesc}
-- Cada questão deve ter: enunciado claro, 4 alternativas (A, B, C, D), exatamente 1 correta
-- Foco em aspectos realmente cobrados em provas: legislação, doutrina, jurisprudência, casos práticos
-- Linguagem formal e objetiva, sem ambiguidades
-- A explicação deve ser concisa (2-3 frases) e citar o fundamento legal quando aplicável
+- Nível de dificuldade: ${dificuldade}
+- Cada questão DEVE ter: enunciado claro, 4 alternativas (A-D), 1 resposta correta, explicação concisa
+- Foco em aspectos realmente cobrados em provas (legislação, jurisprudência, doutrina)
+- Linguagem objetiva, sem ambiguidades ou pegadinhas
+- Alternativas plausíveis (não óbvias)
+- Explicações educacionais (ajudam o candidato aprender)
 
-Retorne APENAS o array JSON válido, sem markdown, sem texto antes ou depois:
+Retorne APENAS o JSON válido, sem markdown, sem blocos de código, sem prefácio:
 [
   {
-    "enunciado": "Texto completo da questão...",
-    "opcoes": ["A) primeira alternativa", "B) segunda alternativa", "C) terceira alternativa", "D) quarta alternativa"],
+    "enunciado": "Qual é a definição correta de...",
+    "opcoes": ["A) Primeira opção", "B) Segunda opção", "C) Terceira opção", "D) Quarta opção"],
     "resposta_correta": 0,
-    "explicacao": "Explicação da resposta correta citando o fundamento.",
+    "explicacao": "Breve explicação de por que a alternativa A está correta.",
     "dificuldade": "${dificuldade}"
   }
-]
+]`;
 
-Certifique-se de que "resposta_correta" é o índice numérico (0=A, 1=B, 2=C, 3=D) da alternativa correta.`;
+  try {
+    const msg = await anthropic.messages.create({
+      model: 'claude-opus-4-5',
+      max_tokens: 4096,
+      messages: [{ role: 'user', content: prompt }],
+    });
 
-  const msg = await anthropic.messages.create({
-    model: 'claude-opus-4-5',
-    max_tokens: 4096,
-    messages: [{ role: 'user', content: prompt }],
-  });
+    const text = msg.content[0].text.trim();
+    // Strip markdown code blocks if Claude wrapped response
+    const jsonStr = text.replace(/^```json?\n?/, '').replace(/\n?```$/, '');
+    const questoes = JSON.parse(jsonStr);
 
-  const text = msg.content[0].text.trim();
-  // Strip markdown code blocks if model wraps response in them
-  const json = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-  const questoes = JSON.parse(json);
+    // Validate structure
+    if (!Array.isArray(questoes)) {
+      throw new Error('Response is not an array of questions');
+    }
 
-  if (!Array.isArray(questoes)) {
-    throw new Error('AI returned invalid format: expected JSON array');
+    return questoes.map((q, idx) => ({
+      enunciado: q.enunciado || '',
+      opcoes: q.opcoes || [],
+      resposta_correta: typeof q.resposta_correta === 'number' ? q.resposta_correta : 0,
+      explicacao: q.explicacao || '',
+      dificuldade: q.dificuldade || dificuldade,
+    }));
+  } catch (error) {
+    console.error('[ai.gerarQuestoes] Error:', error.message);
+    throw new Error(`Failed to generate questions: ${error.message}`);
+  }
+}
+
+/**
+ * Generate a comprehensive profile of an exam board's question style
+ * Used for dashboard "Mapa da Banca" feature
+ * @param {string} banca - Exam board name
+ * @param {Array<string>} materias - List of subjects to profile
+ * @returns {Promise<Object>} Banca profile with question patterns, favorite topics, etc.
+ */
+export async function gerarMapaBanca(banca, materias = []) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error('ANTHROPIC_API_KEY not configured');
   }
 
-  return questoes;
-}
+  const materiasList = materias.length > 0
+    ? `Matérias do edital: ${materias.join(', ')}`
+    : 'Matérias comuns em concursos policiais';
 
-/**
- * Generate a strategic banca profile: subject distribution, question style, key tips.
- * Result is meant to be cached in mapa_banca_cache table.
- * @param {string} banca - Exam board name (e.g., "CESPE/Cebraspe")
- * @param {string[]} materias - Subjects in the user's cronograma
- * @returns {Promise<Object>} Structured banca profile
- */
-export async function gerarMapaBanca(banca, materias) {
-  const materiasCtx = materias.length > 0
-    ? `O candidato estuda as seguintes matérias: ${materias.join(', ')}.`
-    : 'Considere as matérias típicas de concursos policiais brasileiros.';
+  const prompt = `Você é um especialista em padrões de questões de concursos policiais.
 
-  const prompt = `Você é um especialista em concursos policiais brasileiros com amplo conhecimento sobre a banca ${banca}.
+Faça um perfil detalhado da banca "${banca}" para candidatos estudarem de forma eficiente.
 
-${materiasCtx}
+${materiasList}
 
-Gere um perfil estratégico completo da banca ${banca} para ajudar o candidato a focar seus estudos.
-
-Retorne APENAS JSON válido, sem markdown:
+Estruture a resposta como JSON com:
 {
   "banca": "${banca}",
-  "perfil": "Descrição objetiva do estilo e características da banca em 2-3 frases.",
-  "estilo_questoes": "Como a banca elabora questões: assertivas C/E, múltipla escolha, etc.",
-  "distribuicao": [
-    { "area": "Nome da área/matéria", "peso": 20, "dica": "Dica específica para essa área nessa banca" }
-  ],
-  "pontos_criticos": ["Ponto crítico 1", "Ponto crítico 2", "Ponto crítico 3"],
-  "dicas_estrategicas": ["Dica estratégica 1", "Dica estratégica 2", "Dica estratégica 3"]
-}
-
-Regras:
-- "distribuicao" deve ter entre 4 e 8 áreas, com pesos somando 100
-- Foque nas matérias que o candidato estuda quando relevantes
-- Dicas devem ser específicas e acionáveis, não genéricas
-- Pontos críticos são armadilhas reais que a banca usa`;
-
-  const msg = await anthropic.messages.create({
-    model: 'claude-opus-4-5',
-    max_tokens: 2048,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  const text = msg.content[0].text.trim();
-  const json = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-  return JSON.parse(json);
-}
-
-/**
- * Parse a PDF edital and extract the list of subjects/topics.
- * @param {Buffer} pdfBuffer - Raw PDF file buffer
- * @returns {Promise<Object>} Extracted subjects list
- */
-export async function parseEdital(pdfBuffer) {
-  const base64 = pdfBuffer.toString('base64');
-
-  const msg = await anthropic.messages.create({
-    model: 'claude-opus-4-5',
-    max_tokens: 4096,
-    messages: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'document',
-            source: {
-              type: 'base64',
-              media_type: 'application/pdf',
-              data: base64,
-            },
-          },
-          {
-            type: 'text',
-            text: `Analise este edital de concurso público e extraia as matérias/disciplinas do conteúdo programático.
-
-Retorne APENAS JSON válido, sem markdown:
-{
-  "concurso": "Nome do concurso/cargo identificado no edital",
-  "banca": "Nome da banca organizadora, ou null se não encontrado",
-  "materias": [
+  "descricao": "Breve descrição da banca e seu estilo",
+  "padroes": [
     {
-      "nome": "Nome da matéria",
-      "topicos": ["Tópico 1", "Tópico 2", "Tópico 3"]
+      "materia": "Direito Constitucional",
+      "topicos_frequentes": ["Direitos fundamentais", "Separação de poderes"],
+      "dicas": ["Dica 1", "Dica 2"],
+      "dificuldade_media": "media",
+      "frequencia_anual": "Aproximadamente X questões por ano"
     }
-  ]
+  ],
+  "dicas_gerais": ["Dica geral 1", "Dica geral 2"],
+  "ultimas_mudancas": "Informações sobre mudanças recentes"
+}`;
+
+  try {
+    const msg = await anthropic.messages.create({
+      model: 'claude-opus-4-5',
+      max_tokens: 2048,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const text = msg.content[0].text.trim();
+    const jsonStr = text.replace(/^```json?\n?/, '').replace(/\n?```$/, '');
+    return JSON.parse(jsonStr);
+  } catch (error) {
+    console.error('[ai.gerarMapaBanca] Error:', error.message);
+    throw new Error(`Failed to generate banca profile: ${error.message}`);
+  }
 }
 
-Regras:
-- Extraia TODAS as matérias do conteúdo programático
-- Se não encontrar conteúdo programático, retorne materias: []
-- Normalize os nomes das matérias (ex: "Língua Portuguesa" não "LÍNGUA PORTUGUESA")
-- Inclua no máximo 10 tópicos por matéria (os mais importantes)
-- Banca: identifique se menciona CESPE, CEBRASPE, FGV, FUNDATEC, VUNESP, IBFC, AOCP, NC-UFPR, FEPESE, etc.`,
-          },
-        ],
-      },
-    ],
-  });
-
-  const text = msg.content[0].text.trim();
-  const json = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-  return JSON.parse(json);
-}
+export default {
+  gerarQuestoes,
+  gerarMapaBanca,
+};

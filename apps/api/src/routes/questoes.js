@@ -42,6 +42,7 @@ router.get('/revisao', authMiddleware, async (req, res) => {
     const questoes = await getQuestoesForReview(req.user.id);
     res.json(questoes);
   } catch (error) {
+    console.error('[questoes] Erro ao listar questões para revisão:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
@@ -52,6 +53,7 @@ router.get('/analytics', authMiddleware, async (req, res) => {
     const data = await getAccuracyByMateria(req.user.id);
     res.json(data);
   } catch (error) {
+    console.error('[questoes] Erro ao calcular analytics:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
@@ -66,6 +68,7 @@ router.get('/', authMiddleware, async (req, res) => {
     });
     res.json(questoes);
   } catch (error) {
+    console.error('[questoes] Erro ao listar questões:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
@@ -76,6 +79,7 @@ router.post('/:id/resposta', authMiddleware, validate(responderQuestaoSchema), a
     const result = await submitResposta(req.user.id, req.params.id, req.body);
     res.status(201).json(result);
   } catch (error) {
+    console.error('[questoes] Erro ao submeter resposta:', error.message);
     if (error.message.includes('não encontrada')) {
       return res.status(404).json({ error: error.message });
     }
