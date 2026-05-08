@@ -133,7 +133,68 @@ Estruture a resposta como JSON com:
   }
 }
 
+/**
+ * Parse a PDF edital (exam notice) and extract subjects/disciplines
+ * @param {Buffer} pdfBuffer - PDF file buffer
+ * @returns {Promise<{concurso: string, banca: string|null, materias: Array}>}
+ */
+export async function parseEdital(pdfBuffer) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error('ANTHROPIC_API_KEY not configured');
+  }
+
+  const base64 = pdfBuffer.toString('base64');
+
+  const msg = await anthropic.messages.create({
+    model: 'claude-opus-4-5',
+    max_tokens: 4096,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'document',
+            source: {
+              type: 'base64',
+              media_type: 'application/pdf',
+              data: base64,
+            },
+          },
+          {
+            type: 'text',
+            text: `Analise este edital de concurso público e extraia as matérias/disciplinas do conteúdo programático.
+
+Retorne APENAS JSON válido, sem markdown:
+{
+  "concurso": "Nome do concurso/cargo identificado no edital",
+  "banca": "Nome da banca organizadora, ou null se não encontrado",
+  "materias": [
+    {
+      "nome": "Nome da matéria",
+      "topicos": ["Tópico 1", "Tópico 2", "Tópico 3"]
+    }
+  ]
+}
+
+Regras:
+- Extraia TODAS as matérias do conteúdo programático
+- Se não encontrar conteúdo programático, retorne materias: []
+- Normalize os nomes das matérias (ex: "Língua Portuguesa" não "LÍNGUA PORTUGUESA")
+- Inclua no máximo 10 tópicos por matéria (os mais importantes)
+- Banca: identifique se menciona CESPE, CEBRASPE, FGV, FUNDATEC, VUNESP, IBFC, AOCP, NC-UFPR, FEPESE, etc.`,
+          },
+        ],
+      },
+    ],
+  });
+
+  const text = msg.content[0].text.trim();
+  const json = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+  return JSON.parse(json);
+}
+
 export default {
   gerarQuestoes,
   gerarMapaBanca,
+  parseEdital,
 };
