@@ -15,7 +15,7 @@ import badgesRoutes from './routes/badges.js';
 import historicoRoutes from './routes/historico.js';
 import examesRoutes from './routes/exames.js';
 import materiaisRoutes from './routes/materiais.js';
-// import questoesRoutes from './routes/questoes.js'; // TEMPORARILY DISABLED - debugging 503
+import questoesRoutes from './routes/questoes.js';
 import missoesRoutes from './routes/missoes.js';
 import editalRoutes from './routes/edital.js';
 
@@ -138,7 +138,7 @@ app.use('/api/badges', badgesRoutes);
 app.use('/api/historico', historicoRoutes);
 app.use('/api/exames', examesRoutes);
 app.use('/api/materiais', materiaisRoutes);
-// app.use('/api/questoes', questoesRoutes); // TEMPORARILY DISABLED - debugging 503
+app.use('/api/questoes', questoesRoutes);
 app.use('/api/missoes', missoesRoutes);
 app.use('/api/edital', editalRoutes);
 

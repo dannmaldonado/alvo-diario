@@ -9,6 +9,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useQuestoesRevisao } from '@/hooks/queries/useQuestoes';
 import {
   Tooltip,
   TooltipContent,
@@ -21,6 +22,7 @@ import {
   Calendar,
   BarChart3,
   BookOpen,
+  Brain,
   User,
   LogOut,
   Sun,
@@ -47,28 +49,36 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const NAV_GROUPS: NavGroup[] = [
-  {
-    label: 'Estudos',
-    items: [
-      { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { path: '/study-session', label: 'Estudar', icon: Timer },
-      { path: '/cronograma', label: 'Cronograma', icon: Calendar },
-    ],
-  },
-  {
-    label: 'Desempenho',
-    items: [
-      { path: '/analise', label: 'Análise', icon: BarChart3 },
-    ],
-  },
-  {
-    label: 'Recursos',
-    items: [
-      { path: '/materiais', label: 'Materiais', icon: BookOpen },
-    ],
-  },
-];
+function buildNavGroups(revisaoPendente: number): NavGroup[] {
+  return [
+    {
+      label: 'Estudos',
+      items: [
+        { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { path: '/study-session', label: 'Estudar', icon: Timer },
+        { path: '/cronograma', label: 'Cronograma', icon: Calendar },
+      ],
+    },
+    {
+      label: 'Desempenho',
+      items: [
+        { path: '/analise', label: 'Análise', icon: BarChart3 },
+        {
+          path: '/revisao',
+          label: 'Revisão IA',
+          icon: Brain,
+          badge: revisaoPendente > 0 ? revisaoPendente : undefined,
+        },
+      ],
+    },
+    {
+      label: 'Recursos',
+      items: [
+        { path: '/materiais', label: 'Materiais', icon: BookOpen },
+      ],
+    },
+  ];
+}
 
 // ============================================================================
 // NAV ITEM
@@ -151,6 +161,9 @@ export const SidebarContent: React.FC<SidebarContentProps> = ({
   const { currentUser, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const revisaoQuery = useQuestoesRevisao();
+  const revisaoPendente = revisaoQuery.data?.length ?? 0;
+  const navGroups = buildNavGroups(revisaoPendente);
 
   const handleLogout = () => {
     logout();
@@ -207,7 +220,7 @@ export const SidebarContent: React.FC<SidebarContentProps> = ({
 
         {/* ── Nav groups ── */}
         <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-5">
-          {NAV_GROUPS.map((group) => (
+          {navGroups.map((group) => (
             <div key={group.label}>
               {/* Group label — hidden when collapsed */}
               {!isCollapsed && (
