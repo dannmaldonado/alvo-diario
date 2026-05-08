@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, PieChart as RechartsPieChart, Pie, Cell, Legend, type TooltipProps } from 'recharts';
 import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
-import { Clock, Calendar as CalendarIcon, TrendingUp, ArrowUpDown, BookOpen, Trophy, CheckCircle2, XCircle, PieChart as PieChartIcon, Flame, Star, Timer, Hash, AlertCircle, Brain } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, TrendingUp, ArrowUpDown, BookOpen, Trophy, CheckCircle2, XCircle, PieChart as PieChartIcon, Flame, Star, Timer, Hash, AlertCircle, Brain, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, StatsCard } from '@/components/Card';
 import { RatingDistributionChart } from '@/components/analytics/RatingDistributionChart';
 import { ActiveDaysChart } from '@/components/analytics/ActiveDaysChart';
@@ -18,6 +18,7 @@ import {
   type TableRowData,
 } from '@/hooks/useProgressAnalytics';
 import { useQuestoesAnalytics } from '@/hooks/queries/useQuestoes';
+import type { AccuracyByMateria } from '@/types';
 
 // ============================================================================
 // CUSTOM TOOLTIP (shared across charts)
@@ -55,6 +56,8 @@ const PERIOD_OPTIONS: { id: Period; label: string }[] = [
 // ============================================================================
 
 const ProgressAnalysisPage: React.FC = () => {
+  const [showSecondaryStats, setShowSecondaryStats] = useState(false);
+
   const {
     stats, subjectData, evolutionData, tableData, materialData, examStats, ratingStats, allMetas, examesCount,
     allSessionsCount,
@@ -63,7 +66,7 @@ const ProgressAnalysisPage: React.FC = () => {
   } = useProgressAnalytics();
 
   const analyticsQuery = useQuestoesAnalytics();
-  const accuracyData = (analyticsQuery.data ?? [])
+  const accuracyData = ((analyticsQuery.data ?? []) as AccuracyByMateria[])
     .filter(d => d.total >= 3) // only show subjects with meaningful sample
     .sort((a, b) => b.taxa - a.taxa)
     .slice(0, 10)
@@ -142,20 +145,31 @@ const ProgressAnalysisPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Key Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {/* Key Stats — 4 primary metrics always visible */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <StatsCard label="Total (Sempre)" value={`${stats.totalHoursAll}h`} icon={<Clock className="h-5 w-5" />} />
             <StatsCard label={stats.periodLabel} value={`${stats.totalHoursPeriod}h`} icon={<CalendarIcon className="h-5 w-5" />} description={`${stats.totalSessions} sessoes`} />
-            <StatsCard label="Streak Atual" value={`${stats.streak} dias`} icon={<Flame className="h-5 w-5" />} description="Dias consecutivos com rating 3+" />
+            <StatsCard label="Streak Atual" value={`${stats.streak} dias`} icon={<Flame className="h-5 w-5" />} description="Dias consecutivos" />
             <StatsCard label="Pontos Totais" value={stats.points} icon={<Star className="h-5 w-5" />} />
           </div>
 
-          {/* Secondary Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <StatsCard label="Media Diaria" value={`${stats.avgHoursPerDay}h`} icon={<TrendingUp className="h-5 w-5" />} description={stats.periodLabel} />
-            <StatsCard label="Maior Sessao" value={`${stats.longestSessionMinutes}min`} icon={<Timer className="h-5 w-5" />} description={stats.periodLabel} />
-            <StatsCard label="Sessoes no Periodo" value={stats.totalSessions} icon={<Hash className="h-5 w-5" />} description={stats.periodLabel} />
-            <StatsCard label="Sessoes Totais" value={allSessionsCount} icon={<Hash className="h-5 w-5" />} description="Todo o período" />
+          {/* Secondary Stats — expandable */}
+          <div className="mb-8">
+            <button
+              onClick={() => setShowSecondaryStats(!showSecondaryStats)}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-3 group"
+            >
+              {showSecondaryStats ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              {showSecondaryStats ? 'Ocultar' : 'Ver mais'} estatísticas
+            </button>
+            {showSecondaryStats && (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-down">
+                <StatsCard label="Média Diária" value={`${stats.avgHoursPerDay}h`} icon={<TrendingUp className="h-5 w-5" />} description={stats.periodLabel} />
+                <StatsCard label="Maior Sessão" value={`${stats.longestSessionMinutes}min`} icon={<Timer className="h-5 w-5" />} description={stats.periodLabel} />
+                <StatsCard label="Sessões no Período" value={stats.totalSessions} icon={<Hash className="h-5 w-5" />} description={stats.periodLabel} />
+                <StatsCard label="Sessões Totais" value={allSessionsCount} icon={<Hash className="h-5 w-5" />} description="Todo o período" />
+              </div>
+            )}
           </div>
 
           {/* Charts */}

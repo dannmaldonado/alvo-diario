@@ -72,12 +72,12 @@ const CronogramaPage: React.FC = () => {
       </Helmet>
 
       <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
-          <div className="mb-8">
-            <h1 className="mb-2 text-3xl font-bold md:text-4xl tracking-tight">
+        <div className="container mx-auto px-4 py-6 md:py-8 max-w-7xl">
+          <div className="mb-6">
+            <h1 className="mb-1.5 text-2xl font-bold md:text-3xl tracking-tight">
               Cronograma de Ciclos
             </h1>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-base text-muted-foreground">
               Estude de forma inteligente alternando materias em ciclos continuos.
             </p>
           </div>

@@ -2,6 +2,13 @@ import React from 'react';
 import { Helmet } from 'react-helmet';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { BookOpen, CalendarDays, Trophy, X, Timer, Clock } from 'lucide-react';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -101,17 +108,20 @@ const StudySessionPage: React.FC = () => {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <select
+                <Select
                   value={selectedSubject}
-                  onChange={(e) => setSelectedSubject(e.target.value)}
+                  onValueChange={setSelectedSubject}
                   disabled={isActive}
-                  className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
                 >
-                  <option value="" disabled>Materia</option>
-                  {subjects.map((s, i) => (
-                    <option key={i} value={s}>{s}</option>
-                  ))}
-                </select>
+                  <SelectTrigger className="h-9 w-48 text-sm">
+                    <SelectValue placeholder="Matéria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subjects.map((s, i) => (
+                      <SelectItem key={i} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </Card>
           )}
@@ -221,16 +231,20 @@ const StudySessionPage: React.FC = () => {
                     <BookOpen className="w-4 h-4 text-primary" />
                     Material (opcional)
                   </h3>
-                  <select
-                    value={selectedMaterial}
-                    onChange={(e) => setSelectedMaterial(e.target.value)}
-                    className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  <Select
+                    value={selectedMaterial || '__none__'}
+                    onValueChange={(v) => setSelectedMaterial(v === '__none__' ? '' : v)}
                   >
-                    <option value="">Nenhum material</option>
-                    {materials.map(m => (
-                      <option key={m.id} value={m.id}>{m.nome}</option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full h-10 text-sm">
+                      <SelectValue placeholder="Nenhum material" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Nenhum material</SelectItem>
+                      {materials.map(m => (
+                        <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </Card>
               )}
 
@@ -241,17 +255,20 @@ const StudySessionPage: React.FC = () => {
                     <BookOpen className="w-4 h-4 text-primary" />
                     Materia
                   </h3>
-                  <select
+                  <Select
                     value={selectedSubject}
-                    onChange={(e) => setSelectedSubject(e.target.value)}
+                    onValueChange={setSelectedSubject}
                     disabled={isActive}
-                    className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
                   >
-                    <option value="" disabled>Selecione uma materia</option>
-                    {subjects.map((s, i) => (
-                      <option key={i} value={s}>{s}</option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full h-10 text-sm">
+                      <SelectValue placeholder="Selecione uma matéria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subjects.map((s, i) => (
+                        <SelectItem key={i} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </Card>
               )}
 

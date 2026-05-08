@@ -12,6 +12,13 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { BookOpen, Monitor, FileText, Package, Plus, Pencil, Trash2, X, Check } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMateriais, useCreateMaterial, useUpdateMaterial, useDeleteMaterial } from '@/hooks/queries/useMateriais';
 import { Material, MaterialTipo, CreateMaterialInput } from '@/types';
@@ -89,16 +96,20 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ initial, onSave, onCancel, 
         </div>
         <div>
           <Label className="text-xs mb-1 block">Tipo</Label>
-          <select
+          <Select
             value={form.tipo}
-            onChange={e => setForm(p => ({ ...p, tipo: e.target.value as MaterialTipo }))}
+            onValueChange={(v) => setForm(p => ({ ...p, tipo: v as MaterialTipo }))}
             disabled={isSaving}
-            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            {(Object.keys(TIPO_LABELS) as MaterialTipo[]).map(t => (
-              <option key={t} value={t}>{TIPO_LABELS[t]}</option>
-            ))}
-          </select>
+            <SelectTrigger className="h-9 w-full text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(TIPO_LABELS) as MaterialTipo[]).map(t => (
+                <SelectItem key={t} value={t}>{TIPO_LABELS[t]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <div>
@@ -212,10 +223,10 @@ const MateriaisPage: React.FC = () => {
       </Helmet>
 
       <div className="min-h-screen bg-background">
-        <main className="container mx-auto px-4 py-8 max-w-2xl">
+        <main className="container mx-auto px-4 py-6 md:py-8 max-w-2xl">
 
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-bold mb-1">Materiais de Estudo</h1>
               <p className="text-sm text-muted-foreground">
