@@ -5,7 +5,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Brain, CheckCircle2, XCircle, ChevronRight, Trophy, BookOpen, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/Card';
@@ -138,6 +138,7 @@ interface ScoreScreenProps {
 }
 
 const ScoreScreen: React.FC<ScoreScreenProps> = ({ acertos, total }) => {
+  const navigate = useNavigate();
   const pct = Math.round((acertos / total) * 100);
   const isGood = pct >= 70;
 
@@ -156,12 +157,8 @@ const ScoreScreen: React.FC<ScoreScreenProps> = ({ acertos, total }) => {
           : 'Os erros voltam para revisão amanhã. Continue praticando!'}
       </p>
       <div className="flex gap-3">
-        <Button asChild variant="outline">
-          <Link to="/dashboard">Ir ao Dashboard</Link>
-        </Button>
-        <Button asChild>
-          <Link to="/study-session">Estudar Agora</Link>
-        </Button>
+        <Button variant="outline" onClick={() => navigate('/dashboard')}>Ir ao Dashboard</Button>
+        <Button onClick={() => navigate('/study-session')}>Estudar Agora</Button>
       </div>
     </div>
   );
@@ -171,27 +168,27 @@ const ScoreScreen: React.FC<ScoreScreenProps> = ({ acertos, total }) => {
 // EMPTY STATE
 // ============================================================================
 
-const EmptyState: React.FC = () => (
-  <Card className="flex flex-col items-center justify-center py-16 text-center">
-    <div className="p-4 rounded-full bg-primary/10 mb-4">
-      <Brain className="h-10 w-10 text-primary" />
-    </div>
-    <p className="font-semibold text-lg mb-1">Nenhuma revisão pendente</p>
-    <p className="text-sm text-muted-foreground mb-6 max-w-sm">
-      Ótimo trabalho! Todas as revisões em dia. Estude uma nova sessão para gerar mais questões.
-    </p>
-    <div className="flex gap-3">
-      <Button asChild variant="outline">
-        <Link to="/dashboard">Dashboard</Link>
-      </Button>
-      <Button asChild>
-        <Link to="/study-session">
+const EmptyState: React.FC = () => {
+  const navigate = useNavigate();
+  return (
+    <Card className="flex flex-col items-center justify-center py-16 text-center">
+      <div className="p-4 rounded-full bg-primary/10 mb-4">
+        <Brain className="h-10 w-10 text-primary" />
+      </div>
+      <p className="font-semibold text-lg mb-1">Nenhuma revisão pendente</p>
+      <p className="text-sm text-muted-foreground mb-6 max-w-sm">
+        Ótimo trabalho! Todas as revisões em dia. Estude uma nova sessão para gerar mais questões.
+      </p>
+      <div className="flex gap-3">
+        <Button variant="outline" onClick={() => navigate('/dashboard')}>Dashboard</Button>
+        <Button onClick={() => navigate('/study-session')}>
           <BookOpen className="mr-2 h-4 w-4" />
           Estudar Agora
-        </Link>
-      </Button>
-    </div>
-  </Card>
+        </Button>
+      </div>
+    </Card>
+  );
+};
 );
 
 // ============================================================================
