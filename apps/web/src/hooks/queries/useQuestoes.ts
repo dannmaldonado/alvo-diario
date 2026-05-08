@@ -1,13 +1,14 @@
 /**
  * TanStack Query hooks for AI-generated Questions (Questoes)
  * Covers question generation, review queue, accuracy analytics, and response submission
+ *
+ * ⚠️ TEMPORARILY DISABLED: Backend questoes routes are offline during debugging.
+ * All hooks return safe empty/no-op states so consuming components render without errors.
+ * Re-enable by restoring the real implementations below once backend is stable.
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { QuestoesService } from '@/services/questoes.service';
-import type { GerarQuestoesInput, ResponderQuestaoInput } from '@/types';
-import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { GerarQuestoesInput, Questao, ResponderQuestaoInput } from '@/types';
 
 export const questaoKeys = {
   all: ['questoes'] as const,
@@ -15,56 +16,46 @@ export const questaoKeys = {
   analytics: () => [...questaoKeys.all, 'analytics'] as const,
 };
 
-/** Generate questions via Claude AI and store them in DB */
+/** Generate questions via Claude AI — DISABLED while backend is offline */
 export function useGerarQuestoes() {
-  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (params: GerarQuestoesInput) => QuestoesService.gerar(params),
-    onSuccess: () => {
-      // Refresh revision count in case new questions have next_review today
-      queryClient.invalidateQueries({ queryKey: questaoKeys.revisao() });
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Erro ao gerar questões. Tente novamente.');
+    mutationFn: async (_params: GerarQuestoesInput): Promise<Questao[]> => {
+      // Backend questoes routes are temporarily disabled.
+      return [];
     },
   });
 }
 
-/** Questions due for spaced repetition review today */
+/** Questions due for spaced repetition review today — DISABLED while backend is offline */
 export function useQuestoesRevisao() {
-  const { currentUser } = useAuth();
   return useQuery({
     queryKey: questaoKeys.revisao(),
-    queryFn: () => QuestoesService.getRevisao(),
-    enabled: !!currentUser?.id,
-    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<Questao[]> => [],
+    staleTime: Infinity, // never refetch while disabled
+    enabled: false,      // do not run the query
   });
 }
 
-/** Accuracy stats by subject (all-time, not period-filtered) */
+/** Accuracy stats by subject — DISABLED while backend is offline */
 export function useQuestoesAnalytics() {
-  const { currentUser } = useAuth();
   return useQuery({
     queryKey: questaoKeys.analytics(),
-    queryFn: () => QuestoesService.getAnalytics(),
-    enabled: !!currentUser?.id,
-    staleTime: 5 * 60 * 1000,
+    queryFn: async () => [],
+    staleTime: Infinity,
+    enabled: false,
   });
 }
 
-/** Submit a response to a question — updates SM-2 scheduling on backend */
+/** Submit a response to a question — DISABLED while backend is offline */
 export function useResponderQuestao() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ questaoId, data }: { questaoId: string; data: ResponderQuestaoInput }) =>
-      QuestoesService.responder(questaoId, data),
+    mutationFn: async (_args: { questaoId: string; data: ResponderQuestaoInput }) => {
+      return {};
+    },
     onSuccess: () => {
-      // Refresh revision queue and accuracy analytics after each response
       queryClient.invalidateQueries({ queryKey: questaoKeys.revisao() });
       queryClient.invalidateQueries({ queryKey: questaoKeys.analytics() });
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Erro ao salvar resposta.');
     },
   });
 }
