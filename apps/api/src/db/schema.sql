@@ -250,3 +250,19 @@ CREATE TABLE IF NOT EXISTS mapa_banca_cache (
   conteudo JSON NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+-- External question log (Gran Concurso, Tec Concurso, simulados, etc.)
+CREATE TABLE IF NOT EXISTS questoes_externas (
+  id VARCHAR(36) PRIMARY KEY,
+  user_id VARCHAR(36) NOT NULL,
+  data DATE NOT NULL,
+  fonte VARCHAR(100) NOT NULL,    -- 'Gran Concurso' | 'Tec Concurso' | 'Simulado' | 'Outro'
+  materia VARCHAR(200) NOT NULL,
+  total_questoes INT NOT NULL,
+  acertos INT NOT NULL,
+  created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_qext_user_id (user_id),
+  INDEX idx_qext_data (user_id, data)
+);

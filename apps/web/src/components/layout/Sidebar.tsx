@@ -23,6 +23,7 @@ import {
   BarChart3,
   BookOpen,
   Brain,
+  ClipboardList,
   User,
   LogOut,
   Sun,
@@ -69,6 +70,7 @@ function buildNavGroups(revisaoPendente: number): NavGroup[] {
           icon: Brain,
           badge: revisaoPendente > 0 ? revisaoPendente : undefined,
         },
+        { path: '/questoes-externas', label: 'Questões Externas', icon: ClipboardList },
       ],
     },
     {

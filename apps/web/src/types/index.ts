@@ -337,6 +337,30 @@ export type AccuracyByMateria = {
 };
 
 // ============================================================================
+// EXTERNAL QUESTIONS LOG
+// ============================================================================
+
+export type QuestaoExterna = {
+  id: string;
+  user_id: string;
+  data: string;           // YYYY-MM-DD
+  fonte: string;          // 'Gran Concurso' | 'Tec Concurso' | 'Simulado' | 'Outro'
+  materia: string;
+  total_questoes: number;
+  acertos: number;
+  erros: number;
+  created: string;
+};
+
+export type CreateQuestaoExternaInput = {
+  data: string;
+  fonte: string;
+  materia: string;
+  total_questoes: number;
+  acertos: number;
+};
+
+// ============================================================================
 // MISSIONS TYPES
 // ============================================================================
 
