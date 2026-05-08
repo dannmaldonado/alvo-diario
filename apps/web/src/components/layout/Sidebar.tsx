@@ -169,15 +169,7 @@ export const SidebarContent: React.FC<SidebarContentProps> = ({
             isCollapsed ? 'justify-center px-2' : 'justify-between px-4',
           )}
         >
-          {isCollapsed ? (
-            <Link to="/dashboard" onClick={onNavClick}>
-              <img
-                src="/favicon.png"
-                alt="Alvo Diário"
-                className="h-8 w-8 object-contain"
-              />
-            </Link>
-          ) : (
+          {!isCollapsed && (
             <Link to="/dashboard" onClick={onNavClick}>
               <img
                 src={theme === 'dark' ? '/assets/logos/logo-dark.png' : '/assets/logos/logo-light.png'}
