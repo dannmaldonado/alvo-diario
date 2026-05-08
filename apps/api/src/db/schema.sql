@@ -107,10 +107,14 @@ CREATE TABLE IF NOT EXISTS historico_pontos (
   INDEX idx_data (data)
 );
 
--- Migrations for existing tables (safe to re-run)
-ALTER TABLE cronogramas ADD COLUMN IF NOT EXISTS data_inicio DATE;
-ALTER TABLE metas_diarias ADD COLUMN IF NOT EXISTS avaliacao_diaria TINYINT CHECK (avaliacao_diaria BETWEEN 1 AND 5);
-ALTER TABLE historico_pontos ADD COLUMN IF NOT EXISTS rating_multiplier DECIMAL(3,1) NULL;
+-- Migrations for existing tables
+-- NOTE: Using ADD COLUMN without IF NOT EXISTS for MySQL 5.7 compatibility.
+-- The migration runner catches errno 1060 (duplicate column) and skips gracefully.
+ALTER TABLE cronogramas ADD COLUMN data_inicio DATE;
+-- Fix edital column length (was VARCHAR(10), 'PERSONALIZADO' needs 12+)
+ALTER TABLE cronogramas MODIFY COLUMN edital VARCHAR(500);
+ALTER TABLE metas_diarias ADD COLUMN avaliacao_diaria TINYINT;
+ALTER TABLE historico_pontos ADD COLUMN rating_multiplier DECIMAL(3,1) NULL;
 
 -- Study materials table (Feature: material per session)
 CREATE TABLE IF NOT EXISTS materiais (
@@ -127,12 +131,12 @@ CREATE TABLE IF NOT EXISTS materiais (
 );
 
 -- Add material and notes columns to study sessions
-ALTER TABLE sessoes_estudo ADD COLUMN IF NOT EXISTS notas VARCHAR(500) NULL;
-ALTER TABLE sessoes_estudo ADD COLUMN IF NOT EXISTS material_id VARCHAR(36) NULL;
-ALTER TABLE sessoes_estudo ADD COLUMN IF NOT EXISTS material_nome VARCHAR(200) NULL;
+ALTER TABLE sessoes_estudo ADD COLUMN notas VARCHAR(500) NULL;
+ALTER TABLE sessoes_estudo ADD COLUMN material_id VARCHAR(36) NULL;
+ALTER TABLE sessoes_estudo ADD COLUMN material_nome VARCHAR(200) NULL;
 
 -- Add banca (exam board) to cronogramas for AI-style question generation
-ALTER TABLE cronogramas ADD COLUMN IF NOT EXISTS banca VARCHAR(100) NULL;
+ALTER TABLE cronogramas ADD COLUMN banca VARCHAR(100) NULL;
 
 -- AI-generated questions per study session
 CREATE TABLE IF NOT EXISTS questoes (
