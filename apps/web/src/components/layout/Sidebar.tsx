@@ -165,16 +165,24 @@ export const SidebarContent: React.FC<SidebarContentProps> = ({
         {/* ── Logo + collapse button ── */}
         <div
           className={cn(
-            'flex h-16 shrink-0 items-center border-b border-border',
+            'flex h-20 shrink-0 items-center border-b border-border',
             isCollapsed ? 'justify-center px-2' : 'justify-between px-4',
           )}
         >
-          {!isCollapsed && (
+          {isCollapsed ? (
+            <Link to="/dashboard" onClick={onNavClick}>
+              <img
+                src="/favicon.png"
+                alt="Alvo Diário"
+                className="h-8 w-8 object-contain"
+              />
+            </Link>
+          ) : (
             <Link to="/dashboard" onClick={onNavClick}>
               <img
                 src={theme === 'dark' ? '/assets/logos/logo-dark.png' : '/assets/logos/logo-light.png'}
                 alt="Alvo Diário"
-                className="h-9 w-auto"
+                className="h-16 w-auto"
               />
             </Link>
           )}
