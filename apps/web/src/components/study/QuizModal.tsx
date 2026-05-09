@@ -289,6 +289,7 @@ const QuizModal: React.FC<QuizModalProps> = ({
             />
           ) : (
             <QuestionView
+              key={currentIdx}
               questao={questoes[currentIdx]}
               index={currentIdx}
               total={questoes.length}
