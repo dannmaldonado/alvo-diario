@@ -19,6 +19,7 @@ import questoesRoutes from './routes/questoes.js';
 import questoesExternasRoutes from './routes/questoes-externas.js';
 import missoesRoutes from './routes/missoes.js';
 import editalRoutes from './routes/edital.js';
+import editaisRoutes from './routes/editais.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -143,6 +144,7 @@ app.use('/api/questoes', questoesRoutes);
 app.use('/api/questoes-externas', questoesExternasRoutes);
 app.use('/api/missoes', missoesRoutes);
 app.use('/api/edital', editalRoutes);
+app.use('/api/editais', editaisRoutes);
 
 // ============================================================
 // FRONTEND SERVING

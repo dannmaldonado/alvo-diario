@@ -12,6 +12,7 @@ const materiaSchema = z.object({
 
 export const createCronogramaSchema = z.object({
   edital: z.string().min(1, 'Edital is required').max(500),
+  edital_id: z.string().uuid().optional().nullable(),
   banca: z.string().max(100).optional().nullable(),
   data_alvo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'data_alvo must be YYYY-MM-DD format'),
   data_inicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'data_inicio must be YYYY-MM-DD format').optional().nullable(),
@@ -22,6 +23,7 @@ export const createCronogramaSchema = z.object({
 
 export const updateCronogramaSchema = z.object({
   edital: z.string().min(1).max(500).optional(),
+  edital_id: z.string().uuid().optional().nullable(),
   banca: z.string().max(100).optional().nullable(),
   data_alvo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   data_inicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),

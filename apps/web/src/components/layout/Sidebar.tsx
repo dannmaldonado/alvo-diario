@@ -24,6 +24,7 @@ import {
   BookOpen,
   Brain,
   ClipboardList,
+  FileText,
   User,
   LogOut,
   Sun,
@@ -58,6 +59,7 @@ function buildNavGroups(revisaoPendente: number): NavGroup[] {
         { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { path: '/study-session', label: 'Estudar', icon: Timer },
         { path: '/cronograma', label: 'Cronograma', icon: Calendar },
+        { path: '/editais', label: 'Editais', icon: FileText },
       ],
     },
     {

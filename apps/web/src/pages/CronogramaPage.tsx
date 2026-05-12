@@ -4,8 +4,9 @@
  * and provides CRUD via modal form + AlertDialog delete confirmation.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -17,7 +18,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, ChevronLeft, ChevronRight, Map, TrendingUp } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, FileText, Map, TrendingUp } from 'lucide-react';
 
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import CronogramaList from '@/components/cronograma/CronogramaList';
@@ -29,6 +30,9 @@ import { useCronogramaManager } from '@/hooks/useCronogramaManager';
 
 const CronogramaPage: React.FC = () => {
   const manager = useCronogramaManager();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editalIdParam = searchParams.get('edital_id');
 
   const {
     cronogramas,
@@ -54,6 +58,14 @@ const CronogramaPage: React.FC = () => {
     setViewCycleOffset,
     cycleHelpers,
   } = manager;
+
+  // Auto-open create modal when navigated from /editais/:id with ?edital_id
+  useEffect(() => {
+    if (editalIdParam && !isLoading && !isModalOpen) {
+      openCreate();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editalIdParam, isLoading]);
 
   if (isLoading) {
     return (
@@ -95,6 +107,7 @@ const CronogramaPage: React.FC = () => {
               onEdit={() => openEdit(selectedCronograma)}
               onDelete={() => openDeleteConfirm(selectedCronograma)}
               isActive={selectedCronograma.id === activeCronogramaId}
+              onNavigate={navigate}
             />
           ) : (
             <CronogramaList
@@ -116,6 +129,7 @@ const CronogramaPage: React.FC = () => {
         onSubmit={handleFormSubmit}
         initialValues={editingCronograma}
         isSubmitting={isCreating || isUpdating}
+        editalId={editalIdParam}
       />
 
       {/* Delete Confirmation AlertDialog */}
@@ -160,6 +174,7 @@ interface CronogramaDetailProps {
   onEdit: () => void;
   onDelete: () => void;
   isActive: boolean;
+  onNavigate: (path: string) => void;
 }
 
 const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
@@ -172,6 +187,7 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
   onEdit,
   onDelete,
   isActive,
+  onNavigate,
 }) => {
   const [showMapaBanca, setShowMapaBanca] = useState(false);
   const today = new Date();
@@ -240,6 +256,31 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
             {cronograma.materias.map((m, i) => (
               <SubjectBadge key={i} subject={m} size="md" />
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Linked Edital card */}
+      {cronograma.edital_id && (
+        <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 shrink-0">
+                <FileText className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Edital Verticalizado vinculado</p>
+                <p className="text-sm font-medium">Checklist de estudos disponível</p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={() => onNavigate(`/editais/${cronograma.edital_id}`)}
+            >
+              Ver Edital
+            </Button>
           </div>
         </div>
       )}

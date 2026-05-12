@@ -211,77 +211,83 @@ Regras:
 }
 
 /**
- * Generate a verticalizado edital — subjects ranked by historical banca incidence
+ * Generate a verticalizado edital — subjects ranked by historical banca incidence.
+ * Output is ready to be saved as an Edital entity with gamified checklist format.
+ *
  * @param {Object} params
- * @param {string} [params.banca] - Exam board name (e.g., "CESPE/Cebraspe")
- * @param {string} [params.concurso] - Contest name (e.g., "PCDF 2025")
- * @param {Array}  params.materias - Parsed edital subjects [{nome, topicos[]}]
- * @returns {Promise<Object>} Verticalizado edital with weighted subjects + topic incidence
+ * @param {string} [params.banca]     - Exam board (e.g., "CESPE/Cebraspe", "FUNDATEC")
+ * @param {string} [params.concurso]  - Contest name (e.g., "Policial Penal RS 2025")
+ * @param {string} [params.cargo]     - Position/role (e.g., "Policial Penal")
+ * @param {Array}  params.materias    - Parsed edital subjects [{nome, topicos[]}]
+ * @returns {Promise<Object>} Verticalizado edital with checklist-ready structure
  */
-export async function verticalizarEdital({ banca, concurso, materias }) {
+export async function verticalizarEdital({ banca, concurso, cargo, materias }) {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error('ANTHROPIC_API_KEY not configured');
   }
 
   const bancaCtx = banca && banca !== 'Sem preferência' ? banca : 'concursos policiais brasileiros';
   const concursoCtx = concurso || 'concurso policial';
+  const cargoCtx = cargo || '';
 
   // Trim topics to avoid excessive token usage
   const materiasInput = (materias || []).map(m => ({
     nome: m.nome,
-    topicos: (m.topicos || []).slice(0, 10),
+    topicos: (m.topicos || []).slice(0, 15),
   }));
+
+  const totalMaterias = materiasInput.length;
 
   const prompt = `Você é um especialista em análise histórica de provas de concursos policiais brasileiros.
 
 Banca: ${bancaCtx}
-Concurso: ${concursoCtx}
+Concurso: ${concursoCtx}${cargoCtx ? `\nCargo: ${cargoCtx}` : ''}
 
-Matérias do edital (${materiasInput.length} ao total):
+Matérias do edital (${totalMaterias} matérias):
 ${JSON.stringify(materiasInput, null, 2)}
 
-Gere um EDITAL VERTICALIZADO para a banca ${bancaCtx}: ordene as matérias por frequência histórica real de cobrança em provas anteriores dessa banca para concursos policiais.
+Gere um EDITAL VERTICALIZADO com checklist de estudos. Ordene as matérias por frequência histórica real de cobrança da banca ${bancaCtx} em concursos policiais.
 
 Para cada matéria:
-- Estime o peso histórico (% de questões da banca dedicadas a essa matéria)
-- Defina a prioridade de estudo (alta/media/baixa)
-- Para cada tópico, estime a incidência e adicione uma dica específica ao estilo da banca
+1. Estime o número de questões (baseado na proporção histórica da banca)
+2. Defina prioridade: "alta" (matéria com mais questões), "media", "baixa"
+3. Para cada tópico, ordene pelo mais cobrado PRIMEIRO, atribua um número de ordem
 
-Retorne APENAS JSON válido, sem markdown:
+Retorne APENAS JSON válido, sem markdown, neste formato exato:
 {
-  "banca": "${bancaCtx}",
+  "cargo": "${cargoCtx || concursoCtx}",
   "concurso": "${concursoCtx}",
-  "resumo_estrategico": "2-3 frases estratégicas sobre como estudar para essa banca nesse tipo de concurso",
+  "banca": "${bancaCtx}",
+  "total_questoes": 80,
+  "resumo_estrategico": "2-3 frases sobre como estudar para essa banca nesse tipo de concurso",
   "materias": [
     {
       "nome": "Nome exato da matéria (igual ao input)",
-      "peso_historico": 25,
+      "questoes": 20,
       "prioridade": "alta",
-      "observacao": "Como essa banca cobra essa matéria (legislação, jurisprudência, conceitos, etc.)",
       "topicos": [
-        {
-          "nome": "Nome exato do tópico",
-          "incidencia": "alta",
-          "dica": "O que focar neste tópico especificamente para esta banca"
-        }
+        { "nome": "Nome exato do tópico (igual ao input)", "ordem": 1, "estudado": false },
+        { "nome": "Segundo tópico mais cobrado", "ordem": 2, "estudado": false }
       ]
     }
   ]
 }
 
-Regras:
-- Ordenar materias por peso_historico decrescente (maior incidência primeiro)
-- peso_historico: inteiro 1-100, TODOS somam aproximadamente 100
-- prioridade: "alta" se peso>20, "media" se 10-20, "baixa" se <10
-- incidencia dos tópicos: "alta", "media" ou "baixa"
-- Manter nomes de matérias EXATAMENTE iguais ao input (sem alterar capitalização)
-- Ser específico — candidatos usam isso para priorizar semanas de estudo`;
+Regras OBRIGATÓRIAS:
+- Ordenar materias por numero de questoes decrescente (mais questões primeiro)
+- total_questoes: soma de todos os questoes por matéria
+- questoes por matéria: inteiro > 0, soma deve fechar com total_questoes
+- prioridade: "alta" se questoes >= 20% do total, "media" se 10-20%, "baixa" se <10%
+- Ordenar topicos dentro de cada matéria por incidência histórica (mais cobrado primeiro, ordem:1)
+- Manter nomes de matérias e tópicos EXATAMENTE iguais ao input
+- estudado: sempre false (checklist começa desmarcado)
+- Ser preciso — candidatos usam isso para priorizar semanas de estudo`;
 
   try {
     const anthropic = await getAnthropicClient();
     const msg = await anthropic.messages.create({
       model: 'claude-opus-4-5',
-      max_tokens: 3000,
+      max_tokens: 4000,
       messages: [{ role: 'user', content: prompt }],
     });
 
@@ -289,9 +295,17 @@ Regras:
     const jsonStr = text.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
     const result = JSON.parse(jsonStr);
 
-    // Ensure materias are ordered by peso_historico descending
+    // Sort materias by questoes descending
     if (Array.isArray(result.materias)) {
-      result.materias.sort((a, b) => (b.peso_historico || 0) - (a.peso_historico || 0));
+      result.materias.sort((a, b) => (b.questoes || 0) - (a.questoes || 0));
+      // Ensure all topicos have estudado: false
+      result.materias.forEach(m => {
+        if (Array.isArray(m.topicos)) {
+          m.topicos.forEach(t => { t.estudado = t.estudado ?? false; });
+          // Sort by ordem
+          m.topicos.sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+        }
+      });
     }
 
     return result;

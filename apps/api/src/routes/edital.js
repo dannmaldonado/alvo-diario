@@ -67,7 +67,7 @@ router.post('/parse', authMiddleware, upload.single('edital'), async (req, res) 
 
 // POST /api/edital/verticalizar — Rank edital subjects by historical banca incidence via AI
 router.post('/verticalizar', authMiddleware, async (req, res) => {
-  const { banca, concurso, materias } = req.body;
+  const { banca, concurso, cargo, materias } = req.body;
 
   if (!materias || !Array.isArray(materias) || materias.length === 0) {
     return res.status(400).json({ error: 'Matérias são obrigatórias para verticalizar o edital.' });
@@ -77,7 +77,7 @@ router.post('/verticalizar', authMiddleware, async (req, res) => {
   }
 
   try {
-    const resultado = await verticalizarEdital({ banca, concurso, materias });
+    const resultado = await verticalizarEdital({ banca, concurso, cargo, materias });
     res.json(resultado);
   } catch (error) {
     console.error('[edital] Erro ao verticalizar:', error.message);

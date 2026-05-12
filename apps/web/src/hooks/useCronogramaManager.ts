@@ -48,7 +48,7 @@ export interface CronogramaManagerReturn {
   closeDeleteConfirm: () => void;
 
   // Mutations
-  handleFormSubmit: (data: CronogramaFormData, verticalizacao?: EditalVerticalizado | null) => Promise<void>;
+  handleFormSubmit: (data: CronogramaFormData, verticalizacao?: EditalVerticalizado | null, editalId?: string | null) => Promise<void>;
   handleDelete: () => Promise<void>;
   isCreating: boolean;
   isUpdating: boolean;
@@ -158,7 +158,7 @@ export function useCronogramaManager(): CronogramaManagerReturn {
 
   // ---- Mutations ----
 
-  const handleFormSubmit = useCallback(async (data: CronogramaFormData, verticalizacao?: EditalVerticalizado | null) => {
+  const handleFormSubmit = useCallback(async (data: CronogramaFormData, verticalizacao?: EditalVerticalizado | null, editalId?: string | null) => {
     if (!currentUser) {
       toast.error('Usuario nao autenticado');
       return;
@@ -177,6 +177,7 @@ export function useCronogramaManager(): CronogramaManagerReturn {
       data_inicio: data.data_inicio || undefined,
       materias,
       verticalizacao: verticalizacao || undefined,
+      edital_id: editalId || undefined,
     };
 
     try {

@@ -1,30 +1,29 @@
 /**
  * EditalUpload — PDF edital upload + subject extraction via Claude AI
- * After a successful parse, optionally generates an Edital Verticalizado
- * (subjects ranked by historical banca incidence).
+ * Extracts subject names from the edital PDF so the user can import them
+ * into the cronograma materias list. Verticalização is handled separately
+ * on the dedicated /editais page.
  *
  * All buttons MUST have type="button" to avoid submitting the parent form.
  */
 
 import React, { useRef, useState } from 'react';
-import { Upload, Loader2, CheckCircle2, AlertCircle, X, Plus, TrendingUp } from 'lucide-react';
+import { Upload, Loader2, CheckCircle2, AlertCircle, X, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EditalService } from '@/services/edital.service';
-import { EditalVerticalizadoView } from '@/components/cronograma/EditalVerticalizadoView';
-import type { EditalParseResult, EditalMateria, EditalVerticalizado } from '@/types';
+import type { EditalParseResult, EditalMateria } from '@/types';
 
 interface EditalUploadProps {
   /** Called when user confirms the extracted subjects to import */
-  onImport: (materias: string[], banca?: string | null, verticalizacao?: EditalVerticalizado | null) => void;
+  onImport: (materias: string[], banca?: string | null) => void;
 }
 
-type UploadState = 'idle' | 'loading' | 'success' | 'verticalizing' | 'error';
+type UploadState = 'idle' | 'loading' | 'success' | 'error';
 
 export function EditalUpload({ onImport }: EditalUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<UploadState>('idle');
   const [result, setResult] = useState<EditalParseResult | null>(null);
-  const [verticalizacao, setVerticalizacao] = useState<EditalVerticalizado | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -34,7 +33,6 @@ export function EditalUpload({ onImport }: EditalUploadProps) {
 
     setState('loading');
     setResult(null);
-    setVerticalizacao(null);
     setError(null);
     setSelected(new Set());
 
@@ -64,32 +62,13 @@ export function EditalUpload({ onImport }: EditalUploadProps) {
   const handleImport = () => {
     if (!result) return;
     const toImport = result.materias.filter(m => selected.has(m.nome)).map(m => m.nome);
-    onImport(toImport, result.banca, verticalizacao);
+    onImport(toImport, result.banca);
     handleReset();
-  };
-
-  const handleVerticalizar = async () => {
-    if (!result) return;
-    setState('verticalizing');
-    try {
-      const v = await EditalService.verticalizar({
-        banca: result.banca,
-        concurso: result.concurso,
-        // Only send selected materias with their topics
-        materias: result.materias.filter(m => selected.has(m.nome)),
-      });
-      setVerticalizacao(v);
-      setState('success');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao verticalizar o edital.');
-      setState('success'); // stay in success so user can still import without verticalizacao
-    }
   };
 
   const handleReset = () => {
     setState('idle');
     setResult(null);
-    setVerticalizacao(null);
     setError(null);
     setSelected(new Set());
   };
@@ -105,7 +84,7 @@ export function EditalUpload({ onImport }: EditalUploadProps) {
         >
           <Upload className="h-5 w-5" />
           <span className="text-sm font-medium">Clique para selecionar o PDF do edital</span>
-          <span className="text-xs">Máximo 10MB · Recomendado até 50 páginas · Claude extrai as matérias automaticamente</span>
+          <span className="text-xs">Máximo 10MB · Claude extrai as matérias automaticamente</span>
         </button>
         <input
           ref={fileInputRef}
@@ -124,26 +103,13 @@ export function EditalUpload({ onImport }: EditalUploadProps) {
     );
   }
 
-  // ---- Loading state (PDF parse) ----
+  // ---- Loading state ----
   if (state === 'loading') {
     return (
       <div className="border rounded-xl p-6 flex flex-col items-center gap-3 text-center">
         <Loader2 className="h-6 w-6 text-primary animate-spin" />
         <p className="text-sm font-medium">Analisando edital com IA...</p>
         <p className="text-xs text-muted-foreground">Isso pode levar alguns segundos</p>
-      </div>
-    );
-  }
-
-  // ---- Verticalizing state ----
-  if (state === 'verticalizing') {
-    return (
-      <div className="border rounded-xl p-6 flex flex-col items-center gap-3 text-center">
-        <TrendingUp className="h-6 w-6 text-primary animate-pulse" />
-        <p className="text-sm font-medium">Verticalizando edital com IA...</p>
-        <p className="text-xs text-muted-foreground">
-          Analisando histórico de provas{result?.banca ? ` da banca ${result.banca}` : ''}...
-        </p>
       </div>
     );
   }
@@ -167,7 +133,6 @@ export function EditalUpload({ onImport }: EditalUploadProps) {
             )}
           </div>
         </div>
-        {/* type="button" prevents form submission */}
         <button type="button" onClick={handleReset} className="text-muted-foreground hover:text-foreground flex-shrink-0">
           <X className="h-4 w-4" />
         </button>
@@ -205,23 +170,8 @@ export function EditalUpload({ onImport }: EditalUploadProps) {
         ))}
       </div>
 
-      {/* Error banner (only for verticalizar errors — stays in success state) */}
-      {error && state === 'success' && (
-        <div className="px-4 py-2 bg-destructive/5 border-t border-destructive/20 flex items-start gap-2 text-xs text-destructive">
-          <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {/* Edital Verticalizado — shown after generation */}
-      {verticalizacao && (
-        <div className="border-t border-border px-4 py-3">
-          <EditalVerticalizadoView data={verticalizacao} compact />
-        </div>
-      )}
-
       {/* Footer */}
-      <div className="px-4 py-3 border-t bg-muted/30 space-y-2">
+      <div className="px-4 py-3 border-t bg-muted/30">
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs text-muted-foreground">{selected.size} selecionada{selected.size !== 1 ? 's' : ''}</span>
           <div className="flex gap-2">
@@ -239,19 +189,6 @@ export function EditalUpload({ onImport }: EditalUploadProps) {
             </Button>
           </div>
         </div>
-
-        {/* Verticalizar button — only when banca is detected and not yet done */}
-        {result?.banca && !verticalizacao && (
-          <button
-            type="button"
-            onClick={handleVerticalizar}
-            disabled={selected.size === 0}
-            className="w-full flex items-center justify-center gap-2 text-xs font-medium text-primary hover:text-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-colors py-1"
-          >
-            <TrendingUp className="h-3.5 w-3.5" />
-            Gerar Edital Verticalizado com IA (banca {result.banca})
-          </button>
-        )}
       </div>
     </div>
   );

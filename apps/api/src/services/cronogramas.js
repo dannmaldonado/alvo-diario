@@ -97,8 +97,8 @@ export const createCronograma = async (userId, data) => {
     }
 
     await connection.query(
-      'INSERT INTO cronogramas (id, user_id, edital, banca, data_alvo, data_inicio, materias, status, verticalizacao) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [id, userId, data.edital, data.banca || null, data.data_alvo, data.data_inicio || null, materiasJson, data.status || 'ativo', verticalizacaoJson]
+      'INSERT INTO cronogramas (id, user_id, edital, banca, edital_id, data_alvo, data_inicio, materias, status, verticalizacao) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [id, userId, data.edital, data.banca || null, data.edital_id || null, data.data_alvo, data.data_inicio || null, materiasJson, data.status || 'ativo', verticalizacaoJson]
     );
     return getCronogramaById(userId, id);
   } finally {
@@ -113,6 +113,7 @@ export const updateCronograma = async (userId, id, data) => {
 
     const updates = {
       edital: data.edital ?? cronograma.edital,
+      edital_id: data.edital_id !== undefined ? data.edital_id : cronograma.edital_id,
       banca: data.banca !== undefined ? data.banca : cronograma.banca,
       data_alvo: data.data_alvo ?? cronograma.data_alvo,
       data_inicio: data.data_inicio !== undefined ? data.data_inicio : cronograma.data_inicio,
@@ -131,8 +132,8 @@ export const updateCronograma = async (userId, id, data) => {
     }
 
     await connection.query(
-      'UPDATE cronogramas SET edital = ?, banca = ?, data_alvo = ?, data_inicio = ?, materias = ?, status = ?, verticalizacao = ? WHERE id = ? AND user_id = ?',
-      [updates.edital, updates.banca, updates.data_alvo, updates.data_inicio, JSON.stringify(updates.materias), updates.status, verticalizacaoJson, id, userId]
+      'UPDATE cronogramas SET edital = ?, edital_id = ?, banca = ?, data_alvo = ?, data_inicio = ?, materias = ?, status = ?, verticalizacao = ? WHERE id = ? AND user_id = ?',
+      [updates.edital, updates.edital_id || null, updates.banca, updates.data_alvo, updates.data_inicio, JSON.stringify(updates.materias), updates.status, verticalizacaoJson, id, userId]
     );
 
     return getCronogramaById(userId, id);

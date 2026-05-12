@@ -56,6 +56,7 @@ export type Cronograma = {
   id: string;
   user_id: string;
   edital: string;
+  edital_id?: string | null;
   banca?: string | null;
   materias: Materia[];
   data_alvo: string;
@@ -438,6 +439,7 @@ export type EditalVerticalizado_Topico = {
 export type EditalVerticalizado_Materia = {
   nome: string;
   peso_historico: number;   // % of questions historically dedicated to this subject
+  questoes?: number;        // estimated question count (from AI verticalizar)
   prioridade: PrioridadeLevel;
   observacao?: string;
   topicos: EditalVerticalizado_Topico[];
@@ -445,9 +447,53 @@ export type EditalVerticalizado_Materia = {
 
 export type EditalVerticalizado = {
   banca: string;
+  cargo?: string | null;
   concurso?: string;
+  total_questoes?: number | null;
   resumo_estrategico?: string;
   materias: EditalVerticalizado_Materia[];
 };
+
+// ============================================================================
+// EDITAL ENTITY TYPES (first-class entity, independent of cronogramas)
+// ============================================================================
+
+export type EditalTopicoItem = {
+  nome: string;
+  ordem: number;
+  estudado: boolean;
+};
+
+export type EditalMateriaItem = {
+  nome: string;
+  questoes: number;          // estimated question count for this subject
+  prioridade: PrioridadeLevel;
+  topicos: EditalTopicoItem[];
+};
+
+export type Edital = {
+  id: string;
+  user_id: string;
+  titulo: string;            // "FUNDATEC - Policial Penal RS 2025"
+  banca?: string | null;
+  cargo?: string | null;
+  concurso?: string | null;
+  total_questoes?: number | null;
+  materias: EditalMateriaItem[];
+  status: 'ativo' | 'arquivado';
+  created: string;
+  updated: string;
+};
+
+export type CreateEditalInput = {
+  titulo: string;
+  banca?: string | null;
+  cargo?: string | null;
+  concurso?: string | null;
+  total_questoes?: number | null;
+  materias: EditalMateriaItem[];
+};
+
+export type UpdateEditalInput = Partial<CreateEditalInput> & { status?: 'ativo' | 'arquivado' };
 
 // All types are exported directly from this file

@@ -265,6 +265,28 @@ ALTER TABLE sessoes_estudo ADD COLUMN videoaulas INT NULL;
 -- Edital Verticalizado — AI-ranked subjects by historical banca incidence (stored per cronograma)
 ALTER TABLE cronogramas ADD COLUMN verticalizacao JSON NULL;
 
+-- ============================================================
+-- Editais — first-class entity (independent of cronogramas)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS editais (
+  id VARCHAR(36) PRIMARY KEY,
+  user_id VARCHAR(36) NOT NULL,
+  titulo VARCHAR(500) NOT NULL,
+  banca VARCHAR(100) NULL,
+  cargo VARCHAR(200) NULL,
+  concurso VARCHAR(500) NULL,
+  total_questoes INT NULL,
+  materias JSON NOT NULL,   -- [{nome, questoes, prioridade, topicos:[{nome,ordem,estudado}]}]
+  status VARCHAR(20) DEFAULT 'ativo',
+  created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_editais_user (user_id)
+);
+
+-- Link cronograma → edital (optional)
+ALTER TABLE cronogramas ADD COLUMN edital_id VARCHAR(36) NULL;
+
 -- External question log (Gran Concurso, Tec Concurso, simulados, etc.)
 CREATE TABLE IF NOT EXISTS questoes_externas (
   id VARCHAR(36) PRIMARY KEY,

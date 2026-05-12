@@ -36,9 +36,11 @@ import type { EditalVerticalizado } from '@/types';
 interface CronogramaFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: CronogramaFormData, verticalizacao?: EditalVerticalizado | null) => void;
+  onSubmit: (data: CronogramaFormData, verticalizacao?: EditalVerticalizado | null, editalId?: string | null) => void;
   initialValues?: Cronograma | null;
   isSubmitting?: boolean;
+  /** Pre-linked edital ID (from /cronograma?edital_id=xxx flow) */
+  editalId?: string | null;
 }
 
 const EDITAL_LABELS: Record<string, string> = {
@@ -54,6 +56,7 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
   onSubmit,
   initialValues,
   isSubmitting = false,
+  editalId,
 }) => {
   const isEdit = !!initialValues;
   const [showMapaBanca, setShowMapaBanca] = useState(false);
@@ -118,7 +121,7 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
     }
   };
 
-  const handleEditalImport = (materias: string[], banca?: string | null, v?: EditalVerticalizado | null) => {
+  const handleEditalImport = (materias: string[], banca?: string | null) => {
     // Merge with existing materias (deduplicate)
     const existing = watchedMaterias ?? [];
     const merged = Array.from(new Set([...existing, ...materias]));
@@ -127,14 +130,10 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
     if (banca && (!watchedBanca || watchedBanca === 'none' || watchedBanca === '')) {
       setValue('banca', banca, { shouldValidate: true });
     }
-    // Store verticalizacao if provided
-    if (v) {
-      setVerticalizacao(v);
-    }
   };
 
   const handleFormSubmit = (data: CronogramaFormData) => {
-    onSubmit(data, verticalizacao);
+    onSubmit(data, verticalizacao, editalId);
   };
 
   return (
