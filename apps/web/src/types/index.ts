@@ -85,6 +85,8 @@ export type Sessao = {
   notas?: string;
   material_id?: string;
   material_nome?: string;
+  paginas_lidas?: number;
+  videoaulas?: number;
   created: string;
   updated: string;
 };
@@ -118,6 +120,8 @@ export type CreateSessaoInput = Omit<Sessao, 'id' | 'created' | 'updated'> & {
   notas?: string;
   material_id?: string;
   material_nome?: string;
+  paginas_lidas?: number;
+  videoaulas?: number;
 };
 
 export type UpdateSessaoInput = Partial<CreateSessaoInput>;

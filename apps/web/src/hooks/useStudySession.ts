@@ -45,6 +45,8 @@ export interface StudySessionState {
   sessionNotes: string;
   selectedMaterial: string; // material id
   materials: Material[];
+  paginasLidas: string;
+  videoaulas: string;
 
   // UI & rating modal
   showSettings: boolean;
@@ -67,6 +69,8 @@ export interface StudySessionActions {
   setSelectedSubject: (subject: string) => void;
   setSessionNotes: (notes: string) => void;
   setSelectedMaterial: (materialId: string) => void;
+  setPaginasLidas: (value: string) => void;
+  setVideoaulas: (value: string) => void;
   setTimerMode: (mode: TimerMode) => void;
   toggleTimer: () => void;
   resetTimer: () => void;
@@ -117,6 +121,8 @@ export function useStudySession() {
   // Session
   const [sessionNotes, setSessionNotes] = useState('');
   const [selectedMaterial, setSelectedMaterial] = useState('');
+  const [paginasLidas, setPaginasLidas] = useState('');
+  const [videoaulas, setVideoaulas] = useState('');
 
   // UI & rating modal
   const [showSettings, setShowSettings] = useState(false);
@@ -263,6 +269,8 @@ export function useStudySession() {
       if (selectedSubject) {
         const materials = materiaisQuery.data ?? [];
         const chosenMaterial = materials.find(m => m.id === selectedMaterial);
+        const paginas = parseInt(paginasLidas, 10);
+        const videos = parseInt(videoaulas, 10);
         const newSessao = await createSessaoMutation.mutateAsync({
           user_id: currentUser?.id || '',
           cronograma_id: schedule?.id || '',
@@ -271,6 +279,8 @@ export function useStudySession() {
           duracao_minutos: duracao,
           ...(examObservacoes.trim() ? { notas: examObservacoes.trim().slice(0, 500) } : {}),
           ...(chosenMaterial ? { material_id: chosenMaterial.id, material_nome: chosenMaterial.nome } : {}),
+          ...(!isNaN(paginas) && paginas > 0 ? { paginas_lidas: paginas } : {}),
+          ...(!isNaN(videos) && videos > 0 ? { videoaulas: videos } : {}),
         });
         savedSessaoId = (newSessao as { id?: string })?.id;
       }
@@ -316,9 +326,9 @@ export function useStudySession() {
     } finally {
       setSavingExame(false);
     }
-  }, [avaliacao, examObservacoes, totalStudyMinutesToday, selectedSubject, selectedMaterial,
-      currentUser?.id, schedule?.id, schedule?.banca, createSessaoMutation, materiaisQuery.data,
-      todayMetaQuery.data, updateMetaRatingMutation, gerarQuestoesMutation]);
+  }, [avaliacao, examObservacoes, paginasLidas, videoaulas, totalStudyMinutesToday, selectedSubject,
+      selectedMaterial, currentUser?.id, schedule?.id, schedule?.banca, createSessaoMutation,
+      materiaisQuery.data, todayMetaQuery.data, updateMetaRatingMutation, gerarQuestoesMutation]);
 
   const formatTime = useCallback((seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -353,6 +363,8 @@ export function useStudySession() {
       sessionNotes,
       selectedMaterial,
       materials: materiaisQuery.data ?? [],
+      paginasLidas,
+      videoaulas,
       showSettings,
       showExame,
       avaliacao,
@@ -369,6 +381,8 @@ export function useStudySession() {
       setSelectedSubject,
       setSessionNotes,
       setSelectedMaterial,
+      setPaginasLidas,
+      setVideoaulas,
       setTimerMode,
       toggleTimer,
       resetTimer,

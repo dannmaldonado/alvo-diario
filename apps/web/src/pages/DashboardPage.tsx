@@ -22,6 +22,7 @@ const DashboardPage: React.FC = () => {
     todayMeta,
     todayProgress,
     todaySessionMinutes,
+    weeklyStats,
     monthlyStats,
     monthlySessions,
     todaySubject,
@@ -298,6 +299,53 @@ const DashboardPage: React.FC = () => {
                       Revisar Agora <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
+                </div>
+              )}
+
+              {/* Weekly Goal Card */}
+              {weeklyStats && (
+                <div className="md:col-span-3 bg-card border border-border rounded-2xl p-5 shadow-sm animate-slide-up" style={{ animationDelay: '0.38s' }}>
+                  <div className="flex flex-col sm:flex-row items-center gap-5">
+                    <div className="shrink-0">
+                      <div className="relative w-20 h-20 flex items-center justify-center">
+                        <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
+                          <circle cx="50" cy="50" r="40" className="stroke-muted fill-none" strokeWidth="9" />
+                          <circle
+                            cx="50" cy="50" r="40"
+                            className="stroke-primary fill-none transition-all duration-1000"
+                            strokeWidth="9"
+                            strokeDasharray="251.33"
+                            strokeDashoffset={251.33 - (251.33 * Math.min(weeklyStats.horasRealizadas / weeklyStats.horasMeta, 1))}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <span className="text-sm font-bold">
+                          {Math.min(Math.round((weeklyStats.horasRealizadas / weeklyStats.horasMeta) * 100), 100)}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex-1 text-center sm:text-left">
+                      <div className="flex items-center gap-2 mb-1 justify-center sm:justify-start">
+                        <Target className="h-4 w-4 text-primary" />
+                        <h3 className="font-semibold">Meta Semanal</h3>
+                      </div>
+                      <p className="text-muted-foreground text-sm">
+                        <strong className="text-foreground">{weeklyStats.horasRealizadas}h</strong> de{' '}
+                        <strong className="text-foreground">{weeklyStats.horasMeta}h</strong> esta semana
+                      </p>
+                      <div className="mt-2 h-2 w-full max-w-xs bg-muted rounded-full overflow-hidden mx-auto sm:mx-0">
+                        <div
+                          className="h-full bg-primary rounded-full transition-all duration-1000"
+                          style={{ width: `${Math.min((weeklyStats.horasRealizadas / weeklyStats.horasMeta) * 100, 100)}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {weeklyStats.horasRealizadas >= weeklyStats.horasMeta
+                          ? '🎉 Meta da semana atingida!'
+                          : `Faltam ${(weeklyStats.horasMeta - weeklyStats.horasRealizadas).toFixed(1)}h para bater a meta`}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
 

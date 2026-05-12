@@ -385,6 +385,100 @@ const ProgressAnalysisPage: React.FC = () => {
             </Card>
           )}
 
+          {/* Visão por Matéria — combined time + accuracy table */}
+          {(tableData.length > 0 || accuracyData.length > 0) && (
+            <Card className="mt-8 animate-fade-in overflow-hidden">
+              <div className="p-6 border-b border-border">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Brain className="h-5 w-5 text-primary" />
+                  Visão por Matéria
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Tempo de estudo e desempenho em questões por disciplina.
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-muted/50">
+                    <TableRow>
+                      <TableHead className="font-semibold">Disciplina</TableHead>
+                      <TableHead className="text-right font-semibold">
+                        <span className="flex items-center justify-end gap-1">
+                          <Clock className="h-3.5 w-3.5" /> Tempo
+                        </span>
+                      </TableHead>
+                      <TableHead className="text-right font-semibold text-emerald-600 dark:text-emerald-400">
+                        ✓ Acertos
+                      </TableHead>
+                      <TableHead className="text-right font-semibold text-destructive">
+                        ✗ Erros
+                      </TableHead>
+                      <TableHead className="text-right font-semibold">Total</TableHead>
+                      <TableHead className="text-right font-semibold">%</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(() => {
+                      // Build a unified list: all subjects from tableData + accuracyData
+                      const subjectMap = new Map<string, {
+                        hours: number;
+                        acertos: number;
+                        erros: number;
+                        total: number;
+                        taxa: number;
+                      }>();
+                      tableData.forEach(row => {
+                        subjectMap.set(row.name, { hours: row.totalHours, acertos: 0, erros: 0, total: 0, taxa: -1 });
+                      });
+                      accuracyData.forEach(row => {
+                        const existing = subjectMap.get(row.name) ?? { hours: 0, acertos: 0, erros: 0, total: 0, taxa: -1 };
+                        subjectMap.set(row.name, {
+                          ...existing,
+                          acertos: row.acertos,
+                          erros: row.total - row.acertos,
+                          total: row.total,
+                          taxa: row.taxa,
+                        });
+                      });
+                      const rows = Array.from(subjectMap.entries())
+                        .sort((a, b) => b[1].hours - a[1].hours);
+                      return rows.map(([name, data]) => (
+                        <TableRow key={name} className="hover:bg-muted/30 transition-colors">
+                          <TableCell className="font-medium max-w-[180px] truncate">{name}</TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {data.hours > 0 ? `${data.hours}h` : '—'}
+                          </TableCell>
+                          <TableCell className="text-right font-semibold text-emerald-600 dark:text-emerald-400">
+                            {data.total > 0 ? data.acertos : '—'}
+                          </TableCell>
+                          <TableCell className="text-right font-semibold text-destructive">
+                            {data.total > 0 ? data.erros : '—'}
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {data.total > 0 ? data.total : '—'}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {data.taxa >= 0 ? (
+                              <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold ${
+                                data.taxa >= 0.7
+                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                  : data.taxa >= 0.4
+                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                  : 'bg-destructive/10 text-destructive'
+                              }`}>
+                                {Math.round(data.taxa * 100)}%
+                              </span>
+                            ) : '—'}
+                          </TableCell>
+                        </TableRow>
+                      ));
+                    })()}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+          )}
+
           {/* Accuracy by Subject Chart */}
           {accuracyData.length > 0 && (
             <Card className="mt-8 animate-fade-in">

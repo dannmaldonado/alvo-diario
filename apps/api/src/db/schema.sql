@@ -251,6 +251,10 @@ CREATE TABLE IF NOT EXISTS mapa_banca_cache (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Páginas lidas e videoaulas por sessão (Feature: tracking de progresso de material)
+ALTER TABLE sessoes_estudo ADD COLUMN paginas_lidas INT NULL;
+ALTER TABLE sessoes_estudo ADD COLUMN videoaulas INT NULL;
+
 -- External question log (Gran Concurso, Tec Concurso, simulados, etc.)
 CREATE TABLE IF NOT EXISTS questoes_externas (
   id VARCHAR(36) PRIMARY KEY,

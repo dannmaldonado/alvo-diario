@@ -89,6 +89,41 @@ export function useDashboardData() {
     };
   }, [todayMetaQuery.data, currentUser?.meta_diaria_horas]);
 
+  // Compute weekly stats (sessions in current Mon–Sun week)
+  const weeklyStats = useMemo(() => {
+    const sessions = monthSessionsQuery.data;
+    const target = (typeof currentUser?.meta_diaria_horas === 'string'
+      ? parseFloat(currentUser.meta_diaria_horas)
+      : (currentUser?.meta_diaria_horas || 4)) * 7;
+
+    if (!sessions || sessions.length === 0) {
+      return { horasRealizadas: 0, horasMeta: target };
+    }
+
+    // Compute start of current week (Monday)
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 = Sun
+    const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() + diffToMon);
+    weekStart.setHours(0, 0, 0, 0);
+    const weekStartStr = weekStart.toISOString().split('T')[0];
+
+    const totalMins = sessions
+      .filter((s) => {
+        const d = typeof s.data_sessao === 'string'
+          ? s.data_sessao.split('T')[0]
+          : new Date(s.data_sessao).toISOString().split('T')[0];
+        return d >= weekStartStr;
+      })
+      .reduce((sum, s) => sum + (s.duracao_minutos || 0), 0);
+
+    return {
+      horasRealizadas: Number((totalMins / 60).toFixed(1)),
+      horasMeta: target,
+    };
+  }, [monthSessionsQuery.data, currentUser?.meta_diaria_horas]);
+
   // Compute today's total session minutes (for points preview in DailyRating)
   const todaySessionMinutes = useMemo(() => {
     const sessions = monthSessionsQuery.data;
@@ -181,6 +216,7 @@ export function useDashboardData() {
     todayMeta: todayMetaQuery.data ?? null,
     todayProgress,
     todaySessionMinutes,
+    weeklyStats,
     monthlyStats,
     monthlySessions: monthSessionsQuery.data ?? [],
     ...scheduleData,

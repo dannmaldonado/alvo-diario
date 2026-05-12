@@ -12,6 +12,8 @@ export const createSessaoSchema = z.object({
   notas: z.string().max(500).optional().nullable(),
   material_id: z.string().uuid().optional().nullable(),
   material_nome: z.string().max(200).optional().nullable(),
+  paginas_lidas: z.number().int().min(0).max(9999).optional().nullable(),
+  videoaulas: z.number().int().min(0).max(999).optional().nullable(),
 });
 
 export const updateSessaoSchema = z.object({

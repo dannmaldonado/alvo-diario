@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { BookOpen, CalendarDays, Trophy, X, Timer, Clock } from 'lucide-react';
+import { BookOpen, CalendarDays, Trophy, X, Timer, Clock, FileText, Video } from 'lucide-react';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import SubjectBadge from '@/components/SubjectBadge';
@@ -42,6 +42,8 @@ const StudySessionPage: React.FC = () => {
     sessionNotes,
     selectedMaterial,
     materials,
+    paginasLidas,
+    videoaulas,
     showExame,
     avaliacao,
     examObservacoes,
@@ -57,6 +59,8 @@ const StudySessionPage: React.FC = () => {
     setSelectedSubject,
     setSessionNotes,
     setSelectedMaterial,
+    setPaginasLidas,
+    setVideoaulas,
     setTimerMode,
     toggleTimer,
     resetTimer,
@@ -222,6 +226,39 @@ const StudySessionPage: React.FC = () => {
                 <p className="text-xs text-muted-foreground mt-1 text-right">
                   {sessionNotes.length}/500
                 </p>
+              </Card>
+
+              {/* Pages read + Video lessons */}
+              <Card>
+                <h3 className="text-sm font-semibold mb-3">Progresso do Material</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-primary shrink-0" />
+                    <label className="text-xs text-muted-foreground w-28 shrink-0">Páginas lidas</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={9999}
+                      value={paginasLidas}
+                      onChange={(e) => setPaginasLidas(e.target.value)}
+                      placeholder="0"
+                      className="w-full rounded-lg border border-input bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring text-right"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Video className="w-4 h-4 text-primary shrink-0" />
+                    <label className="text-xs text-muted-foreground w-28 shrink-0">Videoaulas</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={999}
+                      value={videoaulas}
+                      onChange={(e) => setVideoaulas(e.target.value)}
+                      placeholder="0"
+                      className="w-full rounded-lg border border-input bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring text-right"
+                    />
+                  </div>
+                </div>
               </Card>
 
               {/* Material selector */}

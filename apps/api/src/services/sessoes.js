@@ -63,8 +63,8 @@ export const createSessao = async (userId, data) => {
   try {
     await connection.query(
       `INSERT INTO sessoes_estudo
-        (id, user_id, cronograma_id, materia, data_sessao, duracao_minutos, pontos_ganhos, notas, material_id, material_nome)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, user_id, cronograma_id, materia, data_sessao, duracao_minutos, pontos_ganhos, notas, material_id, material_nome, paginas_lidas, videoaulas)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id, userId,
         data.cronograma_id || null,
@@ -75,6 +75,8 @@ export const createSessao = async (userId, data) => {
         data.notas || null,
         data.material_id || null,
         data.material_nome || null,
+        data.paginas_lidas ?? null,
+        data.videoaulas ?? null,
       ]
     );
   } finally {
