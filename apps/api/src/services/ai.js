@@ -3,9 +3,21 @@
  * Generates realistic exam questions based on subject + exam board (banca)
  */
 
-import Anthropic from '@anthropic-ai/sdk';
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+// Dynamic import — resolved only when AI functions are called, not at server startup.
+// This prevents the server from crashing if @anthropic-ai/sdk is not yet installed.
+let _anthropic = null;
+async function getAnthropicClient() {
+  if (_anthropic) return _anthropic;
+  try {
+    const { default: Anthropic } = await import('@anthropic-ai/sdk');
+    _anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    return _anthropic;
+  } catch (err) {
+    throw new Error(
+      '@anthropic-ai/sdk não está instalado. Execute "npm install" no servidor e reinicie.'
+    );
+  }
+}
 
 /**
  * Generate multiple choice questions for a specific subject
@@ -53,6 +65,7 @@ Retorne APENAS o JSON válido, sem markdown, sem blocos de código, sem prefáci
 ]`;
 
   try {
+    const anthropic = await getAnthropicClient();
     const msg = await anthropic.messages.create({
       model: 'claude-opus-4-5',
       max_tokens: 4096,
@@ -120,6 +133,7 @@ Regras:
 - Seja conciso — respostas longas serão cortadas`;
 
   try {
+    const anthropic = await getAnthropicClient();
     const msg = await anthropic.messages.create({
       model: 'claude-opus-4-5',
       max_tokens: 4096,
@@ -147,6 +161,7 @@ export async function parseEdital(pdfBuffer) {
 
   const base64 = pdfBuffer.toString('base64');
 
+  const anthropic = await getAnthropicClient();
   const msg = await anthropic.messages.create({
     model: 'claude-opus-4-5',
     max_tokens: 4096,
