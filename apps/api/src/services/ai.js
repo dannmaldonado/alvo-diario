@@ -210,8 +210,100 @@ Regras:
   return JSON.parse(json);
 }
 
+/**
+ * Generate a verticalizado edital — subjects ranked by historical banca incidence
+ * @param {Object} params
+ * @param {string} [params.banca] - Exam board name (e.g., "CESPE/Cebraspe")
+ * @param {string} [params.concurso] - Contest name (e.g., "PCDF 2025")
+ * @param {Array}  params.materias - Parsed edital subjects [{nome, topicos[]}]
+ * @returns {Promise<Object>} Verticalizado edital with weighted subjects + topic incidence
+ */
+export async function verticalizarEdital({ banca, concurso, materias }) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error('ANTHROPIC_API_KEY not configured');
+  }
+
+  const bancaCtx = banca && banca !== 'Sem preferência' ? banca : 'concursos policiais brasileiros';
+  const concursoCtx = concurso || 'concurso policial';
+
+  // Trim topics to avoid excessive token usage
+  const materiasInput = (materias || []).map(m => ({
+    nome: m.nome,
+    topicos: (m.topicos || []).slice(0, 10),
+  }));
+
+  const prompt = `Você é um especialista em análise histórica de provas de concursos policiais brasileiros.
+
+Banca: ${bancaCtx}
+Concurso: ${concursoCtx}
+
+Matérias do edital (${materiasInput.length} ao total):
+${JSON.stringify(materiasInput, null, 2)}
+
+Gere um EDITAL VERTICALIZADO para a banca ${bancaCtx}: ordene as matérias por frequência histórica real de cobrança em provas anteriores dessa banca para concursos policiais.
+
+Para cada matéria:
+- Estime o peso histórico (% de questões da banca dedicadas a essa matéria)
+- Defina a prioridade de estudo (alta/media/baixa)
+- Para cada tópico, estime a incidência e adicione uma dica específica ao estilo da banca
+
+Retorne APENAS JSON válido, sem markdown:
+{
+  "banca": "${bancaCtx}",
+  "concurso": "${concursoCtx}",
+  "resumo_estrategico": "2-3 frases estratégicas sobre como estudar para essa banca nesse tipo de concurso",
+  "materias": [
+    {
+      "nome": "Nome exato da matéria (igual ao input)",
+      "peso_historico": 25,
+      "prioridade": "alta",
+      "observacao": "Como essa banca cobra essa matéria (legislação, jurisprudência, conceitos, etc.)",
+      "topicos": [
+        {
+          "nome": "Nome exato do tópico",
+          "incidencia": "alta",
+          "dica": "O que focar neste tópico especificamente para esta banca"
+        }
+      ]
+    }
+  ]
+}
+
+Regras:
+- Ordenar materias por peso_historico decrescente (maior incidência primeiro)
+- peso_historico: inteiro 1-100, TODOS somam aproximadamente 100
+- prioridade: "alta" se peso>20, "media" se 10-20, "baixa" se <10
+- incidencia dos tópicos: "alta", "media" ou "baixa"
+- Manter nomes de matérias EXATAMENTE iguais ao input (sem alterar capitalização)
+- Ser específico — candidatos usam isso para priorizar semanas de estudo`;
+
+  try {
+    const anthropic = await getAnthropicClient();
+    const msg = await anthropic.messages.create({
+      model: 'claude-opus-4-5',
+      max_tokens: 3000,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const text = msg.content[0].text.trim();
+    const jsonStr = text.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
+    const result = JSON.parse(jsonStr);
+
+    // Ensure materias are ordered by peso_historico descending
+    if (Array.isArray(result.materias)) {
+      result.materias.sort((a, b) => (b.peso_historico || 0) - (a.peso_historico || 0));
+    }
+
+    return result;
+  } catch (error) {
+    console.error('[ai.verticalizarEdital] Error:', error.message);
+    throw new Error(`Failed to generate verticalizacao: ${error.message}`);
+  }
+}
+
 export default {
   gerarQuestoes,
   gerarMapaBanca,
   parseEdital,
+  verticalizarEdital,
 };

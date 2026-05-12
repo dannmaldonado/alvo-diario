@@ -17,6 +17,7 @@ export const createCronogramaSchema = z.object({
   data_inicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'data_inicio must be YYYY-MM-DD format').optional().nullable(),
   materias: z.array(materiaSchema).min(1, 'At least one materia is required').max(50),
   status: z.enum(['ativo', 'concluido', 'pausado']).optional().default('ativo'),
+  verticalizacao: z.any().optional().nullable(),
 });
 
 export const updateCronogramaSchema = z.object({
@@ -26,6 +27,7 @@ export const updateCronogramaSchema = z.object({
   data_inicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
   materias: z.array(materiaSchema).min(1).max(50).optional(),
   status: z.enum(['ativo', 'concluido', 'pausado']).optional(),
+  verticalizacao: z.any().optional().nullable(),
 }).refine((data) => Object.keys(data).length > 0, {
   message: 'At least one field must be provided for update',
 });

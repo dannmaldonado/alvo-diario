@@ -15,7 +15,7 @@ import {
 } from '@/hooks/queries/useCronogramas';
 import { useScheduleCalculator } from '@/hooks/useScheduleCalculator';
 import { toast } from 'sonner';
-import { Cronograma, Materia } from '@/types';
+import { Cronograma, Materia, EditalVerticalizado } from '@/types';
 import { CronogramaFormData } from '@/schemas/cronograma';
 
 // ============================================================================
@@ -48,7 +48,7 @@ export interface CronogramaManagerReturn {
   closeDeleteConfirm: () => void;
 
   // Mutations
-  handleFormSubmit: (data: CronogramaFormData) => Promise<void>;
+  handleFormSubmit: (data: CronogramaFormData, verticalizacao?: EditalVerticalizado | null) => Promise<void>;
   handleDelete: () => Promise<void>;
   isCreating: boolean;
   isUpdating: boolean;
@@ -158,7 +158,7 @@ export function useCronogramaManager(): CronogramaManagerReturn {
 
   // ---- Mutations ----
 
-  const handleFormSubmit = useCallback(async (data: CronogramaFormData) => {
+  const handleFormSubmit = useCallback(async (data: CronogramaFormData, verticalizacao?: EditalVerticalizado | null) => {
     if (!currentUser) {
       toast.error('Usuario nao autenticado');
       return;
@@ -176,6 +176,7 @@ export function useCronogramaManager(): CronogramaManagerReturn {
       data_alvo: data.data_alvo,
       data_inicio: data.data_inicio || undefined,
       materias,
+      verticalizacao: verticalizacao || undefined,
     };
 
     try {

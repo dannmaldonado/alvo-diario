@@ -18,9 +18,18 @@ export const getAllCronogramas = async (userId) => {
         // Return empty array instead of crashing — user can re-edit
         materias = [];
       }
+      let verticalizacao = null;
+      try {
+        verticalizacao = row.verticalizacao
+          ? (typeof row.verticalizacao === 'string' ? JSON.parse(row.verticalizacao) : row.verticalizacao)
+          : null;
+      } catch (_) {
+        verticalizacao = null;
+      }
       return {
         ...row,
-        materias
+        materias,
+        verticalizacao,
       };
     });
   } finally {
@@ -46,10 +55,19 @@ export const getCronogramaById = async (userId, id) => {
       // Return empty array instead of crashing — user can re-edit
       materias = [];
     }
+    let verticalizacao = null;
+    try {
+      verticalizacao = rows[0].verticalizacao
+        ? (typeof rows[0].verticalizacao === 'string' ? JSON.parse(rows[0].verticalizacao) : rows[0].verticalizacao)
+        : null;
+    } catch (_) {
+      verticalizacao = null;
+    }
 
     return {
       ...rows[0],
-      materias
+      materias,
+      verticalizacao,
     };
   } finally {
     connection.release();
@@ -69,9 +87,18 @@ export const createCronograma = async (userId, data) => {
       throw new Error(`Materias JSON inválido: ${error.message}`);
     }
 
+    let verticalizacaoJson = null;
+    if (data.verticalizacao) {
+      try {
+        verticalizacaoJson = JSON.stringify(data.verticalizacao);
+      } catch (_) {
+        verticalizacaoJson = null;
+      }
+    }
+
     await connection.query(
-      'INSERT INTO cronogramas (id, user_id, edital, banca, data_alvo, data_inicio, materias, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [id, userId, data.edital, data.banca || null, data.data_alvo, data.data_inicio || null, materiasJson, data.status || 'ativo']
+      'INSERT INTO cronogramas (id, user_id, edital, banca, data_alvo, data_inicio, materias, status, verticalizacao) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [id, userId, data.edital, data.banca || null, data.data_alvo, data.data_inicio || null, materiasJson, data.status || 'ativo', verticalizacaoJson]
     );
     return getCronogramaById(userId, id);
   } finally {
@@ -90,12 +117,22 @@ export const updateCronograma = async (userId, id, data) => {
       data_alvo: data.data_alvo ?? cronograma.data_alvo,
       data_inicio: data.data_inicio !== undefined ? data.data_inicio : cronograma.data_inicio,
       materias: data.materias ?? cronograma.materias,
-      status: data.status ?? cronograma.status
+      status: data.status ?? cronograma.status,
+      verticalizacao: data.verticalizacao !== undefined ? data.verticalizacao : cronograma.verticalizacao,
     };
 
+    let verticalizacaoJson = null;
+    if (updates.verticalizacao) {
+      try {
+        verticalizacaoJson = JSON.stringify(updates.verticalizacao);
+      } catch (_) {
+        verticalizacaoJson = null;
+      }
+    }
+
     await connection.query(
-      'UPDATE cronogramas SET edital = ?, banca = ?, data_alvo = ?, data_inicio = ?, materias = ?, status = ? WHERE id = ? AND user_id = ?',
-      [updates.edital, updates.banca, updates.data_alvo, updates.data_inicio, JSON.stringify(updates.materias), updates.status, id, userId]
+      'UPDATE cronogramas SET edital = ?, banca = ?, data_alvo = ?, data_inicio = ?, materias = ?, status = ?, verticalizacao = ? WHERE id = ? AND user_id = ?',
+      [updates.edital, updates.banca, updates.data_alvo, updates.data_inicio, JSON.stringify(updates.materias), updates.status, verticalizacaoJson, id, userId]
     );
 
     return getCronogramaById(userId, id);

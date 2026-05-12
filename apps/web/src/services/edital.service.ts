@@ -3,7 +3,7 @@
  */
 
 import { apiClient } from '@/services/api';
-import type { EditalParseResult, MapaBanca } from '@/types';
+import type { EditalParseResult, EditalVerticalizado, EditalMateria, MapaBanca } from '@/types';
 
 // Used only for multipart/form-data (PDF upload) — apiClient sets Content-Type: application/json
 // which is incompatible with file uploads, so we use raw fetch for the parse endpoint.
@@ -41,4 +41,15 @@ export const EditalService = {
   /** Get AI-generated banca profile (cached per banca) */
   getMapaBanca: async (banca: string): Promise<MapaBanca> =>
     apiClient.get<MapaBanca>(`/api/questoes/mapa-banca?banca=${encodeURIComponent(banca)}`),
+
+  /**
+   * Generate a verticalizado edital — subjects ranked by historical banca incidence.
+   * Uses the parsed edital result to enrich each subject with frequency / priority data.
+   */
+  verticalizar: async (params: {
+    banca?: string | null;
+    concurso?: string;
+    materias: EditalMateria[];
+  }): Promise<EditalVerticalizado> =>
+    apiClient.post<EditalVerticalizado>('/api/edital/verticalizar', params),
 };

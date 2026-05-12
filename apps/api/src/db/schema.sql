@@ -262,6 +262,9 @@ ALTER TABLE questoes ADD COLUMN status VARCHAR(20) DEFAULT 'active';
 ALTER TABLE sessoes_estudo ADD COLUMN paginas_lidas INT NULL;
 ALTER TABLE sessoes_estudo ADD COLUMN videoaulas INT NULL;
 
+-- Edital Verticalizado — AI-ranked subjects by historical banca incidence (stored per cronograma)
+ALTER TABLE cronogramas ADD COLUMN verticalizacao JSON NULL;
+
 -- External question log (Gran Concurso, Tec Concurso, simulados, etc.)
 CREATE TABLE IF NOT EXISTS questoes_externas (
   id VARCHAR(36) PRIMARY KEY,

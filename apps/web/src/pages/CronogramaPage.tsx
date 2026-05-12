@@ -17,12 +17,13 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, ChevronLeft, ChevronRight, Map } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Map, TrendingUp } from 'lucide-react';
 
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import CronogramaList from '@/components/cronograma/CronogramaList';
 import CronogramaForm from '@/components/cronograma/CronogramaForm';
 import { MapaBancaModal } from '@/components/cronograma/MapaBancaModal';
+import { EditalVerticalizadoView } from '@/components/cronograma/EditalVerticalizadoView';
 import SubjectBadge from '@/components/SubjectBadge';
 import { useCronogramaManager } from '@/hooks/useCronogramaManager';
 
@@ -268,6 +269,11 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
             </Button>
           </div>
         </div>
+      )}
+
+      {/* Edital Verticalizado — shown when stored on the cronograma */}
+      {cronograma.verticalizacao && (
+        <EditalVerticalizadoView data={cronograma.verticalizacao} />
       )}
 
       {/* Cycle Grid */}

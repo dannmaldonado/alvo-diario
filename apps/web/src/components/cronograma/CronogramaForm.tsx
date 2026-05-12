@@ -31,11 +31,12 @@ import {
 import { Sparkles, Map } from 'lucide-react';
 import { EditalUpload } from '@/components/cronograma/EditalUpload';
 import { MapaBancaModal } from '@/components/cronograma/MapaBancaModal';
+import type { EditalVerticalizado } from '@/types';
 
 interface CronogramaFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: CronogramaFormData) => void;
+  onSubmit: (data: CronogramaFormData, verticalizacao?: EditalVerticalizado | null) => void;
   initialValues?: Cronograma | null;
   isSubmitting?: boolean;
 }
@@ -56,6 +57,7 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
 }) => {
   const isEdit = !!initialValues;
   const [showMapaBanca, setShowMapaBanca] = useState(false);
+  const [verticalizacao, setVerticalizacao] = useState<EditalVerticalizado | null>(null);
 
   const {
     control,
@@ -104,6 +106,8 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
           data_inicio: '',
         });
       }
+      // Reset verticalizacao when modal opens (don't carry over from previous session)
+      setVerticalizacao(null);
     }
   }, [open, initialValues, reset]);
 
@@ -114,7 +118,7 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
     }
   };
 
-  const handleEditalImport = (materias: string[], banca?: string | null) => {
+  const handleEditalImport = (materias: string[], banca?: string | null, v?: EditalVerticalizado | null) => {
     // Merge with existing materias (deduplicate)
     const existing = watchedMaterias ?? [];
     const merged = Array.from(new Set([...existing, ...materias]));
@@ -123,10 +127,14 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
     if (banca && (!watchedBanca || watchedBanca === 'none' || watchedBanca === '')) {
       setValue('banca', banca, { shouldValidate: true });
     }
+    // Store verticalizacao if provided
+    if (v) {
+      setVerticalizacao(v);
+    }
   };
 
   const handleFormSubmit = (data: CronogramaFormData) => {
-    onSubmit(data);
+    onSubmit(data, verticalizacao);
   };
 
   return (

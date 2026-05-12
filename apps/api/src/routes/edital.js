@@ -5,7 +5,7 @@
 import express from 'express';
 import multer from 'multer';
 import authMiddleware from '../middleware/auth.js';
-import { parseEdital } from '../services/ai.js';
+import { parseEdital, verticalizarEdital } from '../services/ai.js';
 
 const router = express.Router();
 
@@ -62,6 +62,37 @@ router.post('/parse', authMiddleware, upload.single('edital'), async (req, res) 
       return res.status(502).json({ error: 'Falha ao processar resposta da IA. Tente novamente.' });
     }
     res.status(500).json({ error: 'Erro ao processar o edital. Tente novamente.' });
+  }
+});
+
+// POST /api/edital/verticalizar — Rank edital subjects by historical banca incidence via AI
+router.post('/verticalizar', authMiddleware, async (req, res) => {
+  const { banca, concurso, materias } = req.body;
+
+  if (!materias || !Array.isArray(materias) || materias.length === 0) {
+    return res.status(400).json({ error: 'Matérias são obrigatórias para verticalizar o edital.' });
+  }
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(503).json({ error: 'Serviço de IA não configurado.' });
+  }
+
+  try {
+    const resultado = await verticalizarEdital({ banca, concurso, materias });
+    res.json(resultado);
+  } catch (error) {
+    console.error('[edital] Erro ao verticalizar:', error.message);
+
+    if (
+      error.message.includes('too long') ||
+      error.message.includes('tokens') ||
+      error.message.includes('maximum')
+    ) {
+      return res.status(413).json({
+        error: 'O edital é muito extenso para verticalização automática. Tente com menos matérias.',
+      });
+    }
+
+    res.status(500).json({ error: 'Erro ao gerar edital verticalizado. Tente novamente.' });
   }
 });
 

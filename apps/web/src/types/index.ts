@@ -49,6 +49,7 @@ export type Materia = {
   nome: string;
   status: 'nao_iniciada' | 'em_progresso' | 'concluida';
   horas_dedicadas?: number;
+  topicos?: string[];
 };
 
 export type Cronograma = {
@@ -60,6 +61,7 @@ export type Cronograma = {
   data_alvo: string;
   data_inicio?: string;
   status?: 'ativo' | 'concluido' | 'pausado';
+  verticalizacao?: EditalVerticalizado | null;
   created: string;
   updated: string;
 };
@@ -418,6 +420,34 @@ export type EditalParseResult = {
   concurso: string;
   banca: string | null;
   materias: EditalMateria[];
+};
+
+// ============================================================================
+// EDITAL VERTICALIZADO TYPES
+// ============================================================================
+
+export type IncidenciaLevel = 'alta' | 'media' | 'baixa';
+export type PrioridadeLevel = 'alta' | 'media' | 'baixa';
+
+export type EditalVerticalizado_Topico = {
+  nome: string;
+  incidencia: IncidenciaLevel;
+  dica?: string;
+};
+
+export type EditalVerticalizado_Materia = {
+  nome: string;
+  peso_historico: number;   // % of questions historically dedicated to this subject
+  prioridade: PrioridadeLevel;
+  observacao?: string;
+  topicos: EditalVerticalizado_Topico[];
+};
+
+export type EditalVerticalizado = {
+  banca: string;
+  concurso?: string;
+  resumo_estrategico?: string;
+  materias: EditalVerticalizado_Materia[];
 };
 
 // All types are exported directly from this file
