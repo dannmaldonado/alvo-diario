@@ -357,17 +357,25 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="">
+        {/* flex col so the body scrolls and the footer stays visible */}
+        <DialogContent className="sm:max-w-lg flex flex-col max-h-[90dvh] p-0 gap-0">
+
+          {/* Fixed header */}
+          <DialogHeader className="px-5 pt-5 pb-3 flex-shrink-0 border-b border-border">
             <DialogTitle>{isEdit ? 'Editar Cronograma' : 'Novo Cronograma'}</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs mt-0.5">
               {isEdit
                 ? 'Altere os dados do seu cronograma de estudos.'
-                : 'Configure o ciclo de estudos. Você pode usar um edital verticalizado já criado ou montar do zero.'}
+                : 'Use um edital verticalizado, um modelo pré-definido, ou monte do zero.'}
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5 mt-2">
+          {/* Scrollable body */}
+          <form
+            id="cronograma-form"
+            onSubmit={handleSubmit(handleFormSubmit)}
+            className="flex-1 overflow-y-auto px-5 py-4 space-y-5"
+          >
 
             {/* ── Edital Foco ── */}
             <div className="space-y-3">
@@ -375,46 +383,46 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
                 Edital Foco <span className="text-destructive">*</span>
               </Label>
 
-              {/* Mode toggle */}
-              <div className="flex rounded-lg border border-border overflow-hidden text-xs font-medium">
+              {/* Mode toggle — grid so buttons are always equal width */}
+              <div className="grid grid-cols-3 rounded-lg border border-border overflow-hidden text-[11px] font-semibold">
                 <button
                   type="button"
                   onClick={() => handleModeChange('myEdital')}
                   disabled={isSubmitting}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 transition-colors ${
+                  className={`flex items-center justify-center gap-1 py-2.5 px-1 transition-colors ${
                     editalMode === 'myEdital'
                       ? 'bg-primary text-primary-foreground'
                       : 'hover:bg-muted text-muted-foreground'
                   }`}
                 >
-                  <FileText className="h-3.5 w-3.5" />
-                  Meu Edital
+                  <FileText className="h-3 w-3 flex-shrink-0" />
+                  <span className="truncate">Meu Edital</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleModeChange('preset')}
                   disabled={isSubmitting}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 transition-colors border-x border-border ${
+                  className={`flex items-center justify-center gap-1 py-2.5 px-1 transition-colors border-x border-border ${
                     editalMode === 'preset'
                       ? 'bg-primary text-primary-foreground'
                       : 'hover:bg-muted text-muted-foreground'
                   }`}
                 >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Modelo
+                  <Sparkles className="h-3 w-3 flex-shrink-0" />
+                  <span className="truncate">Modelo</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleModeChange('custom')}
                   disabled={isSubmitting}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 transition-colors ${
+                  className={`flex items-center justify-center gap-1 py-2.5 px-1 transition-colors ${
                     editalMode === 'custom'
                       ? 'bg-primary text-primary-foreground'
                       : 'hover:bg-muted text-muted-foreground'
                   }`}
                 >
-                  <PenLine className="h-3.5 w-3.5" />
-                  Personalizado
+                  <PenLine className="h-3 w-3 flex-shrink-0" />
+                  <span className="truncate">Personalizado</span>
                 </button>
               </div>
 
@@ -507,22 +515,30 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
               />
             </div>
 
-            {/* ── Actions ── */}
-            <div className="flex gap-3 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" className="flex-1" disabled={isSubmitting}>
-                {isSubmitting ? 'Salvando...' : isEdit ? 'Salvar Alterações' : 'Criar Cronograma'}
-              </Button>
-            </div>
+          {/* bottom spacer so last field isn't hidden under sticky footer */}
+          <div className="h-2" />
           </form>
+
+          {/* Sticky footer — always visible, not inside scroll area */}
+          <div className="flex gap-3 px-5 py-4 border-t border-border flex-shrink-0 bg-background">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              form="cronograma-form"
+              className="flex-1"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Salvando...' : isEdit ? 'Salvar Alterações' : 'Criar Cronograma'}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
