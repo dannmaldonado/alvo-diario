@@ -44,10 +44,24 @@ router.post('/parse', authMiddleware, upload.single('edital'), async (req, res) 
     res.json(resultado);
   } catch (error) {
     console.error('[edital] Erro ao processar PDF:', error.message);
+
+    // Anthropic API: prompt is too long (PDF too large / too many pages)
+    if (
+      error.message.includes('too long') ||
+      error.message.includes('tokens') ||
+      error.message.includes('maximum') ||
+      error.status === 400
+    ) {
+      return res.status(413).json({
+        error:
+          'O edital é grande demais para análise automática. Tente um PDF com menos páginas (recomendado: até 50 páginas) ou use somente o capítulo de conteúdo programático.',
+      });
+    }
+
     if (error.message.includes('JSON') || error.message.includes('invalid format')) {
       return res.status(502).json({ error: 'Falha ao processar resposta da IA. Tente novamente.' });
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Erro ao processar o edital. Tente novamente.' });
   }
 });
 

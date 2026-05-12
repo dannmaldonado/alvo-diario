@@ -81,7 +81,7 @@ export function EditalUpload({ onImport }: EditalUploadProps) {
         >
           <Upload className="h-5 w-5" />
           <span className="text-sm font-medium">Clique para selecionar o PDF do edital</span>
-          <span className="text-xs">Máximo 10MB · Claude extrai as matérias automaticamente</span>
+          <span className="text-xs">Máximo 10MB · Recomendado até 50 páginas · Claude extrai as matérias automaticamente</span>
         </button>
         <input
           ref={fileInputRef}
