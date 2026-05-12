@@ -18,13 +18,15 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, ChevronLeft, ChevronRight, FileText, Map, TrendingUp } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, FileText, Map } from 'lucide-react';
 
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import CronogramaList from '@/components/cronograma/CronogramaList';
 import CronogramaForm from '@/components/cronograma/CronogramaForm';
 import { MapaBancaModal } from '@/components/cronograma/MapaBancaModal';
 import { EditalVerticalizadoView } from '@/components/cronograma/EditalVerticalizadoView';
+import { CycleRingView } from '@/components/cronograma/CycleRingView';
+import { ConteudoDoDia } from '@/components/cronograma/ConteudoDoDia';
 import SubjectBadge from '@/components/SubjectBadge';
 import { useCronogramaManager } from '@/hooks/useCronogramaManager';
 
@@ -102,7 +104,6 @@ const CronogramaPage: React.FC = () => {
               viewCycleOffset={viewCycleOffset}
               onSetViewCycleOffset={setViewCycleOffset}
               getCycleInfo={cycleHelpers.getCycleInfo}
-              getSubjectForDay={cycleHelpers.getSubjectForDay}
               onBack={clearSelection}
               onEdit={() => openEdit(selectedCronograma)}
               onDelete={() => openDeleteConfirm(selectedCronograma)}
@@ -169,7 +170,6 @@ interface CronogramaDetailProps {
   viewCycleOffset: number;
   onSetViewCycleOffset: (value: number | ((prev: number) => number)) => void;
   getCycleInfo: ReturnType<typeof useCronogramaManager>['cycleHelpers']['getCycleInfo'];
-  getSubjectForDay: ReturnType<typeof useCronogramaManager>['cycleHelpers']['getSubjectForDay'];
   onBack: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -182,7 +182,6 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
   viewCycleOffset,
   onSetViewCycleOffset,
   getCycleInfo,
-  getSubjectForDay,
   onBack,
   onEdit,
   onDelete,
@@ -193,21 +192,33 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const { cycleNumber: currentCycleNum, totalDaysInCycle } = getCycleInfo(cronograma, today);
+  const n = cronograma.materias?.length || 0;
+  const { cycleNumber: currentCycleNum, dayInCycle, totalDaysInCycle } = getCycleInfo(cronograma, today);
   const targetCycleNum = Math.max(1, currentCycleNum + viewCycleOffset);
+  const isCurrentCycle = viewCycleOffset === 0;
 
+  // Current index in the ring (0-based)
+  const currentRingIndex = n > 0 ? (dayInCycle - 1) % n : 0;
+
+  // When viewing a different cycle, compute that cycle's day-1 subject as the "highlighted" node
+  const viewRingIndex = isCurrentCycle
+    ? currentRingIndex
+    : 0; // day 1 of the viewed cycle
+
+  // Matéria name for ConteudoDoDia — only show for current cycle
+  const todayMateriaRaw = isCurrentCycle && n > 0 ? cronograma.materias[currentRingIndex] : null;
+  const todayMateriaName = todayMateriaRaw
+    ? typeof todayMateriaRaw === 'string'
+      ? todayMateriaRaw
+      : todayMateriaRaw.nome
+    : '';
+
+  // Cycle date range for display
   const cycleStartDate = new Date(cronograma.data_inicio || cronograma.created);
   cycleStartDate.setHours(0, 0, 0, 0);
   cycleStartDate.setDate(cycleStartDate.getDate() + ((targetCycleNum - 1) * totalDaysInCycle));
-
-  const days = Array.from({ length: totalDaysInCycle }, (_, i) => {
-    const date = new Date(cycleStartDate);
-    date.setDate(date.getDate() + i);
-    const isToday = date.getTime() === today.getTime();
-    const isPast = date.getTime() < today.getTime();
-    const subject = getSubjectForDay(cronograma, i);
-    return { dayNum: i + 1, date, isToday, isPast, subject };
-  });
+  const cycleEndDate = new Date(cycleStartDate);
+  cycleEndDate.setDate(cycleEndDate.getDate() + totalDaysInCycle - 1);
 
   return (
     <div className="space-y-6">
@@ -317,9 +328,10 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
         <EditalVerticalizadoView data={cronograma.verticalizacao} />
       )}
 
-      {/* Cycle Grid */}
+      {/* Cycle Card — Ring + Conteúdo do Dia */}
       {cronograma.materias && cronograma.materias.length > 0 && (
         <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+          {/* Cycle navigation header */}
           <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
             <Button
               variant="outline"
@@ -332,8 +344,8 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
             <div className="text-center">
               <h3 className="font-semibold text-lg">Ciclo {targetCycleNum}</h3>
               <p className="text-sm text-muted-foreground">
-                {cycleStartDate.toLocaleDateString('pt-BR')} -{' '}
-                {days[days.length - 1].date.toLocaleDateString('pt-BR')}
+                {cycleStartDate.toLocaleDateString('pt-BR')} –{' '}
+                {cycleEndDate.toLocaleDateString('pt-BR')}
               </p>
             </div>
             <Button
@@ -345,45 +357,34 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
             </Button>
           </div>
 
-          <div className="divide-y divide-border">
-            {days.map((day) => (
-              <div
-                key={day.dayNum}
-                className={`p-4 flex items-center gap-4 transition-colors ${
-                  day.isToday
-                    ? 'bg-primary/5 border-l-4 border-l-primary'
-                    : day.isPast
-                      ? 'opacity-60 bg-muted/20'
-                      : 'hover:bg-muted/50'
-                }`}
-              >
-                <div className="flex flex-col items-center justify-center min-w-[60px]">
-                  <span className="text-xs font-medium text-muted-foreground uppercase">
-                    Dia
-                  </span>
-                  <span className={`text-2xl font-bold ${day.isToday ? 'text-primary' : ''}`}>
-                    {day.dayNum}
-                  </span>
+          {/* Ring + Conteúdo side by side on desktop */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] divide-y lg:divide-y-0 lg:divide-x divide-border">
+            {/* Left — cycle ring */}
+            <div className="flex items-center justify-center p-6">
+              <CycleRingView
+                materias={cronograma.materias}
+                currentIndex={viewRingIndex}
+                cycleNumber={targetCycleNum}
+                isCurrentCycle={isCurrentCycle}
+              />
+            </div>
+
+            {/* Right — today's content */}
+            <div className="p-6">
+              {isCurrentCycle ? (
+                <ConteudoDoDia
+                  cronograma={cronograma}
+                  materiaName={todayMateriaName}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full gap-3 py-8 text-center text-muted-foreground">
+                  <ChevronLeft className="h-7 w-7 opacity-20" />
+                  <p className="text-sm max-w-[220px]">
+                    Navegue para o ciclo atual para ver o conteúdo do dia.
+                  </p>
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      {day.date.toLocaleDateString('pt-BR', {
-                        weekday: 'short',
-                        day: '2-digit',
-                        month: 'short',
-                      })}
-                    </span>
-                    {day.isToday && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
-                        Hoje
-                      </span>
-                    )}
-                  </div>
-                  <SubjectBadge subject={day.subject} size="lg" />
-                </div>
-              </div>
-            ))}
+              )}
+            </div>
           </div>
         </div>
       )}
