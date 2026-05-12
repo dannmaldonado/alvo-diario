@@ -118,13 +118,15 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
   const watchedMaterias = watch('materias');
 
   // ---- Auto-populate when edital data loads (myEdital mode) ----
+  // `open` is included so this runs AFTER the reset effect when the modal opens
+  // with already-cached edital data (e.g. navigating from EditalDetailPage).
   useEffect(() => {
-    if (!editalData || editalMode !== 'myEdital') return;
+    if (!open || !editalData || editalMode !== 'myEdital') return;
     setValue('edital', editalData.titulo, { shouldValidate: true });
     if (editalData.banca) setValue('banca', editalData.banca, { shouldValidate: true });
     const nomes = editalData.materias.map((m) => m.nome);
     if (nomes.length > 0) setValue('materias', nomes, { shouldValidate: true });
-  }, [editalData, editalMode, setValue]);
+  }, [open, editalData, editalMode, setValue]);
 
   // ---- Reset form when modal opens ----
   useEffect(() => {
