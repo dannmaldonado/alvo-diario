@@ -86,7 +86,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setCurrentUser(response.record);
       return { success: true, user: response.record };
     } catch (error) {
-      const errorMessage = error instanceof APIError ? error.message : 'Login failed';
+      const errorMessage = error instanceof Error ? error.message : 'Login failed';
       return { success: false, error: errorMessage };
     }
   }, []);
@@ -106,7 +106,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setCurrentUser(newUser);
       return { success: true, user: newUser };
     } catch (error) {
-      const errorMessage = error instanceof APIError ? error.message : 'Signup failed';
+      const errorMessage = error instanceof Error ? error.message : 'Signup failed';
       return { success: false, error: errorMessage };
     }
   }, []);
@@ -133,7 +133,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setCurrentUser(updated);
       return { success: true, user: updated };
     } catch (error) {
-      const errorMessage = error instanceof APIError ? error.message : 'Update failed';
+      const errorMessage = error instanceof Error ? error.message : 'Update failed';
       return { success: false, error: errorMessage };
     }
   }, [currentUser]);
