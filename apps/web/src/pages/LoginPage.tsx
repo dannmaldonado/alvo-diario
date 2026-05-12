@@ -78,8 +78,16 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
+      // Read values directly from DOM to handle browser autofill
+      // (autofill may not trigger React's onChange, leaving state empty)
+      const form = e.currentTarget;
+      const emailInput = form.querySelector<HTMLInputElement>('input[name="email"]');
+      const passwordInput = form.querySelector<HTMLInputElement>('input[name="password"]');
+      const emailValue = emailInput?.value || formData.email || '';
+      const passwordValue = passwordInput?.value || formData.password || '';
+
       // Validate form data with Zod
-      const validatedData = LoginSchema.parse(formData);
+      const validatedData = LoginSchema.parse({ email: emailValue, password: passwordValue });
 
       // Use AuthContext login (wraps AuthService + updates TanStack Query cache)
       const result = await login(validatedData.email, validatedData.password);
@@ -132,7 +140,7 @@ const LoginPage: React.FC = () => {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                 <FormInput
                   label="Email"
                   type="email"
