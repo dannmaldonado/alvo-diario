@@ -105,7 +105,7 @@ export async function submitResposta(userId, questaoId, { resposta, tempo_respos
     // Determine if correct
     const correta = resposta === questao.resposta_correta ? 1 : 0;
 
-    // Insert response
+    // Insert response — CRITICAL: must succeed for analytics to work
     const respostaId = uuidv4();
     await connection.execute(
       `INSERT INTO respostas_questoes (id, user_id, questao_id, resposta, correta, tempo_resposta_s)
@@ -113,16 +113,21 @@ export async function submitResposta(userId, questaoId, { resposta, tempo_respos
       [respostaId, userId, questaoId, resposta, correta, tempo_resposta_s || null]
     );
 
-    // Update SM-2 on the question
-    const quality = correta === 1 ? 5 : 0; // Simplified: correct = 5, wrong = 0
-    const sm2 = updateSM2(questao, quality);
-
-    await connection.execute(
-      `UPDATE questoes 
-       SET ease_factor = ?, interval_days = ?, next_review = ?, review_count = ?, updated = CURRENT_TIMESTAMP
-       WHERE id = ?`,
-      [sm2.ease_factor, sm2.interval_days, sm2.next_review, sm2.review_count, questaoId]
-    );
+    // Update SM-2 on the question — NON-CRITICAL: failure doesn't block saving the response
+    let sm2 = null;
+    try {
+      const quality = correta === 1 ? 5 : 0;
+      sm2 = updateSM2(questao, quality);
+      await connection.execute(
+        `UPDATE questoes
+         SET ease_factor = ?, interval_days = ?, next_review = ?, review_count = ?, updated = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [sm2.ease_factor, sm2.interval_days, sm2.next_review, sm2.review_count, questaoId]
+      );
+    } catch (sm2Error) {
+      // SM-2 update failed (e.g. missing column in older schema) — response is already saved
+      console.warn('[questoes.submitResposta] SM-2 update skipped:', sm2Error.message);
+    }
 
     return {
       respostaId,

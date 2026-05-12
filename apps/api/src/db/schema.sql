@@ -251,6 +251,13 @@ CREATE TABLE IF NOT EXISTS mapa_banca_cache (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Add SM-2 spaced repetition columns to questoes (safe to re-run — migration runner skips errno 1060)
+ALTER TABLE questoes ADD COLUMN ease_factor FLOAT DEFAULT 2.5;
+ALTER TABLE questoes ADD COLUMN interval_days INT DEFAULT 0;
+ALTER TABLE questoes ADD COLUMN next_review DATE NULL;
+ALTER TABLE questoes ADD COLUMN review_count INT DEFAULT 0;
+ALTER TABLE questoes ADD COLUMN status VARCHAR(20) DEFAULT 'active';
+
 -- Páginas lidas e videoaulas por sessão (Feature: tracking de progresso de material)
 ALTER TABLE sessoes_estudo ADD COLUMN paginas_lidas INT NULL;
 ALTER TABLE sessoes_estudo ADD COLUMN videoaulas INT NULL;

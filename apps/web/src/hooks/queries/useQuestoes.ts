@@ -49,5 +49,7 @@ export function useResponderQuestao() {
       queryClient.invalidateQueries({ queryKey: questaoKeys.revisao() });
       queryClient.invalidateQueries({ queryKey: questaoKeys.analytics() });
     },
+    // Suppress global error toast — save failures are non-blocking in quiz/review UI
+    onError: () => {},
   });
 }
