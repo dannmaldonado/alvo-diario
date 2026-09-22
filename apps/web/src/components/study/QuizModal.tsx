@@ -60,10 +60,10 @@ const QuestionView: React.FC<QuestionViewProps> = ({ questao, index, total, onAn
   };
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       {/* Question header */}
       <div>
-        <p className="text-xs text-muted-foreground mb-1">
+        <p className="text-xs text-muted-foreground mb-1.5">
           Questão {index + 1} de {total}
           {questao.banca && <span className="ml-2 font-medium text-primary/70">· {questao.banca}</span>}
         </p>
@@ -88,7 +88,7 @@ const QuestionView: React.FC<QuestionViewProps> = ({ questao, index, total, onAn
               onClick={() => handleSelect(idx)}
               disabled={confirmed}
               className={cn(
-                'w-full text-left px-4 py-3 rounded-xl text-sm border transition-all duration-200',
+                'w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl text-sm border transition-all duration-200',
                 !confirmed && selected !== idx && 'border-border hover:border-primary/50 hover:bg-primary/5',
                 !confirmed && selected === idx && 'border-primary bg-primary/10 font-medium',
                 confirmed && variant === 'correct' && 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium',
@@ -96,10 +96,10 @@ const QuestionView: React.FC<QuestionViewProps> = ({ questao, index, total, onAn
                 confirmed && variant === 'neutral' && 'border-border opacity-50',
               )}
             >
-              <span className="flex items-center gap-3">
-                {confirmed && variant === 'correct' && <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />}
-                {confirmed && variant === 'wrong' && <XCircle className="h-4 w-4 shrink-0 text-destructive" />}
-                <span>{opcao}</span>
+              <span className="flex items-start gap-2.5">
+                {confirmed && variant === 'correct' && <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500 mt-0.5" />}
+                {confirmed && variant === 'wrong' && <XCircle className="h-4 w-4 shrink-0 text-destructive mt-0.5" />}
+                <span className="leading-snug">{opcao}</span>
               </span>
             </button>
           );
@@ -120,25 +120,24 @@ const QuestionView: React.FC<QuestionViewProps> = ({ questao, index, total, onAn
       )}
 
       {/* Action button */}
-      <div className="flex justify-end">
+      <div className="flex justify-end pt-1">
         {!confirmed ? (
           <Button
-            size="sm"
             onClick={handleConfirm}
             disabled={selected === null}
+            className="w-full sm:w-auto"
           >
-            Confirmar
+            Confirmar resposta
           </Button>
         ) : (
           <Button
-            size="sm"
             onClick={handleNext}
             disabled={isSaving}
-            className="gap-2"
+            className="w-full sm:w-auto gap-2"
           >
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {index + 1 < total ? (
-              <>Próxima <ChevronRight className="h-4 w-4" /></>
+              <>Próxima questão <ChevronRight className="h-4 w-4" /></>
             ) : (
               'Ver resultado'
             )}
@@ -239,17 +238,17 @@ const QuizModal: React.FC<QuizModalProps> = ({
   const progress = questoes.length > 0 ? ((currentIdx) / questoes.length) * 100 : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg bg-background rounded-2xl shadow-2xl border border-border overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg bg-background sm:rounded-2xl rounded-t-2xl shadow-2xl border border-border flex flex-col max-h-[92vh] sm:max-h-[88vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b shrink-0">
           <div className="flex items-center gap-2">
             <Brain className="h-4 w-4 text-primary" />
             <span className="font-semibold text-sm">Quiz pós-sessão</span>
           </div>
           <button
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground transition-colors"
+            className="text-muted-foreground hover:text-foreground transition-colors p-1"
           >
             <X className="h-4 w-4" />
           </button>
@@ -257,7 +256,7 @@ const QuizModal: React.FC<QuizModalProps> = ({
 
         {/* Progress bar */}
         {!finished && questoes.length > 0 && (
-          <div className="h-1 bg-muted">
+          <div className="h-1 bg-muted shrink-0">
             <div
               className="h-full bg-primary transition-all duration-300"
               style={{ width: `${progress}%` }}
@@ -265,8 +264,8 @@ const QuizModal: React.FC<QuizModalProps> = ({
           </div>
         )}
 
-        {/* Content */}
-        <div className="p-5">
+        {/* Content — scrollable */}
+        <div className="p-4 sm:p-5 overflow-y-auto flex-1">
           {isLoading ? (
             <div className="flex flex-col items-center gap-4 py-10 text-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
