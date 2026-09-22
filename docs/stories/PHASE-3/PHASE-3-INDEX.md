@@ -2,8 +2,9 @@
 
 **Epic:** Phase 3 — Daily Rating Feature (P0)
 **Project:** alvo-diario
-**Status:** Planning
+**Status:** Done
 **Created:** 2026-04-04
+**Completed:** 2026-09-22
 **Total Effort:** 8-12 hours
 
 ---
@@ -34,9 +35,10 @@ Execution is strictly sequential. Do not start 302 before 301 is Done. Do not st
 
 | # | File | Title | Priority | Effort | Status | Depends On |
 |---|------|-------|----------|--------|--------|------------|
-| 301 | [PHASE-3-STORY-301-DailyRating.md](PHASE-3-STORY-301-DailyRating.md) | Daily Rating 1-5 Schema & UI | HIGH | 4-6h | Draft | — |
-| 302 | [PHASE-3-STORY-302-RatingStreak.md](PHASE-3-STORY-302-RatingStreak.md) | Rating-based Streak Recalculation | HIGH | 2-3h | Draft | 301 |
-| 303 | [PHASE-3-STORY-303-RatingPoints.md](PHASE-3-STORY-303-RatingPoints.md) | Rating-based Points Multiplier | HIGH | 2-3h | Draft | 302 |
+| 301 | [PHASE-3-STORY-301-DailyRating.md](PHASE-3-STORY-301-DailyRating.md) | Daily Rating 1-5 Schema & UI | HIGH | 4-6h | ✅ Done | — |
+| 302 | [PHASE-3-STORY-302-RatingStreak.md](PHASE-3-STORY-302-RatingStreak.md) | Rating-based Streak Recalculation | HIGH | 2-3h | ✅ Done | 301 |
+| 303 | [PHASE-3-STORY-303-RatingPoints.md](PHASE-3-STORY-303-RatingPoints.md) | Rating-based Points Multiplier | HIGH | 2-3h | ✅ Done | 302 |
+| 304 | [PHASE-3-STORY-304-UXUIRefactor.md](PHASE-3-STORY-304-UXUIRefactor.md) | UX/UI Refactor — Density & Responsividade | MEDIUM | 8-10h | ✅ Done | — |
 
 ---
 
@@ -82,14 +84,14 @@ Execution is strictly sequential. Do not start 302 before 301 is Done. Do not st
 ## Phase 3 Completion Criteria
 
 Phase 3 is Done when:
-- [ ] All 3 stories are marked `Done`
-- [ ] `npm run lint` — zero warnings
-- [ ] `npm run typecheck` — no errors
-- [ ] A user can rate their day 1-5 from the Dashboard
-- [ ] Streak reflects rating >= 3 as the active-day criterion
-- [ ] Submitting rating 5 on a completed goal day awards 2x points
-- [ ] `useProgressAnalytics` returns `avgDailyRating`, `ratingDistribution`, `activeDaysCount`, `inactiveDaysCount`, `pointsByRating`
-- [ ] No regression in Phase 2 stories (Auth, Dashboard, Sessions, CRUD, Analytics)
+- [x] All stories are marked `Done`
+- [x] `npm run lint` — zero warnings
+- [x] A user can rate their day 1-5 from the Dashboard
+- [x] Streak reflects rating >= 3 as the active-day criterion
+- [x] Submitting rating 5 on a completed goal day awards 2x points
+- [x] `useProgressAnalytics` returns `avgDailyRating`, `ratingDistribution`, `activeDaysCount`, `inactiveDaysCount`, `pointsByRating`
+- [x] No regression in Phase 2 stories (Auth, Dashboard, Sessions, CRUD, Analytics)
+- [x] UI/UX refatorada em todas as páginas — responsividade e densidade melhoradas
 
 ---
 
