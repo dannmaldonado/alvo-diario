@@ -92,7 +92,7 @@ export interface StudySessionActions {
 // HOOK
 // ============================================================================
 
-export function useStudySession() {
+export function useStudySession(initialSubject?: string) {
   const { currentUser } = useAuth();
   const { getCurrentSubject, getCycleInfo } = useScheduleCalculator();
 
@@ -104,7 +104,7 @@ export function useStudySession() {
   const gerarQuestoesMutation = useGerarQuestoes();
 
   // Schedule
-  const [selectedSubject, setSelectedSubject] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState(initialSubject ?? '');
   const [todaySubject, setTodaySubject] = useState<Materia | null>(null);
   const [cycleInfo, setCycleInfo] = useState<{ cycleNumber: number; dayInCycle: number } | null>(null);
 

@@ -6,7 +6,8 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, BookOpen, RotateCcw, FileText } from 'lucide-react';
+import { CheckCircle2, BookOpen, RotateCcw, FileText, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useEditalDetail } from '@/hooks/queries/useEditais';
 import type { Cronograma, EditalMateriaItem, EditalTopicoItem } from '@/types';
 
@@ -14,6 +15,8 @@ interface ConteudoDoDiaProps {
   cronograma: Cronograma;
   /** Name of today's matéria (from the cycle) */
   materiaName: string;
+  /** Name of tomorrow's matéria — enables the "Adiantar" CTA when allDone */
+  nextMateria?: string;
 }
 
 /** Case-insensitive substring match between cronograma matéria and edital matéria */
@@ -27,7 +30,8 @@ function findEditalMateria(
   );
 }
 
-export function ConteudoDoDia({ cronograma, materiaName }: ConteudoDoDiaProps) {
+export function ConteudoDoDia({ cronograma, materiaName, nextMateria }: ConteudoDoDiaProps) {
+  const navigate = useNavigate();
   const editalId = cronograma.edital_id ?? undefined;
   const { data: edital, isLoading } = useEditalDetail(editalId);
 
@@ -148,16 +152,28 @@ export function ConteudoDoDia({ cronograma, materiaName }: ConteudoDoDiaProps) {
 
       {/* All done banner */}
       {allDone && (
-        <div className="flex items-start gap-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-3">
-          <RotateCcw className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-              Revisão recomendada!
-            </p>
-            <p className="text-xs text-emerald-600/80 dark:text-emerald-400/70 mt-0.5">
-              Você concluiu todos os tópicos. Faça questões ou releia os pontos críticos antes de avançar.
-            </p>
+        <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-3 space-y-2.5">
+          <div className="flex items-start gap-2.5">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                Assunto concluído!
+              </p>
+              <p className="text-xs text-emerald-600/80 dark:text-emerald-400/70 mt-0.5">
+                Você marcou todos os tópicos. Revise ou avance para o próximo assunto.
+              </p>
+            </div>
           </div>
+          {nextMateria && nextMateria !== materiaName && (
+            <button
+              type="button"
+              onClick={() => navigate(`/sessao?subject=${encodeURIComponent(nextMateria)}`)}
+              className="w-full flex items-center justify-between gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-sm font-semibold transition-colors"
+            >
+              <span>Adiantar: {nextMateria}</span>
+              <ChevronRight className="h-4 w-4 shrink-0" />
+            </button>
+          )}
         </div>
       )}
 

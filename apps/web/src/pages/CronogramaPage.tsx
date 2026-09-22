@@ -213,6 +213,14 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
       : todayMateriaRaw.nome
     : '';
 
+  // Next matéria in the cycle — for "Adiantar" CTA (only relevant when > 1 subject)
+  const nextMateriaRaw = n > 1 ? cronograma.materias[(currentRingIndex + 1) % n] : null;
+  const nextMateriaName = nextMateriaRaw
+    ? typeof nextMateriaRaw === 'string'
+      ? nextMateriaRaw
+      : nextMateriaRaw.nome
+    : undefined;
+
   // Cycle date range for display
   const cycleStartDate = new Date(cronograma.data_inicio || cronograma.created);
   cycleStartDate.setHours(0, 0, 0, 0);
@@ -376,6 +384,7 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
                 <ConteudoDoDia
                   cronograma={cronograma}
                   materiaName={todayMateriaName}
+                  nextMateria={nextMateriaName}
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full gap-3 py-8 text-center text-muted-foreground">

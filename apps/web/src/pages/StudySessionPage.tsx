@@ -1,5 +1,6 @@
 import React from 'react';
 import { Helmet } from 'react-helmet';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -23,7 +24,9 @@ import { useTodaySessions } from '@/hooks/queries/useSessoes';
 import { DailyRatingValue } from '@/types';
 
 const StudySessionPage: React.FC = () => {
-  const { state, actions } = useStudySession();
+  const [searchParams] = useSearchParams();
+  const initialSubject = searchParams.get('subject') ?? undefined;
+  const { state, actions } = useStudySession(initialSubject);
   const { currentUser } = useAuth();
   const todaySessionsQuery = useTodaySessions(currentUser?.id);
 
