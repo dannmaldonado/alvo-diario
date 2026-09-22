@@ -3,11 +3,11 @@ import React from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Trophy, Flame, Play, CalendarDays, ArrowRight, BookOpen, BarChart3, Clock, Target, AlertTriangle, RefreshCw, Award, Brain } from 'lucide-react';
+import { Trophy, Flame, Play, CalendarDays, ArrowRight, BookOpen, Target, AlertTriangle, RefreshCw, Award, Brain } from 'lucide-react';
 import { Materia, DailyRatingValue } from '@/types';
 
 import SubjectBadge from '@/components/SubjectBadge';
-import { Card, StatsCard } from '@/components/Card';
+import { Card } from '@/components/Card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useQuestoesRevisao } from '@/hooks/queries/useQuestoes';
@@ -117,7 +117,7 @@ const DashboardPage: React.FC = () => {
       </Helmet>
 
       <div>
-        <div className="container mx-auto px-4 py-6 md:py-8 max-w-7xl">
+        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl">
           {/* Welcome Header */}
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
@@ -155,7 +155,7 @@ const DashboardPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
 
               {/* Hero Card: Today's Subject */}
-              <div className="md:col-span-2 bg-card border border-border rounded-2xl p-5 sm:p-8 shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[260px] md:min-h-[320px] animate-slide-up transition-all duration-250 hover:shadow-xl">
+              <div className="md:col-span-2 bg-card border border-border rounded-2xl p-5 sm:p-8 shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[200px] sm:min-h-[260px] md:min-h-[300px] animate-slide-up hover:shadow-xl transition-shadow">
                 <div className="absolute top-0 right-0 -mt-16 -mr-16 text-primary/5 pointer-events-none">
                   <BookOpen className="w-64 h-64" />
                 </div>
@@ -166,7 +166,7 @@ const DashboardPage: React.FC = () => {
                     Matéria de Hoje
                   </div>
 
-                  <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight mb-3 text-balance">
+                  <h2 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mb-3 text-balance">
                     {typeof todaySubject === 'string' ? todaySubject : (todaySubject?.nome || 'Revisão Geral')}
                   </h2>
 
@@ -187,11 +187,12 @@ const DashboardPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Cycle Progress Card */}
-              <div className="bg-card border border-border rounded-2xl p-5 shadow-sm flex flex-col animate-slide-up transition-all duration-250 hover:shadow-lg" style={{ animationDelay: '0.1s' }}>
-                <h3 className="text-base font-semibold mb-4">Progresso do Ciclo</h3>
+              {/* Right Column: Cycle + Weekly + Tomorrow stacked */}
+              <div className="flex flex-col gap-4 animate-slide-up" style={{ animationDelay: '0.1s' }}>
 
-                <div className="flex-1 flex flex-col justify-center">
+                {/* Cycle Progress */}
+                <div className="bg-card border border-border rounded-2xl p-5 shadow-sm flex flex-col hover:shadow-lg transition-shadow">
+                  <h3 className="text-base font-semibold mb-3">Progresso do Ciclo</h3>
                   <div className="flex justify-between items-end mb-2">
                     <div>
                       <p className="text-3xl font-bold text-primary">{cycleInfo?.dayInCycle}</p>
@@ -202,21 +203,62 @@ const DashboardPage: React.FC = () => {
                       <p className="text-xs text-muted-foreground font-medium">Total dias</p>
                     </div>
                   </div>
-
-                  <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden mt-3">
+                  <div className="h-2 w-full bg-muted rounded-full overflow-hidden mt-1">
                     <div
                       className="h-full bg-primary rounded-full transition-all duration-1000 ease-out"
                       style={{ width: `${cycleInfo && cycleInfo.dayInCycle && cycleInfo.totalDaysInCycle ? (cycleInfo.dayInCycle / cycleInfo.totalDaysInCycle) * 100 : 0}%` }}
                     />
                   </div>
-                  <p className="text-center text-xs text-muted-foreground mt-3">
+                  <p className="text-center text-xs text-muted-foreground mt-2">
                     Ciclo {cycleInfo?.cycleNumber} em andamento
                   </p>
                 </div>
+
+                {/* Weekly Goal (compact) */}
+                {weeklyStats && (
+                  <div className="bg-card border border-border rounded-2xl p-4 shadow-sm hover:shadow-lg transition-shadow">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <Target className="h-3.5 w-3.5 text-primary" />
+                        <h3 className="text-sm font-semibold">Meta Semanal</h3>
+                      </div>
+                      <span className="text-xs font-bold text-primary">
+                        {Math.min(Math.round((weeklyStats.horasRealizadas / weeklyStats.horasMeta) * 100), 100)}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary rounded-full transition-all duration-1000"
+                        style={{ width: `${Math.min((weeklyStats.horasRealizadas / weeklyStats.horasMeta) * 100, 100)}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      <strong className="text-foreground">{weeklyStats.horasRealizadas}h</strong> / {weeklyStats.horasMeta}h
+                      {weeklyStats.horasRealizadas >= weeklyStats.horasMeta && (
+                        <span className="ml-2 text-secondary font-medium">Meta atingida!</span>
+                      )}
+                    </p>
+                  </div>
+                )}
+
+                {/* Tomorrow */}
+                <div className="bg-muted/50 border border-border rounded-2xl p-4 flex flex-col justify-center hover:bg-muted transition-colors">
+                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Amanhã</h3>
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-background flex items-center justify-center shadow-sm shrink-0">
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm line-clamp-2">{typeof tomorrowSubject === 'string' ? tomorrowSubject : (tomorrowSubject?.nome || 'Revisão')}</p>
+                      <SubjectBadge subject={tomorrowSubject} size="sm" className="mt-1" />
+                    </div>
+                  </div>
+                </div>
+
               </div>
 
               {/* Daily Goal Card */}
-              <div className="md:col-span-2 bg-card border border-border rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row items-center gap-5 animate-slide-up transition-all duration-250 hover:shadow-lg" style={{ animationDelay: '0.2s' }}>
+              <div className="md:col-span-2 bg-card border border-border rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row items-center gap-5 animate-slide-up hover:shadow-lg transition-shadow" style={{ animationDelay: '0.2s' }}>
                 <div className="relative w-24 h-24 shrink-0 flex items-center justify-center">
                   <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="44" className="stroke-muted fill-none" strokeWidth="8" />
@@ -266,19 +308,6 @@ const DashboardPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Next Subject Card */}
-              <div className="bg-muted/50 border border-border rounded-2xl p-5 flex flex-col justify-center animate-slide-up transition-all duration-250 hover:bg-muted" style={{ animationDelay: '0.3s' }}>
-                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Amanhã</h3>
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-background flex items-center justify-center shadow-sm shrink-0">
-                    <ArrowRight className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-base line-clamp-2">{typeof tomorrowSubject === 'string' ? tomorrowSubject : (tomorrowSubject?.nome || 'Revisão')}</p>
-                    <SubjectBadge subject={tomorrowSubject} size="sm" className="mt-1" />
-                  </div>
-                </div>
-              </div>
 
               {/* Revision Queue Widget — only shown when there are pending reviews */}
               {revisaoPendente > 0 && (
@@ -302,101 +331,40 @@ const DashboardPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Weekly Goal Card */}
-              {weeklyStats && (
-                <div className="md:col-span-3 bg-card border border-border rounded-2xl p-5 shadow-sm animate-slide-up" style={{ animationDelay: '0.38s' }}>
-                  <div className="flex flex-col sm:flex-row items-center gap-5">
-                    <div className="shrink-0">
-                      <div className="relative w-20 h-20 flex items-center justify-center">
-                        <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-                          <circle cx="50" cy="50" r="40" className="stroke-muted fill-none" strokeWidth="9" />
-                          <circle
-                            cx="50" cy="50" r="40"
-                            className="stroke-primary fill-none transition-all duration-1000"
-                            strokeWidth="9"
-                            strokeDasharray="251.33"
-                            strokeDashoffset={251.33 - (251.33 * Math.min(weeklyStats.horasRealizadas / weeklyStats.horasMeta, 1))}
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                        <span className="text-sm font-bold">
-                          {Math.min(Math.round((weeklyStats.horasRealizadas / weeklyStats.horasMeta) * 100), 100)}%
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex-1 text-center sm:text-left">
-                      <div className="flex items-center gap-2 mb-1 justify-center sm:justify-start">
-                        <Target className="h-4 w-4 text-primary" />
-                        <h3 className="font-semibold">Meta Semanal</h3>
-                      </div>
-                      <p className="text-muted-foreground text-sm">
-                        <strong className="text-foreground">{weeklyStats.horasRealizadas}h</strong> de{' '}
-                        <strong className="text-foreground">{weeklyStats.horasMeta}h</strong> esta semana
-                      </p>
-                      <div className="mt-2 h-2 w-full max-w-xs bg-muted rounded-full overflow-hidden mx-auto sm:mx-0">
-                        <div
-                          className="h-full bg-primary rounded-full transition-all duration-1000"
-                          style={{ width: `${Math.min((weeklyStats.horasRealizadas / weeklyStats.horasMeta) * 100, 100)}%` }}
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {weeklyStats.horasRealizadas >= weeklyStats.horasMeta
-                          ? '🎉 Meta da semana atingida!'
-                          : `Faltam ${(weeklyStats.horasMeta - weeklyStats.horasRealizadas).toFixed(1)}h para bater a meta`}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Daily Missions Widget */}
               <div className="md:col-span-3 animate-slide-up" style={{ animationDelay: '0.4s' }}>
                 <MissoesWidget />
               </div>
 
-              {/* Monthly Stats Section */}
+              {/* Monthly Stats Section — consolidated */}
               <div className="md:col-span-3 mt-2 animate-slide-up">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-bold">Estatísticas do Mês</h3>
-                  <Button variant="ghost" size="sm" asChild className="text-primary hover:bg-primary/10">
-                    <Link to="/analise">
-                      Ver Análise <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                    <StatsCard
-                      label="Total Estudado"
-                      value={`${monthlyStats.totalHours}h`}
-                      icon={<Clock className="h-5 w-5" />}
-                      description="Horas de estudo este mes"
-                    />
+                <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-sm animate-fade-in" style={{ animationDelay: '0.4s' }}>
+                  {/* Header row: title + mini stats + link */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 mb-5">
+                    <div className="flex items-center justify-between flex-1 min-w-0">
+                      <h3 className="text-base font-bold">Este Mês</h3>
+                      <Button variant="ghost" size="sm" asChild className="text-primary hover:bg-primary/10 shrink-0">
+                        <Link to="/analise">
+                          Ver Análise <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
+                    </div>
+                    <div className="flex gap-4 sm:gap-6 shrink-0">
+                      <div className="text-center">
+                        <p className="text-lg font-bold leading-tight">{monthlyStats.totalHours}h</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-lg font-bold leading-tight truncate max-w-[80px]">{monthlyStats.topSubject || '—'}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Top Matéria</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-lg font-bold leading-tight">{monthlyStats.avgSessionMins}m</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Média/Sessão</p>
+                      </div>
+                    </div>
                   </div>
-
-                  <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                    <StatsCard
-                      label="Mais Estudada"
-                      value={monthlyStats.topSubject || 'Nenhuma'}
-                      icon={<Target className="h-5 w-5" />}
-                      description="Sua materia favorita"
-                    />
-                  </div>
-
-                  <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
-                    <StatsCard
-                      label="Media por Sessao"
-                      value={`${monthlyStats.avgSessionMins}m`}
-                      icon={<BarChart3 className="h-5 w-5" />}
-                      description="Tempo medio de estudo"
-                    />
-                  </div>
-                </div>
-
-                {/* Monthly Hours Bar Chart */}
-                <div className="mt-6 bg-card border border-border rounded-2xl p-6 shadow-sm animate-fade-in" style={{ animationDelay: '0.4s' }}>
-                  <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">Horas por Dia</h4>
                   <MonthlyStatsChart sessions={monthlySessions} />
                 </div>
               </div>

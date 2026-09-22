@@ -93,7 +93,7 @@ const StudySessionPage: React.FC = () => {
       </Helmet>
 
       <div>
-        <main className="container mx-auto px-4 py-8 max-w-4xl">
+        <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-4xl">
 
           {/* Header: materia do dia */}
           {schedule && todaySubject && (
@@ -130,30 +130,32 @@ const StudySessionPage: React.FC = () => {
             </Card>
           )}
 
-          {/* Progress bar to 4h goal */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-muted-foreground">
-                Progresso diário
-              </span>
-              <span className="text-sm font-bold">
-                {getCumulativeMinutes()}min / 240min
-              </span>
-            </div>
-            <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
-              <div
-                className="bg-gradient-to-r from-blue-500 via-primary to-amber-500 h-full transition-all duration-300"
-                style={{
-                  width: `${Math.min((getCumulativeMinutes() / 240) * 100, 100)}%`,
-                }}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {getCumulativeMinutes() >= 240
-                ? '✨ Meta atingida! Parabéns!'
-                : `${240 - getCumulativeMinutes()} minutos restantes`}
-            </p>
-          </div>
+          {/* Progress bar to daily goal */}
+          {(() => {
+            const metaMinutos = Math.round((currentUser?.meta_diaria_horas ?? 4) * 60);
+            const current = getCumulativeMinutes();
+            const pct = Math.min((current / metaMinutos) * 100, 100);
+            const remaining = metaMinutos - current;
+            return (
+              <div className="mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-muted-foreground">Progresso diário</span>
+                  <span className="text-sm font-bold">{current}min / {metaMinutos}min</span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-blue-500 via-primary to-amber-500 h-full transition-all duration-300"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {current >= metaMinutos
+                    ? '✨ Meta atingida! Parabéns!'
+                    : `${remaining} minutos restantes`}
+                </p>
+              </div>
+            );
+          })()}
 
           {/* Timer mode selector */}
           <div className="mb-6 flex gap-3">

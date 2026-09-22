@@ -122,22 +122,22 @@ const ProgressAnalysisPage: React.FC = () => {
       </Helmet>
 
       <div>
-        <main className="container mx-auto px-4 py-8 max-w-7xl">
+        <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-7xl">
 
           {/* Header with period filter */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
             <div>
-              <h1 className="text-3xl font-bold md:text-4xl tracking-tight mb-2">Analise de Progresso</h1>
-              <p className="text-muted-foreground text-lg">Acompanhe sua evolucao e distribuicao de tempo.</p>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-1">Analise de Progresso</h1>
+              <p className="text-muted-foreground text-sm sm:text-base">Acompanhe sua evolucao e distribuicao de tempo.</p>
             </div>
-            <div className="flex flex-wrap gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
+            <div className="flex gap-1.5 bg-muted/50 p-1.5 rounded-xl border border-border overflow-x-auto shrink-0">
               {PERIOD_OPTIONS.map(p => (
                 <Button
                   key={p.id}
                   variant={period === p.id ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setPeriod(p.id)}
-                  className={`rounded-lg ${period === p.id ? 'shadow-sm' : 'hover:bg-background'}`}
+                  className={`rounded-lg whitespace-nowrap ${period === p.id ? 'shadow-sm' : 'hover:bg-background'}`}
                 >
                   {p.label}
                 </Button>
@@ -173,14 +173,14 @@ const ProgressAnalysisPage: React.FC = () => {
           </div>
 
           {/* Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             {/* Bar Chart */}
             <Card className="flex flex-col animate-fade-in">
-              <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-muted-foreground" />
                 Horas por Materia ({periodLabel})
               </h3>
-              <div className="flex-1 min-h-[350px]">
+              <div className="flex-1 min-h-[280px] sm:min-h-[350px]">
                 {subjectData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={subjectData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
@@ -203,11 +203,11 @@ const ProgressAnalysisPage: React.FC = () => {
 
             {/* Line Chart */}
             <Card className="flex flex-col animate-fade-in" style={{ animationDelay: '0.1s' }}>
-              <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-muted-foreground" />
                 Evolucao Acumulada ({periodLabel})
               </h3>
-              <div className="flex-1 min-h-[350px]">
+              <div className="flex-1 min-h-[280px] sm:min-h-[350px]">
                 {evolutionData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={evolutionData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
@@ -234,11 +234,11 @@ const ProgressAnalysisPage: React.FC = () => {
 
             {/* Pie Chart */}
             <Card className="flex flex-col lg:col-span-2 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-              <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <PieChartIcon className="h-5 w-5 text-muted-foreground" />
                 Distribuicao de Tempo ({periodLabel})
               </h3>
-              <div className="flex-1 min-h-[400px] flex items-center justify-center">
+              <div className="flex-1 min-h-[280px] sm:min-h-[360px] flex items-center justify-center">
                 {subjectData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <RechartsPieChart>
@@ -246,8 +246,8 @@ const ProgressAnalysisPage: React.FC = () => {
                         data={subjectData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={100}
-                        outerRadius={140}
+                        innerRadius="30%"
+                        outerRadius="45%"
                         paddingAngle={2}
                         dataKey="hours"
                         stroke="none"

@@ -2,7 +2,7 @@
 
 **Epic:** Phase 3 — UX/UI Modernization  
 **Project:** alvo-diario  
-**Status:** Planning / Handed off to @ux-design-expert Uma  
+**Status:** InProgress  
 **Created:** 2026-05-08  
 **Effort:** 8-12 hours  
 **Assigned Agent:** @ux-design-expert Uma (UX/UI Design)  
@@ -25,10 +25,10 @@ The platform has grown with multiple features (cronogramas, sessions, analytics,
 ## Scope
 
 ✅ **Confirmed by User:**
-- [ ] Information density (remove clutter, consolidate cards)
-- [ ] Responsive design (mobile 360px, tablet 768px, desktop 1024px+)
-- [ ] Visual hierarchy & spacing (typography, colors, component spacing)
-- [ ] New feature UX prep (AI questions, daily missions visibility)
+- [x] Information density (remove clutter, consolidate cards)
+- [x] Responsive design (mobile 360px, tablet 768px, desktop 1024px+)
+- [x] Visual hierarchy & spacing (typography, colors, component spacing)
+- [x] New feature UX prep (AI questions, daily missions visibility)
 
 ❌ **Out of Scope:**
 - Complete redesign from scratch
