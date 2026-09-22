@@ -84,11 +84,11 @@ const ProfilePage: React.FC = () => {
       </Helmet>
 
       <div>
-        <div className="container mx-auto px-4 py-6 md:py-8">
+        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
           <div className="mx-auto max-w-4xl">
             <div className="mb-8">
-              <h1 className="mb-2 text-3xl font-bold md:text-4xl">Meu Perfil</h1>
-              <p className="text-lg text-muted-foreground">
+              <h1 className="mb-2 text-2xl font-bold sm:text-3xl">Meu Perfil</h1>
+              <p className="text-base text-muted-foreground">
                 Gerencie suas informações e metas
               </p>
             </div>

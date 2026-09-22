@@ -120,10 +120,10 @@ const LoginPage: React.FC = () => {
       </Helmet>
 
       <div className="min-h-screen bg-background">
-        <div className="container mx-auto flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
+        <div className="container mx-auto flex min-h-[calc(100vh-4rem)] items-center justify-center px-3 sm:px-4 py-8 sm:py-12">
           <Card className="w-full max-w-md">
             <CardHeader className="text-center">
-              <CardTitle className="text-3xl">Bem-vindo de volta</CardTitle>
+              <CardTitle className="text-2xl sm:text-3xl">Bem-vindo de volta</CardTitle>
               <CardDescription>
                 Entre para continuar seus estudos
               </CardDescription>

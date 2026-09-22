@@ -88,7 +88,7 @@ const CronogramaPage: React.FC = () => {
       </Helmet>
 
       <div>
-        <div className="container mx-auto px-4 py-6 md:py-8 max-w-7xl">
+        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl">
           <div className="mb-6">
             <h1 className="mb-1.5 text-2xl font-bold md:text-3xl tracking-tight">
               Cronograma de Ciclos
@@ -245,12 +245,13 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={onEdit}>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={onEdit}>
             Editar
           </Button>
           <Button
             variant="outline"
+            size="sm"
             className="border-destructive/50 text-destructive hover:bg-destructive/10"
             onClick={onDelete}
           >
