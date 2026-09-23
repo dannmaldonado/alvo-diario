@@ -17,5 +17,8 @@
   },
   "workspaces": [
     "apps/*"
-  ]
+  ],
+  "overrides": {
+    "shell-quote": "^1.9.0"
+  }
 }
