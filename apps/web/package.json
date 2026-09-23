@@ -91,7 +91,7 @@
     "@typescript-eslint/eslint-plugin": "^8.57.2",
     "@typescript-eslint/parser": "^8.57.2",
     "@vitejs/plugin-react": "^5.1.4",
-    "@vitest/coverage-v8": "^4.1.2",
+    "@vitest/coverage-v8": "^4.1.11",
     "autoprefixer": "^10.4.20",
     "eslint": "^8.57.1",
     "eslint-import-resolver-alias": "^1.1.2",
@@ -108,6 +108,6 @@
     "terser": "^5.37.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.11"
   }
 }
