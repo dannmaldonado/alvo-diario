@@ -302,3 +302,23 @@ CREATE TABLE IF NOT EXISTS questoes_externas (
   INDEX idx_qext_user_id (user_id),
   INDEX idx_qext_data (user_id, data)
 );
+
+-- Topic progress tracking (persisted checkboxes + question performance per topic)
+CREATE TABLE IF NOT EXISTS topico_progresso (
+  id VARCHAR(36) PRIMARY KEY,
+  user_id VARCHAR(36) NOT NULL,
+  edital_id VARCHAR(36) NOT NULL,
+  materia_nome VARCHAR(255) NOT NULL,
+  topico_nome VARCHAR(500) NOT NULL,
+  batida INT DEFAULT 1,
+  concluido_em TIMESTAMP NULL,
+  questoes_total INT NULL,
+  questoes_acertos INT NULL,
+  created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (edital_id) REFERENCES editais(id) ON DELETE CASCADE,
+  UNIQUE KEY uq_topico_batida (user_id, edital_id, materia_nome, topico_nome, batida),
+  INDEX idx_tp_user_edital (user_id, edital_id),
+  INDEX idx_tp_materia (user_id, edital_id, materia_nome)
+);

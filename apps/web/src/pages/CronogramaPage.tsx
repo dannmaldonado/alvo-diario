@@ -18,12 +18,13 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, ChevronLeft, ChevronRight, FileText, Map } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, FileText, Map, Upload } from 'lucide-react';
 
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import CronogramaList from '@/components/cronograma/CronogramaList';
 import CronogramaForm from '@/components/cronograma/CronogramaForm';
 import { MapaBancaModal } from '@/components/cronograma/MapaBancaModal';
+import { ImportEditalSheet } from '@/components/cronograma/ImportEditalSheet';
 import { EditalVerticalizadoView } from '@/components/cronograma/EditalVerticalizadoView';
 import { CycleRingView } from '@/components/cronograma/CycleRingView';
 import { ConteudoDoDia } from '@/components/cronograma/ConteudoDoDia';
@@ -189,6 +190,7 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
   onNavigate,
 }) => {
   const [showMapaBanca, setShowMapaBanca] = useState(false);
+  const [showImportEdital, setShowImportEdital] = useState(false);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -281,29 +283,45 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
       )}
 
       {/* Linked Edital card */}
-      {cronograma.edital_id && (
-        <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 shrink-0">
-                <FileText className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Edital Verticalizado vinculado</p>
-                <p className="text-sm font-medium">Checklist de estudos disponível</p>
-              </div>
+      <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 shrink-0">
+              <FileText className="h-4 w-4 text-primary" />
             </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Edital Verticalizado</p>
+              <p className="text-sm font-medium">
+                {cronograma.edital_id ? 'Edital vinculado' : 'Nenhum edital vinculado'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
             <Button
               variant="outline"
               size="sm"
-              className="shrink-0"
-              onClick={() => onNavigate(`/editais/${cronograma.edital_id}`)}
+              onClick={() => setShowImportEdital(true)}
             >
-              Ver Edital
+              <Upload className="h-3.5 w-3.5 mr-1.5" />
+              Importar
             </Button>
+            {cronograma.edital_id && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onNavigate(`/editais/${cronograma.edital_id}`)}
+              >
+                Ver Edital
+              </Button>
+            )}
           </div>
         </div>
-      )}
+      </div>
+
+      <ImportEditalSheet
+        open={showImportEdital}
+        onOpenChange={setShowImportEdital}
+      />
 
       {/* Mapa da Banca card — only when banca is defined */}
       {cronograma.banca && cronograma.banca !== 'Sem preferência' && (

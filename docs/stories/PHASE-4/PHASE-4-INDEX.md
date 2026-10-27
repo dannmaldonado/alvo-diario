@@ -18,6 +18,7 @@ Phase 4 foca em aprofundar a experiência do ciclo de estudos: dar ao usuário m
 | # | File | Title | Priority | Effort | Status | Depends On |
 |---|------|-------|----------|--------|--------|------------|
 | 401 | [PHASE-4-STORY-401-AdiantarAssunto.md](PHASE-4-STORY-401-AdiantarAssunto.md) | Adiantar Assunto do Próximo Dia | HIGH | 2-3h | ✅ Done | — |
+| 402 | [PHASE-4-STORY-402-SequenciaTópicos.md](PHASE-4-STORY-402-SequenciaTópicos.md) | Sequência de Tópicos com Import CSV/XLS | HIGH | 5-7h | 🔄 InProgress | — |
 
 ---
 
