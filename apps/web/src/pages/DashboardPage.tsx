@@ -45,7 +45,12 @@ const DashboardPage: React.FC = () => {
     cronograma?.edital_id ?? undefined,
     todayMateriaName || undefined,
   );
-  const topicoAtual = topicoQuery.data?.topicos.find((t) => !t.concluido_em);
+  const todayTopicos = topicoQuery.data?.topicos ?? [];
+  const topicoAtual = todayTopicos.find((t) => !t.concluido_em);
+  const concluidosHoje = todayTopicos.filter((t) => !!t.concluido_em).length;
+  const studySessionUrl = todayMateriaName
+    ? `/study-session?subject=${encodeURIComponent(todayMateriaName)}`
+    : '/study-session';
 
   const handleRatingChange = (rating: DailyRatingValue) => {
     if (todayMeta?.id) {
@@ -165,40 +170,64 @@ const DashboardPage: React.FC = () => {
           {cronograma ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
 
-              {/* Hero Card: Today's Subject */}
-              <div className="md:col-span-2 bg-card border border-border rounded-2xl p-5 sm:p-8 shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[200px] sm:min-h-[260px] md:min-h-[300px] animate-slide-up hover:shadow-xl transition-shadow">
+              {/* Hero Card: Today's Study Plan */}
+              <div className="md:col-span-2 bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-lg relative overflow-hidden flex flex-col gap-4 animate-slide-up hover:shadow-xl transition-shadow">
                 <div className="absolute top-0 right-0 -mt-16 -mr-16 text-primary/5 pointer-events-none">
                   <BookOpen className="w-64 h-64" />
                 </div>
 
-                <div className="relative z-10">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-                    <CalendarDays className="w-4 h-4" />
-                    Matéria de Hoje
+                {/* Header */}
+                <div className="relative z-10 flex items-start justify-between gap-3">
+                  <div>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-2">
+                      <CalendarDays className="w-3.5 h-3.5" />
+                      Hoje · Ciclo {cycleInfo?.cycleNumber || 1}, Dia {cycleInfo?.dayInCycle || 1}
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-balance leading-tight">
+                      {todayMateriaName || 'Revisão Geral'}
+                    </h2>
                   </div>
-
-                  <h2 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mb-3 text-balance">
-                    {typeof todaySubject === 'string' ? todaySubject : (todaySubject?.nome || 'Revisão Geral')}
-                  </h2>
-
-                  {topicoAtual && (
-                    <p className="text-sm text-muted-foreground mb-3 flex items-center gap-1.5">
-                      <BookOpen className="h-3.5 w-3.5 shrink-0 text-primary/70" />
-                      <span className="font-medium text-foreground/80">Tópico atual:</span>
-                      <span className="truncate">{topicoAtual.topico_nome}</span>
-                    </p>
-                  )}
-
-                  <div className="flex items-center gap-3 text-muted-foreground mb-6">
-                    <SubjectBadge subject={todaySubject} size="md" />
-                    <span>·</span>
-                    <span className="text-sm">Ciclo {cycleInfo?.cycleNumber}</span>
-                  </div>
+                  <SubjectBadge subject={todaySubject} size="md" className="shrink-0 mt-1" />
                 </div>
 
+                {/* Topic progress */}
+                {todayTopicos.length > 0 ? (
+                  <div className="relative z-10 bg-muted/40 rounded-xl p-3 space-y-1.5">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Tópicos de hoje
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {concluidosHoje}/{todayTopicos.length} concluídos
+                      </span>
+                    </div>
+                    {todayTopicos.slice(0, 4).map((t, i) => (
+                      <div key={i} className={`flex items-center gap-2 text-sm ${t.concluido_em ? 'opacity-50 line-through' : ''}`}>
+                        <div className={`h-2 w-2 rounded-full shrink-0 ${t.concluido_em ? 'bg-emerald-500' : i === 0 ? 'bg-primary' : 'bg-muted-foreground/30'}`} />
+                        <span className={`truncate ${!t.concluido_em && i === 0 ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                          {t.topico_nome}
+                        </span>
+                        {!t.concluido_em && i === 0 && (
+                          <span className="ml-auto shrink-0 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">atual</span>
+                        )}
+                      </div>
+                    ))}
+                    {todayTopicos.length > 4 && (
+                      <p className="text-xs text-muted-foreground pt-1">+{todayTopicos.length - 4} tópicos</p>
+                    )}
+                  </div>
+                ) : topicoQuery.isFetching ? (
+                  <div className="relative z-10 h-16 bg-muted/30 rounded-xl animate-pulse" />
+                ) : cronograma?.edital_id ? (
+                  <p className="relative z-10 text-sm text-muted-foreground">
+                    Nenhum tópico encontrado para esta matéria no edital.
+                  </p>
+                ) : null}
+
+                {/* Action */}
                 <div className="relative z-10 mt-auto">
-                  <Button size="lg" asChild className="w-full sm:w-auto rounded-xl h-12 sm:h-14 px-6 sm:px-8 text-base sm:text-lg shadow-md hover:shadow-xl transition-all text-black dark:text-black hover:text-black dark:hover:text-black">
-                    <Link to="/study-session">
+                  <Button size="lg" asChild className="w-full rounded-xl h-12 text-base shadow-md hover:shadow-xl transition-all text-black dark:text-black hover:text-black dark:hover:text-black">
+                    <Link to={studySessionUrl}>
                       <Play className="mr-2 h-5 w-5 fill-current" />
                       Iniciar Sessão
                     </Link>

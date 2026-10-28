@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { BookOpen, CalendarDays, Trophy, X, Timer, Clock, FileText, Video } from 'lucide-react';
+import { BookOpen, CalendarDays, Trophy, X, Timer, Clock, FileText, Video, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import SubjectBadge from '@/components/SubjectBadge';
@@ -18,6 +18,7 @@ import PomodoroTimer from '@/components/study/PomodoroTimer';
 import QuizModal from '@/components/study/QuizModal';
 import TodaySessionsList from '@/components/study/TodaySessionsList';
 import { DailyRating } from '@/components/dashboard/DailyRating';
+import { ConteudoDoDia } from '@/components/cronograma/ConteudoDoDia';
 import { useStudySession } from '@/hooks/useStudySession';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTodaySessions } from '@/hooks/queries/useSessoes';
@@ -29,6 +30,7 @@ const StudySessionPage: React.FC = () => {
   const { state, actions } = useStudySession(initialSubject);
   const { currentUser } = useAuth();
   const todaySessionsQuery = useTodaySessions(currentUser?.id);
+  const [showConteudo, setShowConteudo] = React.useState(true);
 
   const {
     schedule,
@@ -99,38 +101,58 @@ const StudySessionPage: React.FC = () => {
         <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-4xl">
 
           {/* Header: materia do dia */}
-          {schedule && todaySubject && (
-            <Card className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="bg-primary/10 p-2 rounded-lg">
-                  <CalendarDays className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground font-medium">
-                    Materia do Dia - Ciclo {cycleInfo?.cycleNumber}, Dia {cycleInfo?.dayInCycle}
-                  </p>
-                  <div className="mt-1">
-                    <SubjectBadge subject={todaySubject} size="md" />
+          {schedule && (
+            <div className="mb-5 space-y-3">
+              {/* Matéria row */}
+              <div className="bg-card border border-border rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="bg-primary/10 p-2 rounded-lg shrink-0">
+                    <CalendarDays className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                      Ciclo {cycleInfo?.cycleNumber} · Dia {cycleInfo?.dayInCycle}
+                    </p>
+                    <p className="font-bold text-base mt-0.5">
+                      {selectedSubject || (todaySubject ? (typeof todaySubject === 'string' ? todaySubject : todaySubject.nome) : 'Selecione uma matéria')}
+                    </p>
                   </div>
                 </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {subjects.length > 1 && (
+                    <Select value={selectedSubject} onValueChange={setSelectedSubject} disabled={isActive}>
+                      <SelectTrigger className="h-8 w-44 text-xs">
+                        <SelectValue placeholder="Trocar matéria" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subjects.map((s, i) => (
+                          <SelectItem key={i} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {schedule?.edital_id && selectedSubject && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-xs gap-1 text-muted-foreground"
+                      onClick={() => setShowConteudo((v) => !v)}
+                    >
+                      {showConteudo ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                      {showConteudo ? 'Ocultar tópicos' : 'Ver tópicos'}
+                    </Button>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <Select
-                  value={selectedSubject}
-                  onValueChange={setSelectedSubject}
-                  disabled={isActive}
-                >
-                  <SelectTrigger className="h-9 w-48 text-sm">
-                    <SelectValue placeholder="Matéria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subjects.map((s, i) => (
-                      <SelectItem key={i} value={s}>{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </Card>
+
+              {/* ConteudoDoDia inline */}
+              {schedule?.edital_id && selectedSubject && showConteudo && (
+                <ConteudoDoDia
+                  cronograma={schedule}
+                  materiaName={selectedSubject}
+                />
+              )}
+            </div>
           )}
 
           {/* Progress bar to daily goal */}

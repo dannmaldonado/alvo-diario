@@ -5,11 +5,14 @@
  */
 
 import { useEffect, useMemo, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { useActiveCronograma } from '@/hooks/queries/useCronogramas';
+import { useActiveCronograma, cronogramaKeys } from '@/hooks/queries/useCronogramas';
 import { useTodayMeta, useCreateMeta, useUpdateMetaRating } from '@/hooks/queries/useMetas';
 import { useSessoesByDateRange } from '@/hooks/queries/useSessoes';
 import { useScheduleCalculator } from '@/hooks/useScheduleCalculator';
+import { useEditalDetail } from '@/hooks/queries/useEditais';
+import { apiClient } from '@/services/api';
 import { Materia } from '@/types';
 
 interface MonthlyStats {
@@ -31,11 +34,33 @@ export function useDashboardData() {
 
   const userId = currentUser?.id;
 
+  const queryClient = useQueryClient();
+
   // Parallel queries -- TanStack Query deduplicates and caches automatically
   const cronogramaQuery = useActiveCronograma(userId);
   const todayMetaQuery = useTodayMeta(userId);
   const createMetaMutation = useCreateMeta();
   const updateRatingMutation = useUpdateMetaRating();
+
+  // Auto-sync: if cronograma has edital_id but no materias, pull materias from edital silently
+  const cronograma = cronogramaQuery.data;
+  const needsSync = !!cronograma?.edital_id && !(cronograma?.materias?.length);
+  const editalForSyncQuery = useEditalDetail(needsSync ? (cronograma?.edital_id ?? undefined) : undefined);
+  const syncedRef = useRef(false);
+
+  useEffect(() => {
+    if (!cronograma || !editalForSyncQuery.data || syncedRef.current) return;
+    if (cronograma.materias?.length) return;
+    const editalMaterias: Array<{ nome: string }> = (editalForSyncQuery.data as any).materias ?? [];
+    if (!editalMaterias.length) return;
+    syncedRef.current = true;
+    apiClient
+      .patch(`/api/cronogramas/${cronograma.id}`, {
+        materias: editalMaterias.map((m) => ({ nome: m.nome })),
+      })
+      .then(() => queryClient.invalidateQueries({ queryKey: cronogramaKeys.all }))
+      .catch(console.error);
+  }, [cronograma, editalForSyncQuery.data, queryClient]);
 
   // Date range for monthly sessions
   const now = new Date();
