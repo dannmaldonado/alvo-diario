@@ -30,6 +30,7 @@ import { CycleRingView } from '@/components/cronograma/CycleRingView';
 import { ConteudoDoDia } from '@/components/cronograma/ConteudoDoDia';
 import SubjectBadge from '@/components/SubjectBadge';
 import { useCronogramaManager } from '@/hooks/useCronogramaManager';
+import { useUpdateCronograma } from '@/hooks/queries/useCronogramas';
 
 const CronogramaPage: React.FC = () => {
   const manager = useCronogramaManager();
@@ -191,6 +192,7 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
 }) => {
   const [showMapaBanca, setShowMapaBanca] = useState(false);
   const [showImportEdital, setShowImportEdital] = useState(false);
+  const updateCronograma = useUpdateCronograma();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -321,6 +323,9 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
       <ImportEditalSheet
         open={showImportEdital}
         onOpenChange={setShowImportEdital}
+        onSuccess={(edital) => {
+          updateCronograma.mutate({ id: cronograma.id, data: { edital_id: edital.id } });
+        }}
       />
 
       {/* Mapa da Banca card — only when banca is defined */}
