@@ -11,6 +11,7 @@ import { Card } from '@/components/Card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useQuestoesRevisao } from '@/hooks/queries/useQuestoes';
+import { useTopicoProgresso } from '@/hooks/queries/useTopicoProgresso';
 import MonthlyStatsChart from '@/components/dashboard/MonthlyStatsChart';
 import { DailyRating } from '@/components/dashboard/DailyRating';
 import { MissoesWidget } from '@/components/dashboard/MissoesWidget';
@@ -35,6 +36,16 @@ const DashboardPage: React.FC = () => {
 
   const revisaoQuery = useQuestoesRevisao();
   const revisaoPendente = revisaoQuery.data?.length ?? 0;
+
+  // Today's topic from edital (requires cronograma.edital_id + today's subject)
+  const todayMateriaName = todaySubject
+    ? typeof todaySubject === 'string' ? todaySubject : todaySubject.nome
+    : '';
+  const topicoQuery = useTopicoProgresso(
+    cronograma?.edital_id ?? undefined,
+    todayMateriaName || undefined,
+  );
+  const topicoAtual = topicoQuery.data?.topicos.find((t) => !t.concluido_em);
 
   const handleRatingChange = (rating: DailyRatingValue) => {
     if (todayMeta?.id) {
@@ -169,6 +180,14 @@ const DashboardPage: React.FC = () => {
                   <h2 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mb-3 text-balance">
                     {typeof todaySubject === 'string' ? todaySubject : (todaySubject?.nome || 'Revisão Geral')}
                   </h2>
+
+                  {topicoAtual && (
+                    <p className="text-sm text-muted-foreground mb-3 flex items-center gap-1.5">
+                      <BookOpen className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+                      <span className="font-medium text-foreground/80">Tópico atual:</span>
+                      <span className="truncate">{topicoAtual.topico_nome}</span>
+                    </p>
+                  )}
 
                   <div className="flex items-center gap-3 text-muted-foreground mb-6">
                     <SubjectBadge subject={todaySubject} size="md" />

@@ -324,7 +324,13 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
         open={showImportEdital}
         onOpenChange={setShowImportEdital}
         onSuccess={(edital) => {
-          updateCronograma.mutate({ id: cronograma.id, data: { edital_id: edital.id } });
+          const editalMaterias = (edital as any).materias ?? [];
+          const data: Record<string, unknown> = { edital_id: edital.id };
+          // Auto-populate cycle rotation from edital materias when cycle is empty
+          if (!cronograma.materias?.length && editalMaterias.length > 0) {
+            data.materias = editalMaterias.map((m: { nome: string }) => ({ nome: m.nome }));
+          }
+          updateCronograma.mutate({ id: cronograma.id, data: data as Parameters<typeof updateCronograma.mutate>[0]['data'] });
         }}
       />
 
