@@ -4,7 +4,7 @@
  * and provides CRUD via modal form + AlertDialog delete confirmation.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -67,22 +67,23 @@ const CronogramaPage: React.FC = () => {
 
   const updateCronogramaForLink = useUpdateCronograma();
   const editaisQueryForLink = useEditaisList();
+  const linkDialogTriggeredRef = useRef(false);
 
-  // When arriving from /editais with ?edital_id:
-  // - If user has cronogramas, ask to link vs create new
-  // - Otherwise open create modal
+  // When arriving from /editais with ?edital_id, offer to link or create
   useEffect(() => {
-    if (!editalIdParam || isLoading) return;
-    // Already linked somewhere — just open create (let user decide)
-    const alreadyLinked = cronogramas?.some((c: any) => c.edital_id === editalIdParam);
-    if (alreadyLinked) return; // edital already linked; nothing to do
-    if (cronogramas && cronogramas.length > 0) {
+    if (!editalIdParam) return;
+    if (isLoading) return;
+    if (linkDialogTriggeredRef.current) return;
+    const alreadyLinked = cronogramas.some((c: any) => c.edital_id === editalIdParam);
+    if (alreadyLinked) return;
+    linkDialogTriggeredRef.current = true;
+    if (cronogramas.length > 0) {
       setShowLinkDialog(true);
-    } else if (!isModalOpen) {
+    } else {
       openCreate();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editalIdParam, isLoading, cronogramas?.length]);
+  }, [editalIdParam, isLoading, cronogramas.length]);
 
   const handleLinkToExisting = (cronogramaId: string) => {
     const cronograma = cronogramas?.find((c: any) => c.id === cronogramaId);
