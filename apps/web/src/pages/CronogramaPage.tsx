@@ -343,6 +343,31 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
         </div>
       </div>
 
+      {/* Sync banner: edital linked but cycle is empty */}
+      {cronograma.edital_id && !(cronograma.materias?.length) && (
+        <div className="bg-primary/10 border border-primary/30 rounded-2xl p-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold">Ciclo vazio — edital vinculado</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              O edital tem matérias disponíveis. Clique para popular o ciclo automaticamente.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            disabled={updateCronograma.isPending}
+            onClick={() => {
+              const edital = editaisQuery.data?.find((e: any) => e.id === cronograma.edital_id);
+              if (!edital) return;
+              const materias = ((edital as any).materias ?? []).map((m: { nome: string }) => ({ nome: m.nome }));
+              if (!materias.length) return;
+              updateCronograma.mutate({ id: cronograma.id, data: { materias } as any });
+            }}
+          >
+            {updateCronograma.isPending ? 'Sincronizando...' : 'Sincronizar'}
+          </Button>
+        </div>
+      )}
+
       {/* Materias overview */}
       {cronograma.materias && cronograma.materias.length > 0 && (
         <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">

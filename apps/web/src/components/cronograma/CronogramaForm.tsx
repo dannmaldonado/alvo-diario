@@ -117,18 +117,7 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
   const watchedBanca = watch('banca');
   const watchedMaterias = watch('materias');
 
-  // ---- Auto-populate when edital data loads (myEdital mode) ----
-  // `open` is included so this runs AFTER the reset effect when the modal opens
-  // with already-cached edital data (e.g. navigating from EditalDetailPage).
-  useEffect(() => {
-    if (!open || !editalData || editalMode !== 'myEdital') return;
-    setValue('edital', editalData.titulo, { shouldValidate: true });
-    if (editalData.banca) setValue('banca', editalData.banca, { shouldValidate: true });
-    const nomes = editalData.materias.map((m) => m.nome);
-    if (nomes.length > 0) setValue('materias', nomes, { shouldValidate: true });
-  }, [open, editalData, editalMode, setValue]);
-
-  // ---- Reset form when modal opens ----
+  // ---- Reset form when modal opens (must run BEFORE auto-populate) ----
   useEffect(() => {
     if (!open) return;
 
@@ -166,6 +155,17 @@ const CronogramaForm: React.FC<CronogramaFormProps> = ({
       reset({ edital: '', banca: '', materias: [], data_alvo: '', data_inicio: '' });
     }
   }, [open, initialValues, editalId, isEdit, reset]);
+
+  // ---- Auto-populate when edital data loads (myEdital mode) ----
+  // Appears AFTER the reset effect so React runs it second when both deps change together,
+  // ensuring cached edital data fills the form instead of reset clearing it.
+  useEffect(() => {
+    if (!open || !editalData || editalMode !== 'myEdital') return;
+    setValue('edital', editalData.titulo, { shouldValidate: true });
+    if (editalData.banca) setValue('banca', editalData.banca, { shouldValidate: true });
+    const nomes = editalData.materias.map((m) => m.nome);
+    if (nomes.length > 0) setValue('materias', nomes, { shouldValidate: true });
+  }, [open, editalData, editalMode, setValue]);
 
   // ---- Handlers ----
 
