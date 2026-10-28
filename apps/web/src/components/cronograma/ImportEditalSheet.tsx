@@ -84,7 +84,8 @@ function parseFile(file: File): Promise<ParsedEdital> {
     reader.onload = (e) => {
       try {
         const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'binary' });
+        // Use 'array' type so SheetJS handles CP1252/UTF-8 encoding automatically
+        const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
@@ -94,7 +95,7 @@ function parseFile(file: File): Promise<ParsedEdital> {
       }
     };
     reader.onerror = () => reject(new Error('Erro ao ler arquivo.'));
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   });
 }
 

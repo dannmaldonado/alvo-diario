@@ -287,6 +287,9 @@ CREATE TABLE IF NOT EXISTS editais (
 -- Link cronograma → edital (optional)
 ALTER TABLE cronogramas ADD COLUMN edital_id VARCHAR(36) NULL;
 
+-- Add concurso column to editais (added after initial schema; errno 1060 is ignored if already exists)
+ALTER TABLE editais ADD COLUMN concurso VARCHAR(500) NULL;
+
 -- External question log (Gran Concurso, Tec Concurso, simulados, etc.)
 CREATE TABLE IF NOT EXISTS questoes_externas (
   id VARCHAR(36) PRIMARY KEY,
