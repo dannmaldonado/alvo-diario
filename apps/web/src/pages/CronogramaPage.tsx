@@ -38,7 +38,7 @@ const CronogramaPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const editalIdParam = searchParams.get('edital_id');
-  const [showLinkDialog, setShowLinkDialog] = useState(false);
+  const [linkDismissed, setLinkDismissed] = useState(false);
 
   const {
     cronogramas,
@@ -67,21 +67,14 @@ const CronogramaPage: React.FC = () => {
 
   const updateCronogramaForLink = useUpdateCronograma();
   const editaisQueryForLink = useEditaisList();
-  const linkDialogTriggeredRef = useRef(false);
+  // Dialog is open when: came from edital page + data loaded + has cronogramas + not linked + not dismissed
+  const alreadyLinked = !!(editalIdParam && cronogramas.some((c: any) => c.edital_id === editalIdParam));
+  const showLinkDialog = !!editalIdParam && !isLoading && cronogramas.length > 0 && !alreadyLinked && !linkDismissed;
 
-  // When arriving from /editais with ?edital_id, offer to link or create
+  // When no cronogramas exist and edital_id param present, open create modal
   useEffect(() => {
-    if (!editalIdParam) return;
-    if (isLoading) return;
-    if (linkDialogTriggeredRef.current) return;
-    const alreadyLinked = cronogramas.some((c: any) => c.edital_id === editalIdParam);
-    if (alreadyLinked) return;
-    linkDialogTriggeredRef.current = true;
-    if (cronogramas.length > 0) {
-      setShowLinkDialog(true);
-    } else {
-      openCreate();
-    }
+    if (!editalIdParam || isLoading || cronogramas.length > 0 || isModalOpen) return;
+    openCreate();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editalIdParam, isLoading, cronogramas.length]);
 
@@ -96,7 +89,7 @@ const CronogramaPage: React.FC = () => {
     }
     updateCronogramaForLink.mutate(
       { id: cronogramaId, data: data as Parameters<typeof updateCronogramaForLink.mutate>[0]['data'] },
-      { onSuccess: () => { setShowLinkDialog(false); selectCronograma(cronograma); } }
+      { onSuccess: () => { setLinkDismissed(true); selectCronograma(cronograma); } }
     );
   };
 
@@ -155,7 +148,7 @@ const CronogramaPage: React.FC = () => {
       </div>
 
       {/* Link existing cronograma to edital dialog */}
-      <AlertDialog open={showLinkDialog} onOpenChange={(open) => { if (!open) setShowLinkDialog(false); }}>
+      <AlertDialog open={showLinkDialog} onOpenChange={(open) => { if (!open) setLinkDismissed(true); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Vincular edital ao cronograma</AlertDialogTitle>
@@ -181,8 +174,8 @@ const CronogramaPage: React.FC = () => {
             </div>
           )}
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowLinkDialog(false)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { setShowLinkDialog(false); openCreate(); }}>
+            <AlertDialogCancel onClick={() => setLinkDismissed(true)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setLinkDismissed(true); openCreate(); }}>
               Criar Novo Cronograma
             </AlertDialogAction>
           </AlertDialogFooter>
