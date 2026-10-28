@@ -39,6 +39,7 @@ const RevisaoPage          = React.lazy(() => import('@/pages/RevisaoPage'));
 const QuestoesExternasPage = React.lazy(() => import('@/pages/QuestoesExternasPage'));
 const EditaisPage          = React.lazy(() => import('@/pages/EditaisPage'));
 const EditalDetailPage     = React.lazy(() => import('@/pages/EditalDetailPage'));
+const QuizIAPage           = React.lazy(() => import('@/pages/QuizIAPage'));
 const NotFound             = React.lazy(() => import('@/pages/NotFound'));
 
 // ============================================================================
@@ -121,6 +122,7 @@ const App: React.FC = () => {
                   <Route path="/questoes-externas" element={<QuestoesExternasPage />} />
                   <Route path="/editais"           element={<EditaisPage />} />
                   <Route path="/editais/:id"       element={<EditalDetailPage />} />
+                  <Route path="/quiz-ia"           element={<QuizIAPage />} />
                 </Route>
 
                 {/* ── 404 ── */}
