@@ -287,12 +287,18 @@ Regras OBRIGATÓRIAS:
     const anthropic = await getAnthropicClient();
     const msg = await anthropic.messages.create({
       model: 'claude-opus-4-5',
-      max_tokens: 4000,
+      max_tokens: 8192,
       messages: [{ role: 'user', content: prompt }],
     });
 
     const text = msg.content[0].text.trim();
-    const jsonStr = text.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
+    // Strip markdown fences if present
+    let jsonStr = text.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
+    // If response was truncated, try to close incomplete JSON
+    if (!jsonStr.endsWith('}')) {
+      const lastBrace = jsonStr.lastIndexOf('}');
+      if (lastBrace > 0) jsonStr = jsonStr.substring(0, lastBrace + 1) + ']}';
+    }
     const result = JSON.parse(jsonStr);
 
     // Sort materias by questoes descending
