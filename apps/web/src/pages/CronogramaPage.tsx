@@ -38,6 +38,7 @@ const CronogramaPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const editalIdParam = searchParams.get('edital_id');
+  const [showLinkDialog, setShowLinkDialog] = useState(false);
 
   const {
     cronogramas,
@@ -64,13 +65,39 @@ const CronogramaPage: React.FC = () => {
     cycleHelpers,
   } = manager;
 
-  // Auto-open create modal when navigated from /editais/:id with ?edital_id
+  const updateCronogramaForLink = useUpdateCronograma();
+  const editaisQueryForLink = useEditaisList();
+
+  // When arriving from /editais with ?edital_id:
+  // - If user has cronogramas, ask to link vs create new
+  // - Otherwise open create modal
   useEffect(() => {
-    if (editalIdParam && !isLoading && !isModalOpen) {
+    if (!editalIdParam || isLoading) return;
+    // Already linked somewhere — just open create (let user decide)
+    const alreadyLinked = cronogramas?.some((c: any) => c.edital_id === editalIdParam);
+    if (alreadyLinked) return; // edital already linked; nothing to do
+    if (cronogramas && cronogramas.length > 0) {
+      setShowLinkDialog(true);
+    } else if (!isModalOpen) {
       openCreate();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editalIdParam, isLoading]);
+  }, [editalIdParam, isLoading, cronogramas?.length]);
+
+  const handleLinkToExisting = (cronogramaId: string) => {
+    const cronograma = cronogramas?.find((c: any) => c.id === cronogramaId);
+    const edital = editaisQueryForLink.data?.find((e: any) => e.id === editalIdParam);
+    if (!cronograma || !edital) return;
+    const editalMaterias: Array<{ nome: string }> = (edital as any).materias ?? [];
+    const data: Record<string, unknown> = { edital_id: editalIdParam };
+    if (!(cronograma as any).materias?.length && editalMaterias.length > 0) {
+      data.materias = editalMaterias.map((m: { nome: string }) => ({ nome: m.nome }));
+    }
+    updateCronogramaForLink.mutate(
+      { id: cronogramaId, data: data as Parameters<typeof updateCronogramaForLink.mutate>[0]['data'] },
+      { onSuccess: () => { setShowLinkDialog(false); selectCronograma(cronograma); } }
+    );
+  };
 
   if (isLoading) {
     return (
@@ -125,6 +152,41 @@ const CronogramaPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Link existing cronograma to edital dialog */}
+      <AlertDialog open={showLinkDialog} onOpenChange={(open) => { if (!open) setShowLinkDialog(false); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Vincular edital ao cronograma</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você já tem {cronogramas?.length === 1 ? 'um cronograma' : `${cronogramas?.length} cronogramas`}. Deseja vincular este edital a um cronograma existente ou criar um novo?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {cronogramas && cronogramas.length > 0 && (
+            <div className="py-2 space-y-2">
+              {cronogramas.map((c: any) => (
+                <button
+                  key={c.id}
+                  className="w-full text-left rounded-lg border border-border bg-card px-4 py-3 hover:border-primary/60 hover:bg-primary/5 transition-colors"
+                  onClick={() => handleLinkToExisting(c.id)}
+                  disabled={updateCronogramaForLink.isPending}
+                >
+                  <div className="font-medium text-sm">{c.edital}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {c.materias?.length ? `${c.materias.length} matérias` : 'Ciclo vazio'} · {c.status === 'ativo' ? 'Ativo' : c.status}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowLinkDialog(false)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setShowLinkDialog(false); openCreate(); }}>
+              Criar Novo Cronograma
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Create/Edit Modal */}
       <CronogramaForm
