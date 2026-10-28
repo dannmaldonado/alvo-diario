@@ -29,9 +29,10 @@ import { EditalVerticalizadoView } from '@/components/cronograma/EditalVerticali
 import { CycleRingView } from '@/components/cronograma/CycleRingView';
 import { ConteudoDoDia } from '@/components/cronograma/ConteudoDoDia';
 import SubjectBadge from '@/components/SubjectBadge';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCronogramaManager } from '@/hooks/useCronogramaManager';
-import { useUpdateCronograma } from '@/hooks/queries/useCronogramas';
-import { useEditaisList } from '@/hooks/queries/useEditais';
+import { useUpdateCronograma, cronogramaKeys } from '@/hooks/queries/useCronogramas';
+import { useEditaisList, useEditalDetail } from '@/hooks/queries/useEditais';
 
 const CronogramaPage: React.FC = () => {
   const manager = useCronogramaManager();
@@ -250,9 +251,27 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
   const [showMapaBanca, setShowMapaBanca] = useState(false);
   const [showImportEdital, setShowImportEdital] = useState(false);
   const [linkingEdital, setLinkingEdital] = useState(false);
+  const queryClient = useQueryClient();
   const updateCronograma = useUpdateCronograma();
   const editaisQuery = useEditaisList();
+  // Fetch edital detail directly — guaranteed to have full materias array
+  const editalDetailQuery = useEditalDetail(cronograma.edital_id ?? undefined);
   const today = new Date();
+
+  const handleSyncMaterias = () => {
+    const materias = ((editalDetailQuery.data as any)?.materias ?? [])
+      .map((m: { nome: string }) => ({ nome: m.nome }));
+    if (!materias.length) return;
+    updateCronograma.mutate(
+      { id: cronograma.id, data: { materias } as any },
+      {
+        onSuccess: () => {
+          // Force immediate refetch so detail view updates without waiting for staleTime
+          queryClient.refetchQueries({ queryKey: cronogramaKeys.all });
+        },
+      }
+    );
+  };
   today.setHours(0, 0, 0, 0);
 
   const n = cronograma.materias?.length || 0;
@@ -354,16 +373,10 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
           </div>
           <Button
             size="sm"
-            disabled={updateCronograma.isPending}
-            onClick={() => {
-              const edital = editaisQuery.data?.find((e: any) => e.id === cronograma.edital_id);
-              if (!edital) return;
-              const materias = ((edital as any).materias ?? []).map((m: { nome: string }) => ({ nome: m.nome }));
-              if (!materias.length) return;
-              updateCronograma.mutate({ id: cronograma.id, data: { materias } as any });
-            }}
+            disabled={updateCronograma.isPending || !editalDetailQuery.data}
+            onClick={handleSyncMaterias}
           >
-            {updateCronograma.isPending ? 'Sincronizando...' : 'Sincronizar'}
+            {!editalDetailQuery.data ? 'Carregando...' : updateCronograma.isPending ? 'Sincronizando...' : 'Sincronizar'}
           </Button>
         </div>
       )}
