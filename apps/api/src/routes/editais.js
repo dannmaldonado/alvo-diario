@@ -114,8 +114,8 @@ router.post('/import', authMiddleware, async (req, res) => {
     const [created] = await pool.query(`SELECT * FROM editais WHERE id = ?`, [id]);
     res.status(201).json({ ...created[0], materias: JSON.parse(created[0].materias ?? '[]') });
   } catch (error) {
-    console.error('[editais] POST /import', error.message);
-    res.status(500).json({ error: 'Erro ao importar edital.' });
+    console.error('[editais] POST /import', error.message, error.code, error.errno);
+    res.status(500).json({ error: `Erro ao importar edital: ${error.message}` });
   }
 });
 
