@@ -31,6 +31,7 @@ import { ConteudoDoDia } from '@/components/cronograma/ConteudoDoDia';
 import SubjectBadge from '@/components/SubjectBadge';
 import { useCronogramaManager } from '@/hooks/useCronogramaManager';
 import { useUpdateCronograma } from '@/hooks/queries/useCronogramas';
+import { useEditaisList } from '@/hooks/queries/useEditais';
 
 const CronogramaPage: React.FC = () => {
   const manager = useCronogramaManager();
@@ -192,7 +193,9 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
 }) => {
   const [showMapaBanca, setShowMapaBanca] = useState(false);
   const [showImportEdital, setShowImportEdital] = useState(false);
+  const [linkingEdital, setLinkingEdital] = useState(false);
   const updateCronograma = useUpdateCronograma();
+  const editaisQuery = useEditaisList();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -216,6 +219,18 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
       ? todayMateriaRaw
       : todayMateriaRaw.nome
     : '';
+
+  const handleLinkEdital = (editalId: string) => {
+    const edital = editaisQuery.data?.find((e: any) => e.id === editalId);
+    if (!edital) return;
+    const editalMaterias: Array<{ nome: string }> = (edital as any).materias ?? [];
+    const data: Record<string, unknown> = { edital_id: editalId };
+    if (!cronograma.materias?.length && editalMaterias.length > 0) {
+      data.materias = editalMaterias.map((m: { nome: string }) => ({ nome: m.nome }));
+    }
+    updateCronograma.mutate({ id: cronograma.id, data: data as Parameters<typeof updateCronograma.mutate>[0]['data'] });
+    setLinkingEdital(false);
+  };
 
   // Next matéria in the cycle — for "Adiantar" CTA (only relevant when > 1 subject)
   const nextMateriaRaw = n > 1 ? cronograma.materias[(currentRingIndex + 1) % n] : null;
@@ -294,11 +309,22 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
             <div>
               <p className="text-xs text-muted-foreground">Edital Verticalizado</p>
               <p className="text-sm font-medium">
-                {cronograma.edital_id ? 'Edital vinculado' : 'Nenhum edital vinculado'}
+                {cronograma.edital_id
+                  ? (editaisQuery.data?.find((e: any) => e.id === cronograma.edital_id) as any)?.titulo ?? 'Edital vinculado'
+                  : 'Nenhum edital vinculado'}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {!cronograma.edital_id && (editaisQuery.data?.length ?? 0) > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLinkingEdital((v) => !v)}
+              >
+                Vincular
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -318,6 +344,23 @@ const CronogramaDetail: React.FC<CronogramaDetailProps> = ({
             )}
           </div>
         </div>
+        {linkingEdital && !cronograma.edital_id && (
+          <div className="mt-3 pt-3 border-t border-border">
+            <p className="text-xs text-muted-foreground mb-2">Selecione um edital para vincular e popular o ciclo:</p>
+            <select
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              defaultValue=""
+              onChange={(e) => { if (e.target.value) handleLinkEdital(e.target.value); }}
+            >
+              <option value="" disabled>Escolher edital...</option>
+              {editaisQuery.data?.map((e: any) => (
+                <option key={e.id} value={e.id}>
+                  {e.titulo}{e.cargo ? ` — ${e.cargo}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <ImportEditalSheet
