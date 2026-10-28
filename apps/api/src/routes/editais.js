@@ -102,7 +102,8 @@ router.post('/import', authMiddleware, async (req, res) => {
         [banca ?? null, cargo ?? null, concurso ?? null, JSON.stringify(materias), editalId, req.user.id]
       );
       const [updated] = await pool.query(`SELECT * FROM editais WHERE id = ?`, [editalId]);
-      return res.json({ ...updated[0], materias: JSON.parse(updated[0].materias ?? '[]') });
+      const row = updated[0];
+      return res.json({ ...row, materias: typeof row.materias === 'string' ? JSON.parse(row.materias || '[]') : (row.materias ?? []) });
     }
 
     const id = uuidv4();
@@ -112,7 +113,8 @@ router.post('/import', authMiddleware, async (req, res) => {
       [id, req.user.id, titulo, banca ?? null, cargo ?? null, concurso ?? null, JSON.stringify(materias)]
     );
     const [created] = await pool.query(`SELECT * FROM editais WHERE id = ?`, [id]);
-    res.status(201).json({ ...created[0], materias: JSON.parse(created[0].materias ?? '[]') });
+    const row = created[0];
+    res.status(201).json({ ...row, materias: typeof row.materias === 'string' ? JSON.parse(row.materias || '[]') : (row.materias ?? []) });
   } catch (error) {
     console.error('[editais] POST /import', error.message, error.code, error.errno);
     res.status(500).json({ error: `Erro ao importar edital: ${error.message}` });
