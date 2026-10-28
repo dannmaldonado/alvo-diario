@@ -4,7 +4,7 @@
  * and selected cronograma for detail/cycle view.
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   useCronogramaList,
@@ -114,6 +114,14 @@ export function useCronogramaManager(): CronogramaManagerReturn {
   const cronogramas = listQuery.data ?? [];
   const activeCronograma = activeQuery.data ?? null;
   const activeCronogramaId = activeCronograma?.id ?? null;
+
+  // Keep selectedCronograma in sync with fresh list data after mutations/refetches
+  useEffect(() => {
+    if (!selectedCronograma) return;
+    const fresh = cronogramas.find((c) => c.id === selectedCronograma.id);
+    if (fresh) setSelectedCronograma(fresh);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cronogramas]);
 
   // ---- Selection Actions ----
 
