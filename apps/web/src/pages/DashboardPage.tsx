@@ -357,21 +357,21 @@ const DashboardPage: React.FC = () => {
               </div>
 
 
-              {/* Revision Queue Widget — only shown when there are pending reviews */}
+              {/* Revision Queue Widget — beside Meta Diaria (col-span-1 fills the 1-col gap) */}
               {revisaoPendente > 0 && (
-                <div className="md:col-span-3 bg-primary/5 border border-primary/20 rounded-2xl p-5 flex items-center gap-5 animate-slide-up" style={{ animationDelay: '0.35s' }}>
-                  <div className="shrink-0 p-3 rounded-xl bg-primary/10">
-                    <Brain className="h-7 w-7 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-base">
+                <div className="md:col-span-1 bg-primary/5 border border-primary/20 rounded-2xl p-5 flex flex-col gap-4 animate-slide-up" style={{ animationDelay: '0.35s' }}>
+                  <div className="flex items-center gap-3">
+                    <div className="shrink-0 p-2.5 rounded-xl bg-primary/10">
+                      <Brain className="h-5 w-5 text-primary" />
+                    </div>
+                    <p className="font-semibold text-sm leading-tight">
                       {revisaoPendente} {revisaoPendente === 1 ? 'questão' : 'questões'} para revisar hoje
                     </p>
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      Repetição espaçada — revise para não esquecer o que aprendeu.
-                    </p>
                   </div>
-                  <Button asChild size="sm" className="shrink-0">
+                  <p className="text-xs text-muted-foreground">
+                    Repetição espaçada — revise para não esquecer o que aprendeu.
+                  </p>
+                  <Button asChild size="sm" className="w-full">
                     <Link to="/revisao">
                       Revisar Agora <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
