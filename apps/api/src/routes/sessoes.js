@@ -21,6 +21,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
     res.json(sessoes);
   } catch (error) {
+    console.error('[sessoes] GET / error:', error.message, error.stack?.split('\n')[1]);
     res.status(500).json({ error: error.message });
   }
 });
