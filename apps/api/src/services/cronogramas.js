@@ -123,7 +123,7 @@ export const updateCronograma = async (userId, id, data) => {
     };
 
     const materiasJson = JSON.stringify(updates.materias);
-    console.info(`[cronogramas UPDATE] id=${id} materias_count=${Array.isArray(updates.materias) ? updates.materias.length : 'N/A'} materiasJson_prefix=${materiasJson?.substring(0, 80)}`);
+    console.info(`[cronogramas UPDATE] id=${id} userId=${userId} materias_count=${Array.isArray(updates.materias) ? updates.materias.length : 'N/A'} materiasJson_prefix=${materiasJson?.substring(0, 80)}`);
 
     let verticalizacaoJson = null;
     if (updates.verticalizacao) {
@@ -134,10 +134,15 @@ export const updateCronograma = async (userId, id, data) => {
       }
     }
 
-    await connection.query(
+    const [updateResult] = await connection.query(
       'UPDATE cronogramas SET edital = ?, edital_id = ?, banca = ?, data_alvo = ?, data_inicio = ?, materias = ?, status = ?, verticalizacao = ? WHERE id = ? AND user_id = ?',
       [updates.edital, updates.edital_id || null, updates.banca, updates.data_alvo, updates.data_inicio, materiasJson, updates.status, verticalizacaoJson, id, userId]
     );
+    console.info(`[cronogramas UPDATE result] affectedRows=${updateResult.affectedRows} changedRows=${updateResult.changedRows}`);
+
+    // Read back to verify what's actually in DB
+    const [verify] = await connection.query('SELECT materias FROM cronogramas WHERE id = ?', [id]);
+    console.info(`[cronogramas UPDATE verify] stored=${String(verify[0]?.materias).substring(0, 80)}`);
 
     return getCronogramaById(userId, id);
   } finally {
