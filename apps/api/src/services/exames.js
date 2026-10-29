@@ -1,6 +1,15 @@
 import { v4 as uuidv4 } from 'uuid';
 import { pool } from '../db/connection.js';
 
+// mysql2 auto-parses JSON columns — handle both string and already-parsed value
+const parseRespostas = (raw) => {
+  if (!raw) return [];
+  if (typeof raw === 'string') {
+    try { return JSON.parse(raw); } catch (_) { return []; }
+  }
+  return raw; // already a JS object/array
+};
+
 export const saveExame = async (userId, data) => {
   const connection = await pool.getConnection();
   try {
@@ -18,7 +27,7 @@ export const saveExame = async (userId, data) => {
       'SELECT * FROM exames_diarios WHERE user_id = ? AND data = ?',
       [userId, today]
     );
-    return { ...rows[0], respostas: JSON.parse(rows[0].respostas) };
+    return { ...rows[0], respostas: parseRespostas(rows[0].respostas) };
   } finally {
     connection.release();
   }
@@ -32,7 +41,7 @@ export const getExameByDate = async (userId, date) => {
       [userId, date]
     );
     if (rows.length === 0) return null;
-    return { ...rows[0], respostas: JSON.parse(rows[0].respostas) };
+    return { ...rows[0], respostas: parseRespostas(rows[0].respostas) };
   } finally {
     connection.release();
   }
@@ -45,7 +54,7 @@ export const getExamesRecentes = async (userId, limit = 30) => {
       'SELECT * FROM exames_diarios WHERE user_id = ? ORDER BY data DESC LIMIT ?',
       [userId, limit]
     );
-    return rows.map(r => ({ ...r, respostas: JSON.parse(r.respostas) }));
+    return rows.map(r => ({ ...r, respostas: parseRespostas(r.respostas) }));
   } finally {
     connection.release();
   }
