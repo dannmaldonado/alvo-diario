@@ -122,6 +122,9 @@ export const updateCronograma = async (userId, id, data) => {
       verticalizacao: data.verticalizacao !== undefined ? data.verticalizacao : cronograma.verticalizacao,
     };
 
+    const materiasJson = JSON.stringify(updates.materias);
+    console.info(`[cronogramas UPDATE] id=${id} materias_count=${Array.isArray(updates.materias) ? updates.materias.length : 'N/A'} materiasJson_prefix=${materiasJson?.substring(0, 80)}`);
+
     let verticalizacaoJson = null;
     if (updates.verticalizacao) {
       try {
@@ -133,7 +136,7 @@ export const updateCronograma = async (userId, id, data) => {
 
     await connection.query(
       'UPDATE cronogramas SET edital = ?, edital_id = ?, banca = ?, data_alvo = ?, data_inicio = ?, materias = ?, status = ?, verticalizacao = ? WHERE id = ? AND user_id = ?',
-      [updates.edital, updates.edital_id || null, updates.banca, updates.data_alvo, updates.data_inicio, JSON.stringify(updates.materias), updates.status, verticalizacaoJson, id, userId]
+      [updates.edital, updates.edital_id || null, updates.banca, updates.data_alvo, updates.data_inicio, materiasJson, updates.status, verticalizacaoJson, id, userId]
     );
 
     return getCronogramaById(userId, id);
